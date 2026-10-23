@@ -1,26 +1,22 @@
 import { useEffect, useState } from 'react';
 import TextField from '../../components/auth/TextField.jsx';
 import cx from '../../utils/cx.js';
-import { listProjectStories } from '../individual/individualApi.js';
-import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
 import { IconCheckCircle, IconClose, IconRefresh, IconSend } from '../ui/DashIcons.jsx';
 import Modal, { ModalFooter } from '../ui/Modal.jsx';
 import { useToast } from '../ui/Toast.jsx';
-import { approveSubmission, listStageReviewers, reopenStage, requestChanges, submitStage } from './employeeApi.js';
+import { approveSubmission, itemLabel, listStageReviewers, reopenStage, requestChanges, submitStage } from './employeeApi.js';
 import { STAGES } from './stages.js';
 import e from './Employee.module.css';
 
 /**
- * Submit for review: pick one of the reviewers of THIS stage on the project (the backend only offers those), add a
- * note, and, for the Story, which story to send (the newest one is picked).
+ * Submit one story's stage for review: pick one of the reviewers of THIS stage on the project (the backend only offers
+ * those) and add a note. `story` is the story it is about ({ id, title }); every story has its own stages.
  */
-export function SubmitModal({ open, project, stage, onClose, onDone }) {
+export function SubmitModal({ open, project, stage, story, onClose, onDone }) {
   const toast = useToast();
   const [reviewers, setReviewers] = useState(null);
-  const [stories, setStories] = useState([]);
   const [reviewer, setReviewer] = useState('');
-  const [storyId, setStoryId] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -37,24 +33,16 @@ export function SubmitModal({ open, project, stage, onClose, onDone }) {
         if (list.length === 1) setReviewer(String(list[0].userId));
       })
       .catch((err) => setError(err.message));
-    if (stage.key === 'story') {
-      listProjectStories(project.id)
-        .then((list) => {
-          setStories(list);
-          setStoryId(list[0] ? String(list[0].id) : '');
-        })
-        .catch(() => setStories([]));
-    }
   }, [open, project, stage]);
 
   const send = async (event) => {
     event.preventDefault();
     if (!reviewer) return setError('Choose who should review it.');
-    if (stage.key === 'story' && !storyId) return setError('Write or import the story first.');
+    if (!story?.id) return setError('Write or import the story first.');
     setBusy(true);
     setError('');
     try {
-      const sent = await submitStage(project.id, stage.key, { reviewerUserId: reviewer, note, storyId: stage.key === 'story' ? storyId : null });
+      const sent = await submitStage(project.id, stage.key, { reviewerUserId: reviewer, note, storyId: story.id });
       toast(`Sent to ${sent.reviewer?.name || 'the reviewer'} for review`);
       onDone?.(sent);
       onClose();
@@ -65,29 +53,21 @@ export function SubmitModal({ open, project, stage, onClose, onDone }) {
   };
 
   return (
-    <Modal open={open} onClose={busy ? () => {} : onClose} icon={IconSend} divider title={`Submit the ${stage?.label || ''} for review`} subtitle="Only reviewers of this stage on the project are listed.">
+    <Modal
+      open={open}
+      onClose={busy ? () => {} : onClose}
+      icon={IconSend}
+      divider
+      title={stage?.key === 'story' ? 'Submit the story for review' : `Submit the ${stage?.label || ''} for review`}
+      subtitle={story ? `“${story.title}”. Only reviewers of this stage on the project are listed.` : 'Only reviewers of this stage on the project are listed.'}
+    >
       <form onSubmit={send}>
-        {stage?.key === 'story' && stories.length > 1 && (
-          <>
-            <label className={e.fieldLabel} htmlFor="submit-story">
-              Which story
-            </label>
-            <select id="submit-story" className={e.select} value={storyId} onChange={(ev) => setStoryId(ev.target.value)} disabled={busy}>
-              {stories.map((st) => (
-                <option key={st.id} value={st.id}>
-                  {st.title}
-                  {st.updatedAt ? `, updated ${timeAgo(st.updatedAt)}` : ''}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
         <p className={e.fieldLabel} id="submit-reviewer-label">
           Reviewer
         </p>
         {!reviewers && !error && <p className={e.small} style={{ marginBottom: 16 }}>Loading the reviewers…</p>}
         {reviewers && reviewers.length === 0 && (
-          <p className={e.warn}>This project has no reviewer for the {stage.label} yet. Ask your Team Leader to add one.</p>
+          <p className={e.warn}>This project has no reviewer for the {stage?.label} yet. Ask your Team Leader to add one.</p>
         )}
         {reviewers && reviewers.length > 0 && (
           <div className={e.choices} role="radiogroup" aria-labelledby="submit-reviewer-label">
@@ -145,7 +125,7 @@ export function AnswerModal({ open, submission, mode, onClose, onDone }) {
     setError('');
     try {
       const done = approving ? await approveSubmission(submission.id, comment) : await requestChanges(submission.id, comment.trim());
-      toast(approving ? `${submission.stageLabel} approved` : 'Changes asked');
+      toast(approving ? `${itemLabel(submission)} approved` : 'Changes asked');
       onDone?.(done);
       onClose();
     } catch (err) {
@@ -161,11 +141,11 @@ export function AnswerModal({ open, submission, mode, onClose, onDone }) {
       onClose={busy ? () => {} : onClose}
       icon={approving ? IconCheckCircle : IconClose}
       divider
-      title={approving ? `Approve the ${submission.stageLabel}` : `Ask for changes to the ${submission.stageLabel}`}
+      title={approving ? `Approve the ${itemLabel(submission)}` : `Ask for changes to the ${itemLabel(submission)}`}
       subtitle={`${submission.projectTitle}, sent by ${submission.submittedBy?.name || 'someone'}`}
     >
       <form onSubmit={answer}>
-        {approving && <p className={e.small} style={{ marginBottom: 14 }}>Once approved, the {submission.stageLabel} is locked, and the stages that need it open for their teams.</p>}
+        {approving && <p className={e.small} style={{ marginBottom: 14 }}>Once approved, it is locked, and the next stages of this story open for their teams.</p>}
         <TextField
           id="answer-comment"
           label={approving ? 'Comment' : 'What should change'}
@@ -197,8 +177,8 @@ export function AnswerModal({ open, submission, mode, onClose, onDone }) {
   );
 }
 
-/** Team Leader: reopen a stage. Every stage after it is locked again until it is approved again. */
-export function ReopenModal({ open, project, stage, onClose, onDone }) {
+/** Team Leader: reopen a stage of one story. Every stage of that story after it is locked again until it is approved again. */
+export function ReopenModal({ open, project, stage, story, onClose, onDone }) {
   const toast = useToast();
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -209,7 +189,7 @@ export function ReopenModal({ open, project, stage, onClose, onDone }) {
       setError('');
     }
   }, [open]);
-  if (!project || !stage) return null;
+  if (!project || !stage || !story) return null;
 
   // the stages after this one that are open or further along now (they go back to locked)
   const after = [];
@@ -223,14 +203,14 @@ export function ReopenModal({ open, project, stage, onClose, onDone }) {
     });
   };
   add(stage.key);
-  const affected = after.map((k) => project.stages.find((x) => x.key === k)).filter((s) => s && s.status !== 'locked');
+  const affected = after.map((k) => story.stages.find((x) => x.key === k)).filter((s) => s && s.status !== 'locked');
 
   const reopen = async (event) => {
     event.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const updated = await reopenStage(project.id, stage.key, reason);
+      const updated = await reopenStage(project.id, stage.key, reason, story.id);
       toast(`${stage.label} reopened`);
       onDone?.(updated);
       onClose();
@@ -241,7 +221,7 @@ export function ReopenModal({ open, project, stage, onClose, onDone }) {
   };
 
   return (
-    <Modal open={open} onClose={busy ? () => {} : onClose} icon={IconRefresh} divider title={`Reopen the ${stage.label}`} subtitle="Its team can change it again, and it goes back for review.">
+    <Modal open={open} onClose={busy ? () => {} : onClose} icon={IconRefresh} divider title={`Reopen the ${stage.label}`} subtitle={`Of “${story.title}”. Its team can change it again, and it goes back for review.`}>
       <form onSubmit={reopen}>
         {affected.length > 0 && (
           <p className={e.warn}>

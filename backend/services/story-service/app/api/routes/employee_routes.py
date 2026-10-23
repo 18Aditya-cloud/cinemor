@@ -134,7 +134,7 @@ def submit_stage(project_id: int, stage: str, request: StageSubmitRequest, curre
 @router.post("/projects/{project_id}/stages/{stage}/reopen")
 def reopen_stage(project_id: int, stage: str, request: StageReopenRequest, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:
-        return EmployeeWorkflowService(db).reopen(project_id, stage, current_user, request.reason)
+        return EmployeeWorkflowService(db).reopen(project_id, stage, current_user, request.reason, request.story_id)
     except WorkflowError as exc:
         raise _fail(exc) from exc
 

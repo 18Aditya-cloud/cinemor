@@ -10,7 +10,7 @@ import Notice from '../ui/Notice.jsx';
 import Pill from '../ui/Pill.jsx';
 import RefreshButton from '../ui/RefreshButton.jsx';
 import pages from '../pages/pages.module.css';
-import { listMySubmissions, listReviews } from './employeeApi.js';
+import { itemLabel,listMySubmissions, listReviews } from './employeeApi.js';
 import { NotificationBell } from './EmployeeParts.jsx';
 import { AnswerModal } from './ReviewModals.jsx';
 import { modulePath, SUBMISSION } from './stages.js';
@@ -92,7 +92,7 @@ export default function EmployeeReviewsPage() {
                 <div className={e.reviewTop}>
                   <div>
                     <p className={e.reviewName}>
-                      {r.stageLabel} <span className={e.small}>of</span> {r.projectTitle}
+                      {itemLabel(r)} <span className={e.small}>in</span> {r.projectTitle}
                     </p>
                     <p className={e.small} style={{ marginTop: 4 }}>
                       {tab === 'sent' ? `Sent to ${r.reviewer?.name}` : `Sent by ${r.submittedBy?.name}`} {timeAgo(r.at)}
@@ -110,7 +110,7 @@ export default function EmployeeReviewsPage() {
                 )}
                 <div className={e.stageActions}>
                   <Button variant="secondary" icon={IconEye} onClick={() => navigate(modulePath(r.projectId, r.stage, r.storyId))}>
-                    Look at the {r.stageLabel}
+                    Look at it
                   </Button>
                   {r.canAct && (
                     <>

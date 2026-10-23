@@ -45,19 +45,27 @@ export function modulePath(projectId, stageKey, storyId) {
   return `${projectPath(projectId)}/${meta.page}${storyId ? `/${storyId}` : ''}`;
 }
 
-/** Things this person can do now, across their projects: the "Up next" list. */
+/** Things this person can do now, across their projects (every story's open stages): the "Up next" list. */
 export function upNext(projects, reviews = []) {
   const items = [];
   projects.forEach((p) => {
-    p.stages.forEach((s) => {
-      if (!s.canWork || !['open', 'changes_requested'].includes(s.status)) return;
-      items.push({
-        key: `w-${p.id}-${s.key}`,
-        kind: s.status === 'changes_requested' ? 'fix' : 'work',
-        project: p,
-        stage: s,
-        title: s.status === 'changes_requested' ? `Make the changes asked for the ${s.label}` : `Work on the ${s.label}`,
-        to: modulePath(p.id, s.key, s.key === 'story' ? null : p.storyId),
+    const story = p.stages.find((s) => s.key === 'story');
+    if (story?.canWork && p.stories.length === 0) {
+      items.push({ key: `new-${p.id}`, kind: 'work', project: p, stage: story, title: 'Write the first story', to: modulePath(p.id, 'story') });
+    }
+    p.stories.forEach((st) => {
+      st.stages.forEach((s) => {
+        if (!s.canWork) return;
+        const what = s.key === 'story' ? `the story “${st.title}”` : `the ${s.label} of “${st.title}”`;
+        items.push({
+          key: `w-${p.id}-${st.id}-${s.key}`,
+          kind: s.status === 'changes_requested' ? 'fix' : 'work',
+          project: p,
+          stage: { ...s, requires: p.stages.find((x) => x.key === s.key)?.requires || [] },
+          story: st,
+          title: s.status === 'changes_requested' ? `Make the changes asked for ${what}` : `Work on ${what}`,
+          to: modulePath(p.id, s.key, st.id),
+        });
       });
     });
   });
@@ -68,7 +76,7 @@ export function upNext(projects, reviews = []) {
         key: `r-${r.id}`,
         kind: 'review',
         review: r,
-        title: `Review ${r.submittedBy?.name || 'someone'}'s ${r.stageLabel}`,
+        title: `Review ${r.submittedBy?.name || 'someone'}'s ${r.storyTitle ? (r.stage === 'story' ? `story “${r.storyTitle}”` : `${r.stageLabel} of “${r.storyTitle}”`) : r.stageLabel}`,
         to: `/employee/reviews?open=${r.id}`,
       });
     });

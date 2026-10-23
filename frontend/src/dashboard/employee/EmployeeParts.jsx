@@ -28,10 +28,12 @@ export function RolePills({ project, max = 3 }) {
 }
 
 /** The six stages as a strip: the person's own stages highlighted, approved ones ticked, locked ones with a lock. */
-export function StageStrip({ project }) {
+export function StageStrip({ project, stages = null }) {
+  const mineOf = Object.fromEntries(project.stages.map((s) => [s.key, s]));
   return (
     <ol className={e.pipe} aria-label="Stages">
-      {project.stages.map((s) => {
+      {(stages || project.stages).map((one) => {
+        const s = { ...one, canReview: mineOf[one.key]?.canReview, canWork: stages ? mineOf[one.key]?.roleAllows : one.canWork };
         const meta = stageMeta(s.key);
         const Icon = s.status === 'approved' ? IconCheck : s.status === 'locked' ? IconLock : meta.icon;
         const mine = s.canWork || s.canReview;
@@ -75,9 +77,11 @@ export function StripLegend() {
 
 /** A project as a card: title, client, the person's roles, the stage strip, progress, Team Leader. */
 export function ProjectCard({ project }) {
-  const pct = Math.round((project.approvedCount / project.totalStages) * 100);
+  const done = project.stories.reduce((n, st) => n + st.approvedCount, 0);
+  const pct = project.storyCount ? Math.round((done / (project.storyCount * project.totalStages)) * 100) : 0;
+  const stories = project.storyCount ? `${project.storyCount} ${project.storyCount === 1 ? 'story' : 'stories'}, ${project.finishedStoryCount} finished` : 'No story yet';
   return (
-    <Link to={projectPath(project.id)} className={e.project} aria-label={`${project.title}, ${project.approvedCount} of ${project.totalStages} stages approved`}>
+    <Link to={projectPath(project.id)} className={e.project} aria-label={`${project.title}, ${stories}`}>
       <div>
         <p className={e.projectTitle}>{project.title}</p>
         <p className={e.small} style={{ marginTop: 4 }}>
@@ -92,7 +96,7 @@ export function ProjectCard({ project }) {
       <div className={e.meta}>
         <span>{project.teamLeader ? `Team Leader: ${project.teamLeader.name}` : ''}</span>
         <span>
-          {project.approvedCount} of {project.totalStages} approved
+          {stories}
         </span>
       </div>
     </Link>

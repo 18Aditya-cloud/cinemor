@@ -837,3 +837,583 @@
   flex: none;
   margin-top: 2px;
 }
+
+
+/* ---------------------------------------------------------------- a project's page: what needs you, then every story */
+.filterBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: var(--d-card-bg);
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.filter:hover {
+  border-color: var(--cm-line-strong);
+  color: var(--cm-ink);
+}
+.filter:focus-visible,
+.rowToggle:focus-visible,
+.moreLink:focus-visible,
+.sortBox select:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.filterOn,
+.filterOn:hover {
+  border-color: var(--cm-ink);
+  background: var(--cm-ink);
+  color: var(--cm-void);
+}
+.filterCount {
+  min-width: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--d-fill-2);
+  font-size: 0.76rem;
+  text-align: center;
+}
+.filterOn .filterCount {
+  background: color-mix(in srgb, var(--cm-void) 22%, transparent);
+}
+.sortBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.sortBox select {
+  padding: 7px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+.sortBox option {
+  background: var(--d-modal-bg, #15122e);
+  color: var(--cm-ink);
+}
+
+.projectLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 22px;
+  align-items: start;
+}
+.projectMain {
+  min-width: 0;
+}
+.projectRail {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+.groupCount {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-size: 0.76rem;
+}
+.moreLink {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-link, var(--cm-violet-hi));
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.moreLink:hover {
+  text-decoration: underline;
+}
+
+/* Ready for you */
+.readyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ready {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--cm-line);
+  border-left: 4px solid var(--cm-violet-hi);
+  border-radius: 20px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.readyReview {
+  border-left-color: var(--d-info-fg);
+}
+.readyFix {
+  border-left-color: var(--d-danger-fg);
+}
+.readyHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 10px;
+}
+.readyHead > :first-child {
+  flex: 1 1 160px;
+}
+.readyHead > :last-child {
+  flex: none;
+}
+.readyText {
+  color: var(--cm-ink-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.readyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.storyLink {
+  color: var(--cm-ink);
+  font-size: 0.98rem;
+  font-weight: 800;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.storyLink:hover {
+  color: var(--cm-violet-hi);
+}
+
+/* All stories: one line per story */
+.storyTable {
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 22px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.storyTableHead,
+.storyLine {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) 164px 88px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+.storyTableHead {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--cm-line);
+  background: var(--d-fill-1);
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+.trackLabels {
+  font-size: 0.68rem;
+}
+.trackLabels,
+.track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.trackLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.trackLabel svg {
+  display: none;
+  flex: none;
+}
+.trackText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seg {
+  height: 10px;
+  border-radius: 9px;
+  background: var(--d-fill-3);
+}
+.segDone {
+  background: var(--d-success-fg);
+}
+.segOpen {
+  background: var(--cm-violet-hi);
+}
+.segReview {
+  background: var(--d-info-fg);
+}
+.segAsk {
+  background: var(--d-danger-fg);
+}
+.segMine {
+  outline: 1.5px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.storyRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.storyItem {
+  border-top: 1px solid var(--cm-line);
+}
+.storyItem:first-child {
+  border-top: 0;
+}
+.storyItemMine {
+  box-shadow: inset 3px 0 0 var(--cm-violet-hi);
+}
+.storyItemOpen {
+  background: var(--d-fill-1);
+}
+.storyName {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.storyNow {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+.rowToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 12px;
+  background: var(--d-btn2-bg, transparent);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rowToggle:hover {
+  border-color: var(--cm-violet-hi);
+}
+.rowTogglePrimary {
+  border-color: transparent;
+  background: linear-gradient(100deg, #4d8bff, #8b5cf6 60%, #b45cff);
+  color: #fff;
+}
+.flip {
+  transform: rotate(180deg);
+}
+.tableEmpty {
+  padding: 18px;
+  color: var(--cm-ink-faint);
+  font-size: 0.86rem;
+}
+.emptyStories {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+}
+
+/* a story opened: its six stages with their buttons */
+.stageCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 2px 18px 18px;
+  list-style: none;
+}
+.stageCard {
+  display: grid;
+  gap: 9px;
+  align-content: start;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: var(--d-card-bg);
+}
+.stageCardMine {
+  border-color: var(--d-violet-bd);
+}
+.stageCardLocked {
+  opacity: 0.8;
+}
+.stageCardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.stageCardHead > :last-child {
+  flex: none;
+}
+.stageCardName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.stageCardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tileSm {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 9px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+}
+.stageRowNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--cm-ink-dim);
+  font-size: 0.79rem;
+  line-height: 1.45;
+}
+.stageRowNote svg {
+  flex: none;
+  margin-top: 2px;
+}
+.trackLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+.trackLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.trackLegend .seg {
+  display: inline-block;
+  width: 16px;
+  height: 7px;
+}
+.trackLegend .segMine {
+  outline-width: 1px;
+}
+
+/* the side */
+.railCard {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+.teamList,
+.railReviews {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.teamLine {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+.teamLineMine {
+  background: var(--d-accent-fill);
+}
+.teamStage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+.teamLineMine .teamStage {
+  color: var(--cm-violet-hi);
+}
+.teamPeople {
+  color: var(--cm-ink-dim);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.teamPeople b {
+  color: var(--cm-ink);
+  font-weight: 700;
+}
+.mineTag {
+  padding: 1px 8px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 999px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.railReview {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cm-line);
+}
+.railReview:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.railReviewTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.railReviewText {
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.railReviewText b {
+  color: var(--cm-ink);
+}
+
+/* The page fits the space it really has (sidebar open or closed, any screen): every part is sized by its own width. */
+.projectPage {
+  container: projpage / inline-size;
+}
+.projectMain {
+  container: projmain / inline-size;
+}
+.storyTable {
+  container: stories / inline-size;
+}
+/* a long state ("Characters changes asked") wraps inside its column instead of running out of it */
+.storyNow > :first-child {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+@container projpage (max-width: 1180px) {
+  .projectLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .projectRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+@container projpage (max-width: 700px) {
+  .projectRail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container projmain (max-width: 640px) {
+  .readyGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* stage names above the bars: words when there is room, the stage icons when there is not */
+@container stories (max-width: 960px) {
+  .trackLabel svg {
+    display: block;
+  }
+  .trackText {
+    display: none;
+  }
+  .stageCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* narrow: each story on two lines (name and button, then its bar and where it stands) */
+@container stories (max-width: 640px) {
+  .storyTableHead {
+    display: none;
+  }
+  .storyLine {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 12px;
+  }
+  .track,
+  .storyNow {
+    grid-column: 1 / -1;
+  }
+  .storyNow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .rowToggle {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .stageCards {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 2px 12px 14px;
+  }
+}

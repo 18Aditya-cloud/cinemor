@@ -20,6 +20,8 @@ class ReviewAnswerRequest(BaseModel):
 
 class StageReopenRequest(BaseModel):
     reason: str | None = Field(default=None, max_length=1000)
+    # which story's stage (every story has its own stages)
+    story_id: int | None = None
 
 
 class NotificationsReadRequest(BaseModel):

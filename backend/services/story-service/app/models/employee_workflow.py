@@ -89,7 +89,7 @@ class OrganizationProjectWorkspace(Base):
 class ProjectWorkflowStage(Base):
     __tablename__ = "project_workflow_stages"
     __table_args__ = (
-        UniqueConstraint("project_id", "stage", name="uq_project_workflow_stage"),
+        UniqueConstraint("project_id", "story_id", "stage", name="uq_project_story_workflow_stage"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -99,7 +99,14 @@ class ProjectWorkflowStage(Base):
         nullable=False,
         index=True,
     )
-
+    
+    # the story this pipeline belongs to (a deleted story takes its pipeline with it)
+    story_id: Mapped[int | None] = mapped_column(
+        ForeignKey("stories.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    
     # story | storyboard | characters | locations | sketches | animation
     stage: Mapped[str] = mapped_column(String(30), nullable=False)
 
@@ -176,6 +183,7 @@ class ProjectStageSubmission(Base):
     submitted_by = relationship("User", foreign_keys=[submitted_by_user_id])
     reviewer = relationship("User", foreign_keys=[reviewer_user_id])
     reviewed_by = relationship("User", foreign_keys=[reviewed_by_user_id])
+    story = relationship("Story", foreign_keys=[story_id])
 
 
 class EmployeeNotification(Base):

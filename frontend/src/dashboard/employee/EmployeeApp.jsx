@@ -120,7 +120,7 @@ export default function EmployeeApp() {
     else module = <AnimationStudioPage key={`animation-${route.id}`} projectId={route.id} storyId={route.storyId} />;
     page = (
       <>
-        <StageBar key={`bar-${route.id}-${route.stage}`} projectId={route.id} stageKey={route.stage} />
+        <StageBar key={`bar-${route.id}-${route.stage}-${route.storyId || 'none'}`} projectId={route.id} stageKey={route.stage} storyId={route.storyId} />
         <RouteAlias from="/dashboard/projects" to="/employee/projects">
           {module}
         </RouteAlias>

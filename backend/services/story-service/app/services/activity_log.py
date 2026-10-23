@@ -40,6 +40,7 @@ from app.models.organization_job_role_tool import OrganizationJobRoleTool
 from app.models.organization_tool import OrganizationTool
 from app.models.project import Project
 from app.models.project_member import ProjectMember
+from app.models.story import Story
 from app.models.user import User
 
 # the signed-in user of the current request (set by ActivityActorMiddleware)
@@ -412,7 +413,9 @@ def _stage(feed: _Feed, obj: ProjectWorkflowStage, state: str):
     if project is None:
         return
     label = STAGES_BY_KEY.get(obj.stage, {}).get("label", obj.stage)
-    feed.add(project.organization_id, "stage", "approved", f"approved the {label} of {_q(project.title)}", project)
+    story = feed.get(Story, getattr(obj, "story_id", None))
+    where = f"{_q(story.title)} in {_q(project.title)}" if story is not None else _q(project.title)
+    feed.add(project.organization_id, "stage", "approved", f"approved the {label} of {where}", project)
 
 
 def _organization(feed: _Feed, obj: Organization, state: str):

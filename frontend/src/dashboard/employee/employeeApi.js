@@ -24,6 +24,24 @@ const stage = (s) => ({
   reviewers: (s.reviewers || []).map((w) => ({ ...person(w), roles: w.roles || [] })),
 });
 
+// one story of the project, with its own six stages
+const storyView = (st) => ({
+  id: st.id,
+  title: st.title || 'Untitled story',
+  createdAt: st.created_at || null,
+  sentBy: person(st.sent_by),
+  approvedCount: st.approved_count || 0,
+  stages: (st.stages || []).map((s) => ({
+    key: s.key,
+    label: s.label,
+    status: s.status,
+    canWork: Boolean(s.can_work),
+    approvedAt: s.approved_at || null,
+    approvedBy: person(s.approved_by),
+    lockedReason: s.locked_reason || '',
+  })),
+});
+
 export const toSubmission = (x) => ({
   id: x.id,
   projectId: x.project_id,
@@ -31,6 +49,7 @@ export const toSubmission = (x) => ({
   stage: x.stage,
   stageLabel: x.stage_label,
   storyId: x.story_id || null,
+  storyTitle: x.story_title || '',
   status: x.status, // pending | approved | changes_requested | withdrawn | cancelled
   note: x.note || '',
   comment: x.review_comment || '',
@@ -54,6 +73,9 @@ const project = (p) => ({
   workRoles: (p.my_work_roles || []).map(role),
   reviewRoles: (p.my_review_roles || []).map(role),
   stages: (p.stages || []).map(stage),
+  stories: (p.stories || []).map(storyView), // every story, with its own stages
+  storyCount: p.story_count || 0,
+  finishedStoryCount: p.finished_story_count || 0,
   approvedCount: p.approved_count || 0,
   workOpen: p.work_open !== false, // false until the Team Leader starts the project (and after it ends)
   workClosedReason: p.work_closed_reason || '',
@@ -91,7 +113,11 @@ export const submitStage = async (projectId, stageKey, { reviewerUserId, note, s
     }),
   );
 
-export const reopenStage = async (projectId, stageKey, reason) => project(await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/reopen`, { method: 'POST', body: { reason: reason?.trim() || null } }));
+export const reopenStage = async (projectId, stageKey, reason, storyId) =>
+  project(await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/reopen`, { method: 'POST', body: { reason: reason?.trim() || null, story_id: storyId ? Number(storyId) : null } }));
+
+/** "Storyboard of “The Sita Haran”", or "Story “The Sita Haran”". */
+export const itemLabel = (x) => (x.storyTitle ? (x.stage === 'story' ? `Story “${x.storyTitle}”` : `${x.stageLabel} of “${x.storyTitle}”`) : x.stageLabel);
 
 export const listReviews = async () => (await request(`${E}/reviews`)).map(toSubmission);
 export const listMySubmissions = async () => (await request(`${E}/submissions`)).map(toSubmission);

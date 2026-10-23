@@ -1,21 +1,27 @@
 """
 The employee workflow of organization projects: who may do what, stage by stage.
 
+A project can have several stories (written by the same or different people). Every story
+goes through the stages on its own:
+
     Story ──approve──► Storyboard ──approve──► Characters ┐
                                                 Locations  ┘
                       both approved ──► Sketches ──approve──► Animation
 
 Rules
-    - A stage opens when the stages it needs are approved (constants/workflow_stages.py).
+    - A story's stage opens when the stages it needs are approved for THAT story
+      (constants/workflow_stages.py). A new story can be written at any time.
     - An employee works on a stage when one of their roles on the project (project_members,
-      is_reviewer = False) has a job role feature that belongs to that stage.
+      is_reviewer = False) has a job role feature that belongs to that stage. The Team
+      Leader works in their own job roles, and reviews in their reviewer roles.
     - They send it to a reviewer of the same stage (project_members, is_reviewer = True,
       with a job role feature of that stage). Nobody reviews their own work.
     - The chosen reviewer approves or asks for changes. The project's Team Leader may also do
       it, but only when the Team Leader is a reviewer of that stage on the project.
     - An approved stage is locked. Only the project's Team Leader can reopen it; the stages
-      after it are locked again until it is approved again.
+      after it (of the same story) are locked again until it is approved again.
     - Approving a stage tells the people who work on the stages it opens.
+    - Nobody works on a project before its Team Leader starts it.
 """
 
 from __future__ import annotations
@@ -258,21 +264,23 @@ class EmployeeWorkflowService:
             raise WorkflowError("Project not found.", 404)
         return project, access
 
-    # ================================================================ stages
-    def _stage_rows(self, project_id: int) -> dict[str, ProjectWorkflowStage]:
+    # ================================================================ stages (per story)
+    def _stage_rows(self, project_id: int) -> dict[tuple[int | None, str], ProjectWorkflowStage]:
+        """{(story_id, stage): row} of the whole project."""
         return {
-            row.stage: row
+            (row.story_id, row.stage): row
             for row in self.db.query(ProjectWorkflowStage)
             .filter(ProjectWorkflowStage.project_id == project_id)
             .all()
         }
 
-    def stage_states(self, project_id: int, rows: dict | None = None) -> dict[str, str]:
-        rows = rows if rows is not None else self._stage_rows(project_id)
+    @staticmethod
+    def story_states(story_id: int | None, rows: dict) -> dict[str, str]:
+        """Where each stage of one story stands: locked | open | in_review | changes_requested | approved."""
         states: dict[str, str] = {}
         for stage in WORKFLOW_STAGES:
             ready = all(states.get(req) == STATUS_APPROVED for req in stage["requires"])
-            row = rows.get(stage["key"])
+            row = rows.get((story_id, stage["key"])) if story_id is not None else None
             if not ready:
                 states[stage["key"]] = STATUS_LOCKED
             elif row is None:
@@ -281,14 +289,43 @@ class EmployeeWorkflowService:
                 states[stage["key"]] = row.status
         return states
 
-    def _set_stage(self, project_id: int, stage: str, status: str, user: User | None = None) -> None:
+    def states_of(self, project_id: int, story_id: int | None) -> dict[str, str]:
+        return self.story_states(story_id, self._stage_rows(project_id))
+
+    def _stories(self, project: Project) -> list[Story]:
+        """The project's stories, oldest first."""
+        workspace = self.get_workspace(project.id)
+        if workspace is None:
+            return []
+        return (
+            self.db.query(Story)
+            .filter(Story.individual_project_id == workspace.individual_project_id)
+            .order_by(Story.id.asc())
+            .all()
+        )
+
+    def _story_of(self, project: Project, story_id: int | None) -> Story:
+        """One of the project's stories (WorkflowError when it is not one)."""
+        if story_id is None:
+            raise WorkflowError("Choose which story this is for.", 422)
+        workspace = self.get_workspace(project.id)
+        story = self.db.get(Story, story_id)
+        if story is None or workspace is None or story.individual_project_id != workspace.individual_project_id:
+            raise WorkflowError("That story is not part of this project.", 404)
+        return story
+
+    def _set_stage(self, project_id: int, story_id: int, stage: str, status: str, user: User | None = None) -> None:
         row = (
             self.db.query(ProjectWorkflowStage)
-            .filter(ProjectWorkflowStage.project_id == project_id, ProjectWorkflowStage.stage == stage)
+            .filter(
+                ProjectWorkflowStage.project_id == project_id,
+                ProjectWorkflowStage.story_id == story_id,
+                ProjectWorkflowStage.stage == stage,
+            )
             .first()
         )
         if row is None:
-            row = ProjectWorkflowStage(project_id=project_id, stage=stage, status=status)
+            row = ProjectWorkflowStage(project_id=project_id, story_id=story_id, stage=stage, status=status)
             self.db.add(row)
         row.status = status
         if status == STATUS_APPROVED:
@@ -298,16 +335,39 @@ class EmployeeWorkflowService:
             row.approved_by_user_id = None
             row.approved_at = None
 
-    def _clear_stage(self, project_id: int, stage: str) -> None:
+    def _clear_stage(self, project_id: int, story_id: int, stage: str) -> None:
         self.db.query(ProjectWorkflowStage).filter(
             ProjectWorkflowStage.project_id == project_id,
+            ProjectWorkflowStage.story_id == story_id,
             ProjectWorkflowStage.stage == stage,
         ).delete(synchronize_session=False)
 
     def _locked_message(self, stage: str, states: dict[str, str]) -> str:
         waiting = [_label(req) for req in STAGES_BY_KEY[stage]["requires"] if states.get(req) != STATUS_APPROVED]
         verb = "is" if len(waiting) == 1 else "are"
-        return f"The {_label(stage)} stage opens after the {_join(waiting)} {verb} approved."
+        if waiting == ["Story"]:
+            return "Opens once the story is approved."
+        return f"Opens once its {_join(waiting)} {verb} approved."
+
+    @staticmethod
+    def _project_status(per_story: list[dict[str, str]]) -> dict[str, str]:
+        """One status per stage for the whole project (the strip on project cards)."""
+        out: dict[str, str] = {}
+        for stage in STAGE_KEYS:
+            seen = [states[stage] for states in per_story]
+            if not seen:
+                out[stage] = STATUS_OPEN if stage == "story" else STATUS_LOCKED
+            elif STATUS_IN_REVIEW in seen:
+                out[stage] = STATUS_IN_REVIEW
+            elif STATUS_CHANGES_REQUESTED in seen:
+                out[stage] = STATUS_CHANGES_REQUESTED
+            elif STATUS_OPEN in seen:
+                out[stage] = STATUS_OPEN
+            elif all(x == STATUS_APPROVED for x in seen):
+                out[stage] = STATUS_APPROVED
+            else:
+                out[stage] = STATUS_LOCKED
+        return out
 
     # ================================================================ workspace
     def get_workspace(self, project_id: int) -> OrganizationProjectWorkspace | None:
@@ -414,6 +474,7 @@ class EmployeeWorkflowService:
             "stage": sub.stage,
             "stage_label": _label(sub.stage),
             "story_id": sub.story_id,
+            "story_title": (sub.story.title if getattr(sub, "story", None) is not None else None),
             "status": sub.status,
             "note": sub.note,
             "review_comment": sub.review_comment,
@@ -430,8 +491,6 @@ class EmployeeWorkflowService:
         members = self._members(project.id)
         access = access or self.access(project, user, members)
         rows = self._stage_rows(project.id)
-        states = self.stage_states(project.id, rows)
-        workspace = self.get_workspace(project.id)
         client = self.db.get(Client, project.client_id) if project.client_id else None
         leader = self.db.get(User, project.team_leader_id)
         approvers = {
@@ -440,30 +499,90 @@ class EmployeeWorkflowService:
             .filter(User.id.in_([r.approved_by_user_id for r in rows.values() if r.approved_by_user_id]))
             .all()
         } if rows else {}
-
         closed = self.work_closed_reason(project)
+
+        # every story, with its own six stages
+        story_list = self._stories(project)
+        writers: dict[int, User] = {}
+        if story_list:
+            for sub in (
+                self.db.query(ProjectStageSubmission)
+                .filter(
+                    ProjectStageSubmission.project_id == project.id,
+                    ProjectStageSubmission.stage == "story",
+                    ProjectStageSubmission.story_id.in_([st.id for st in story_list]),
+                )
+                .order_by(ProjectStageSubmission.id.asc())
+                .all()
+            ):
+                writers[sub.story_id] = sub.submitted_by
+        per_story = []
+        stories = []
+        for story in story_list:
+            states = self.story_states(story.id, rows)
+            per_story.append(states)
+            story_stages = []
+            for stage in WORKFLOW_STAGES:
+                key = stage["key"]
+                row = rows.get((story.id, key))
+                state = states[key]
+                story_stages.append(
+                    {
+                        "key": key,
+                        "label": stage["label"],
+                        "status": state,
+                        "can_work": key in access.work_stages and closed is None and state in (STATUS_OPEN, STATUS_CHANGES_REQUESTED),
+                        "approved_at": row.approved_at if row and state == STATUS_APPROVED else None,
+                        "approved_by": _person(approvers.get(row.approved_by_user_id)) if row and state == STATUS_APPROVED else None,
+                        "locked_reason": self._locked_message(key, states) if state == STATUS_LOCKED else None,
+                    }
+                )
+            stories.append(
+                {
+                    "id": story.id,
+                    "title": story.title,
+                    "created_at": story.created_at,
+                    "sent_by": _person(writers.get(story.id)),
+                    "approved_count": sum(1 for x in story_stages if x["status"] == STATUS_APPROVED),
+                    "stages": story_stages,
+                }
+            )
+
+        # the project as a whole: what this person does on each stage, and a summary status
+        overall = self._project_status(per_story)
         stages = []
         for stage in WORKFLOW_STAGES:
             key = stage["key"]
-            row = rows.get(key)
-            state = states[key]
             entry = {
                 "key": key,
                 "label": stage["label"],
                 "requires": stage["requires"],
-                "status": state,
+                "status": overall[key],
                 "can_work": key in access.work_stages and closed is None,
                 "role_allows": key in access.work_stages,
                 "can_review": key in access.review_stages,
-                "approved_at": row.approved_at if row and state == STATUS_APPROVED else None,
-                "approved_by": _person(approvers.get(row.approved_by_user_id)) if row and state == STATUS_APPROVED else None,
-                "locked_reason": self._locked_message(key, states) if state == STATUS_LOCKED else None,
+                "approved_at": None,
+                "approved_by": None,
+                "locked_reason": (
+                    (
+                        "Opens for each story once the story is approved."
+                        if stage["requires"] == ["story"]
+                        else f"Opens for each story once its {_join([_label(r) for r in stage['requires']])} "
+                        f"{'is' if len(stage['requires']) == 1 else 'are'} approved."
+                    )
+                    if overall[key] == STATUS_LOCKED and stage["requires"] else None
+                ),
+                "counts": {
+                    status: sum(1 for st in per_story if st[key] == status)
+                    for status in (STATUS_OPEN, STATUS_IN_REVIEW, STATUS_CHANGES_REQUESTED, STATUS_APPROVED, STATUS_LOCKED)
+                },
             }
             if detail:
                 entry["workers"] = self.workers_for(project.id, key)
                 entry["reviewers"] = self.reviewers_for(project.id, key)
             stages.append(entry)
 
+        done = sum(1 for st in per_story if all(st[k] == STATUS_APPROVED for k in STAGE_KEYS))
         summary = {
             "id": project.id,
             "title": project.title,
@@ -475,11 +594,14 @@ class EmployeeWorkflowService:
             "my_work_roles": access.work_roles,
             "my_review_roles": access.review_roles,
             "stages": stages,
+            "stories": stories,
+            "story_count": len(stories),
+            "finished_story_count": done,
             "approved_count": sum(1 for s in stages if s["status"] == STATUS_APPROVED),
             "work_open": closed is None,
             "work_closed_reason": closed,
             "total_stages": len(stages),
-            "story_id": workspace.story_id if workspace else None,
+            "story_id": stories[0]["id"] if stories else None,
             "created_at": project.created_at,
             "updated_at": project.updated_at,
         }
@@ -488,7 +610,7 @@ class EmployeeWorkflowService:
                 self.db.query(ProjectStageSubmission)
                 .filter(ProjectStageSubmission.project_id == project.id)
                 .order_by(ProjectStageSubmission.created_at.desc(), ProjectStageSubmission.id.desc())
-                .limit(100)
+                .limit(200)
                 .all()
             )
             summary["submissions"] = [self._submission_dict(s, user, project, access) for s in subs]
@@ -533,6 +655,9 @@ class EmployeeWorkflowService:
         else:
             query = query.filter(ProjectStageSubmission.reviewer_user_id == user.id)
         subs = query.order_by(ProjectStageSubmission.created_at.desc()).limit(200).all()
+        # only the newest submission of each story's stage: an older one was replaced by a newer version
+        newest = self._newest_submission_ids({sub.project_id for sub in subs})
+        subs = [sub for sub in subs if sub.id in newest]
         cache: dict[int, tuple[Project, ProjectAccess]] = {}
         out = []
         for sub in subs:
@@ -546,6 +671,24 @@ class EmployeeWorkflowService:
                 continue
             out.append(item)
         return out
+
+    def _newest_submission_ids(self, project_ids: set[int]) -> set[int]:
+        """The newest submission of every (project, story, stage)."""
+        if not project_ids:
+            return set()
+        from sqlalchemy import func
+
+        return {
+            sid
+            for (sid,) in self.db.query(func.max(ProjectStageSubmission.id))
+            .filter(ProjectStageSubmission.project_id.in_(project_ids))
+            .group_by(
+                ProjectStageSubmission.project_id,
+                ProjectStageSubmission.story_id,
+                ProjectStageSubmission.stage,
+            )
+            .all()
+        }
 
     def my_submissions(self, user: User) -> list[dict]:
         subs = (
@@ -613,14 +756,23 @@ class EmployeeWorkflowService:
         if stage not in access.work_stages:
             raise WorkflowError(f"Your role on this project does not include the {label}.", 403)
         self._require_work_open(project)
-        states = self.stage_states(project.id)
+        self.ensure_workspace(project)
+        if story_id is None:
+            stories = self._stories(project)
+            if not stories:
+                raise WorkflowError("Write or import the story first.", 409)
+            if len(stories) > 1:
+                raise WorkflowError("Choose which story this is for.", 422)
+            story_id = stories[0].id
+        story = self._story_of(project, story_id)
+        states = self.states_of(project.id, story.id)
         state = states[stage]
         if state == STATUS_LOCKED:
             raise WorkflowError(self._locked_message(stage, states), 409)
         if state == STATUS_IN_REVIEW:
-            raise WorkflowError(f"The {label} is already waiting for review.", 409)
+            raise WorkflowError(f"The {label} of “{story.title}” is already waiting for review.", 409)
         if state == STATUS_APPROVED:
-            raise WorkflowError(f"The {label} is already approved.", 409)
+            raise WorkflowError(f"The {label} of “{story.title}” is already approved.", 409)
 
         if reviewer_user_id == user.id:
             raise WorkflowError("Choose another reviewer: nobody reviews their own work.", 422)
@@ -630,26 +782,10 @@ class EmployeeWorkflowService:
         if reviewer_user_id not in reviewers:
             raise WorkflowError(f"Choose a reviewer of the {label} on this project.", 422)
 
-        workspace = self.ensure_workspace(project)
-        if stage == "story":
-            stories = (
-                self.db.query(Story)
-                .filter(Story.individual_project_id == workspace.individual_project_id)
-                .order_by(Story.id.desc())
-                .all()
-            )
-            if not stories:
-                raise WorkflowError("Write or import the story first.", 409)
-            if story_id is None:
-                story_id = stories[0].id
-            elif story_id not in {s.id for s in stories}:
-                raise WorkflowError("That story is not part of this project.", 422)
-        else:
-            story_id = workspace.story_id
-
-        # (no other pending submission can exist for an open stage; cancel any, to be safe)
+        # (no other pending submission can exist for an open stage of this story; cancel any, to be safe)
         self.db.query(ProjectStageSubmission).filter(
             ProjectStageSubmission.project_id == project.id,
+            ProjectStageSubmission.story_id == story.id,
             ProjectStageSubmission.stage == stage,
             ProjectStageSubmission.status == SUBMISSION_PENDING,
         ).update({ProjectStageSubmission.status: SUBMISSION_CANCELLED}, synchronize_session=False)
@@ -657,17 +793,17 @@ class EmployeeWorkflowService:
         sub = ProjectStageSubmission(
             project_id=project.id,
             stage=stage,
-            story_id=story_id,
+            story_id=story.id,
             submitted_by_user_id=user.id,
             reviewer_user_id=reviewer_user_id,
             note=(note or "").strip()[:2000] or None,
             status=SUBMISSION_PENDING,
         )
         self.db.add(sub)
-        self._set_stage(project.id, stage, STATUS_IN_REVIEW)
+        self._set_stage(project.id, story.id, stage, STATUS_IN_REVIEW)
         self._notify(
             [reviewer_user_id], project, stage, "submitted",
-            f"{_name(user)} sent the {label} of “{project.title}” for your review.",
+            f"{_name(user)} sent the {label} of “{story.title}” ({project.title}) for your review.",
         )
         self.db.commit()
         self.db.refresh(sub)
@@ -692,34 +828,38 @@ class EmployeeWorkflowService:
 
     def approve(self, submission_id: int, user: User, comment: str | None) -> dict:
         sub, project, access = self._pending_for_reviewer(submission_id, user)
-        before = self.stage_states(project.id)
+        story = self.db.get(Story, sub.story_id) if sub.story_id else None
+        if story is None:
+            raise WorkflowError("The story of this review no longer exists.", 409)
+        before = self.states_of(project.id, story.id)
         sub.status = SUBMISSION_APPROVED
         sub.review_comment = (comment or "").strip()[:4000] or None
         sub.reviewed_by_user_id = user.id
         sub.reviewed_at = _now()
-        self._set_stage(project.id, sub.stage, STATUS_APPROVED, user)
-        if sub.stage == "story" and sub.story_id:
+        self._set_stage(project.id, story.id, sub.stage, STATUS_APPROVED, user)
+        if sub.stage == "story":
             workspace = self.ensure_workspace(project)
-            workspace.story_id = sub.story_id
+            if workspace.story_id is None:
+                workspace.story_id = story.id  # (the first approved story; kept for older screens)
         self.db.flush()
 
         label = _label(sub.stage)
         self._notify(
             [sub.submitted_by_user_id], project, sub.stage, "approved",
-            f"{_name(user)} approved your {label} for “{project.title}”."
+            f"{_name(user)} approved your {label} of “{story.title}” ({project.title})."
             + (f" “{sub.review_comment}”" if sub.review_comment else ""),
         )
-        after = self.stage_states(project.id)
+        after = self.states_of(project.id, story.id)
         for key in STAGE_KEYS:
             if before.get(key) == STATUS_LOCKED and after.get(key) == STATUS_OPEN:
                 self._notify(
                     [w["user_id"] for w in self.workers_for(project.id, key)], project, key, "stage_opened",
-                    f"The {label} of “{project.title}” is approved. You can now work on the {_label(key)}.",
+                    f"The {label} of “{story.title}” ({project.title}) is approved. You can now work on its {_label(key)}.",
                 )
         if all(after.get(k) == STATUS_APPROVED for k in STAGE_KEYS):
             self._notify(
                 [project.team_leader_id], project, None, "completed",
-                f"Every stage of “{project.title}” is approved.",
+                f"Every stage of “{story.title}” ({project.title}) is approved.",
             )
         self.db.commit()
         self.db.refresh(sub)
@@ -730,14 +870,17 @@ class EmployeeWorkflowService:
         if not comment:
             raise WorkflowError("Say what should change.", 422)
         sub, project, access = self._pending_for_reviewer(submission_id, user)
+        if sub.story_id is None:
+            raise WorkflowError("The story of this review no longer exists.", 409)
         sub.status = SUBMISSION_CHANGES_REQUESTED
         sub.review_comment = comment[:4000]
         sub.reviewed_by_user_id = user.id
         sub.reviewed_at = _now()
-        self._set_stage(project.id, sub.stage, STATUS_CHANGES_REQUESTED)
+        self._set_stage(project.id, sub.story_id, sub.stage, STATUS_CHANGES_REQUESTED)
+        title = sub.story.title if sub.story else "the story"
         self._notify(
             [sub.submitted_by_user_id], project, sub.stage, "changes_requested",
-            f"{_name(user)} asked for changes to the {_label(sub.stage)} of “{project.title}”: “{sub.review_comment}”",
+            f"{_name(user)} asked for changes to the {_label(sub.stage)} of “{title}” ({project.title}): “{sub.review_comment}”",
         )
         self.db.commit()
         self.db.refresh(sub)
@@ -752,27 +895,36 @@ class EmployeeWorkflowService:
         project = self.get_project(sub.project_id)
         sub.status = SUBMISSION_WITHDRAWN
         sub.reviewed_at = _now()
-        self._clear_stage(project.id, sub.stage)
+        if sub.story_id is not None:
+            self._clear_stage(project.id, sub.story_id, sub.stage)
+        title = sub.story.title if sub.story else "the story"
         self._notify(
             [sub.reviewer_user_id], project, sub.stage, "withdrawn",
-            f"{_name(user)} took back the {_label(sub.stage)} of “{project.title}” to change it.",
+            f"{_name(user)} took back the {_label(sub.stage)} of “{title}” ({project.title}) to change it.",
         )
         self.db.commit()
         self.db.refresh(sub)
         return self._submission_dict(sub, user, project)
 
-    def reopen(self, project_id: int, stage: str, user: User, reason: str | None) -> dict:
+    def reopen(self, project_id: int, stage: str, user: User, reason: str | None, story_id: int | None = None) -> dict:
         self._check_stage(stage)
         project, access = self.require_view(project_id, user)
         if not access.is_team_leader:
             raise WorkflowError("Only the project's Team Leader can reopen a stage.", 403)
-        states = self.stage_states(project.id)
+        if story_id is None:
+            stories = self._stories(project)
+            if len(stories) != 1:
+                raise WorkflowError("Choose which story to reopen.", 422)
+            story_id = stories[0].id
+        story = self._story_of(project, story_id)
+        states = self.states_of(project.id, story.id)
         if states[stage] in (STATUS_LOCKED, STATUS_OPEN):
-            raise WorkflowError(f"The {_label(stage)} is already open for work.", 409)
+            raise WorkflowError(f"The {_label(stage)} of “{story.title}” is already open for work.", 409)
 
         affected = [stage] + downstream_of(stage)
         self.db.query(ProjectStageSubmission).filter(
             ProjectStageSubmission.project_id == project.id,
+            ProjectStageSubmission.story_id == story.id,
             ProjectStageSubmission.stage.in_(affected),
             ProjectStageSubmission.status == SUBMISSION_PENDING,
         ).update(
@@ -780,13 +932,13 @@ class EmployeeWorkflowService:
             synchronize_session=False,
         )
         for key in affected:
-            self._clear_stage(project.id, key)
+            self._clear_stage(project.id, story.id, key)
 
         why = (reason or "").strip()[:1000]
         label = _label(stage)
         self._notify(
             [w["user_id"] for w in self.workers_for(project.id, stage)], project, stage, "reopened",
-            f"{_name(user)} reopened the {label} of “{project.title}”"
+            f"{_name(user)} reopened the {label} of “{story.title}” ({project.title})"
             + (f": “{why}”" if why else ".")
             + " You can work on it again.",
             skip=user.id,
@@ -798,7 +950,7 @@ class EmployeeWorkflowService:
                 people.update(w["user_id"] for w in self.workers_for(project.id, key))
             self._notify(
                 people, project, stage, "reopened",
-                f"The {label} of “{project.title}” was reopened, so the {_join([_label(k) for k in later])} "
+                f"The {label} of “{story.title}” ({project.title}) was reopened, so its {_join([_label(k) for k in later])} "
                 f"{'is' if len(later) == 1 else 'are'} on hold until it is approved again.",
                 skip=user.id,
             )
@@ -852,15 +1004,26 @@ class EmployeeWorkflowService:
         if stage not in access.work_stages:
             raise WorkflowError(f"Your role on this project does not include the {label}. You can look at it, but not change it.", 403)
         self._require_work_open(project)
-        states = self.stage_states(project.id)
+        if story_id is None and subpath.strip("/").startswith("stories/previews/"):
+            story_id = self._preview_story_id(subpath)
+        if story_id is None:
+            return  # a new story: anyone whose role includes the Story may write one
+        story = self._story_of(project, story_id)
+        states = self.states_of(project.id, story.id)
         state = states[stage]
         if state == STATUS_LOCKED:
             raise WorkflowError(self._locked_message(stage, states), 423)
         if state == STATUS_IN_REVIEW:
-            raise WorkflowError(f"The {label} is waiting for review. You can change it again if the reviewer asks for changes, or take it back from review.", 423)
+            raise WorkflowError(f"The {label} of “{story.title}” is waiting for review. You can change it again if the reviewer asks for changes, or take it back from review.", 423)
         if state == STATUS_APPROVED:
-            raise WorkflowError(f"The {label} is approved and locked. Ask your Team Leader to reopen it if it needs changes.", 423)
-        if stage != "story":
-            workspace = self.get_workspace(project.id)
-            if workspace and workspace.story_id and story_id is not None and story_id != workspace.story_id:
-                raise WorkflowError("Work on the project's approved story.", 409)
+            raise WorkflowError(f"The {label} of “{story.title}” is approved and locked. Ask your Team Leader to reopen it if it needs changes.", 423)
+
+    def _preview_story_id(self, subpath: str) -> int | None:
+        """The story an AI-edit preview belongs to (stories/previews/{id}/...)."""
+        match = re.match(r"^stories/previews/(\d+)", subpath.strip("/"))
+        if not match:
+            return None
+        from app.models.story_edit_preview import StoryEditPreview
+
+        preview = self.db.get(StoryEditPreview, int(match.group(1)))
+        return preview.story_id if preview else None

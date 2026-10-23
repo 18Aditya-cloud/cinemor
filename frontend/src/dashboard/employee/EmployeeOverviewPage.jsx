@@ -9,7 +9,7 @@ import Notice from '../ui/Notice.jsx';
 import Pill from '../ui/Pill.jsx';
 import RefreshButton from '../ui/RefreshButton.jsx';
 import pages from '../pages/pages.module.css';
-import { listMyProjects, listMySubmissions, listReviews } from './employeeApi.js';
+import { itemLabel, listMyProjects, listMySubmissions, listReviews } from './employeeApi.js';
 import { NotificationBell, ProjectCard, StripLegend } from './EmployeeParts.jsx';
 import { stageMeta, SUBMISSION, upNext } from './stages.js';
 import e from './Employee.module.css';
@@ -137,7 +137,7 @@ export default function EmployeeOverviewPage({ email }) {
                 return (
                   <div key={s.id} className={e.reviewItem}>
                     <div className={e.reviewRow}>
-                      <span className={e.reviewName}>{s.stageLabel}</span>
+                      <span className={e.reviewName}>{itemLabel(s)}</span>
                       <Pill tone={st.tone}>{st.label}</Pill>
                     </div>
                     <span className={e.small}>
