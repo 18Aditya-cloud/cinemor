@@ -1,0 +1,1589 @@
+/*
+ * The Story page: the choice (Create with AI / Import existing story) with the project's story chats, the studio
+ * (the story brief on the left, the story's chat on the right), the import form, and the Tools / Knowledge / Chats
+ * panels. Colours come from the dashboard theme (theme.css), so light and dark both work.
+ */
+
+.page {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ page head */
+.pageHead {
+  display: grid;
+  gap: 10px;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  color: var(--cm-ink-dim);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.back:hover {
+  color: var(--d-strong);
+}
+.back:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 3px;
+}
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.pageTitle {
+  font-family: var(--cm-font-display);
+  font-size: clamp(2.2rem, 4vw, 2.9rem);
+  font-weight: 400;
+  line-height: 1;
+}
+.pageHeadCompact {
+  gap: 6px;
+}
+.pageHeadCompact .pageTitle {
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+}
+.pageSub {
+  color: var(--cm-ink-dim);
+  font-size: 0.98rem;
+}
+
+/* ------------------------------------------------------------------ "Create your story": AI or import */
+.choose,
+.importPanel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--cm-line);
+  border-radius: 24px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.importPanel {
+  scroll-margin-top: 24px;
+  animation: rise 0.35s var(--cm-ease) both;
+}
+.chooseHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.chooseIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6 55%, #d05cff);
+  box-shadow: 0 12px 26px -12px rgba(139, 92, 246, 0.9);
+  color: #fff;
+}
+.chooseTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.chooseSub {
+  margin-top: 3px;
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.option {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px 46px 18px 18px;
+  border: 1.5px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-fill-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.option:hover {
+  border-color: var(--d-btn2-hover-border);
+  background: var(--d-fill-2);
+  transform: translateY(-1px);
+}
+.option:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 3px;
+}
+.optionOn,
+.optionOn:hover {
+  border-color: var(--cm-violet-hi);
+  background: var(--d-accent-fill);
+  box-shadow: 0 18px 40px -26px rgba(139, 92, 246, 0.9);
+}
+.optionIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 14px;
+  background: var(--d-accent-fill-2);
+  color: var(--cm-violet-hi);
+}
+.optionText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.optionTitle {
+  color: var(--cm-ink);
+  font-size: 1rem;
+  font-weight: 800;
+}
+.optionSub {
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.optionCheck {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--d-checkbox-line);
+  border-radius: 50%;
+}
+.optionOn .optionCheck {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------ Import existing story */
+.importForm {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.drop {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 30px 18px;
+  border: 1.5px dashed var(--cm-line-strong);
+  border-radius: 18px;
+  background: var(--d-fill-1);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.dropOn {
+  border-color: var(--cm-violet-hi);
+  background: var(--d-accent-fill);
+}
+.dropDone {
+  padding: 14px;
+  border-style: solid;
+  border-color: var(--d-violet-bd);
+}
+.dropIcon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 4px;
+  border-radius: 16px;
+  background: var(--d-accent-fill-2);
+  color: var(--cm-violet-hi);
+}
+.dropTitle {
+  font-weight: 800;
+}
+.dropSub {
+  margin-bottom: 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.84rem;
+}
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+.fileIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--d-accent-fill-2);
+  color: var(--cm-violet-hi);
+}
+.fileText {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.fileName {
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fileMeta {
+  color: var(--cm-ink-faint);
+  font-size: 0.8rem;
+}
+.fileRemove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cm-ink-faint);
+  cursor: pointer;
+}
+.fileRemove:hover {
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg-strong);
+}
+.fileRemove:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+}
+.previewBox {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-field-bg);
+}
+.previewLabel {
+  color: var(--cm-ink-faint);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.previewText {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cm-ink-dim);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+.importFoot {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* ------------------------------------------------------------------ the studio: brief | chat */
+.studio {
+  --studio-h: max(620px, calc(100vh - 236px));
+  display: grid;
+  grid-template-columns: minmax(300px, 372px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+  height: var(--studio-h);
+  min-width: 0;
+}
+.brief,
+.chat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 24px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+
+/* ------------------------------------------------------------------ Creative Direction (StoryConfig.jsx) */
+.briefToggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--d-hairline);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+.briefIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 12px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+}
+.briefHeading {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.briefTitle {
+  font-size: 1rem;
+  font-weight: 800;
+}
+.briefSub {
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+/* only phones fold the panel away */
+.briefToggleHint,
+.briefChevron {
+  display: none;
+}
+.briefBody {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 18px 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.direction {
+  display: grid;
+  gap: 18px;
+}
+.formField {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.formLabel {
+  padding: 0;
+  color: var(--cm-ink-dim);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.twoCols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+}
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.86rem;
+}
+.input::placeholder {
+  color: var(--cm-ink-faint);
+}
+.input:focus {
+  border-color: var(--cm-violet-hi);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--d-accent-fill);
+}
+.input:disabled {
+  opacity: 0.6;
+}
+.inputBad {
+  border-color: var(--d-danger-bd);
+}
+.area {
+  line-height: 1.5;
+  resize: vertical;
+}
+.fieldError {
+  color: var(--d-danger-fg-strong);
+  font-size: 0.78rem;
+}
+
+/* Genre / Style / Tone: tick boxes as small cards */
+.checkGroup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.checkGroup legend {
+  margin-bottom: 8px;
+}
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.checkCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 11px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.checkCard:hover {
+  border-color: var(--cm-line-strong);
+  color: var(--cm-ink);
+}
+.checkCard input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.checkCard:has(input:focus-visible) {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.checkBox {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--d-checkbox-line);
+  border-radius: 4px;
+}
+.checkText {
+  min-width: 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.checkOn,
+.checkOn:hover {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+  color: var(--cm-ink);
+}
+.checkOn .checkBox {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6);
+  color: #fff;
+}
+.checkGroup:disabled .checkCard {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Learning points, characters */
+.addRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.smallButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 11px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.smallButton:hover:not(:disabled) {
+  border-color: var(--d-btn2-hover-border);
+  background: var(--d-fill-2);
+}
+.smallButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.smallButton:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.pointList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.point {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 5px 4px 11px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 999px;
+  color: var(--cm-ink-dim);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.point span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pointRemove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cm-ink-faint);
+  cursor: pointer;
+}
+.pointRemove:hover {
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg-strong);
+}
+.pointRemove:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+}
+.characters {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.characters legend {
+  margin-bottom: 7px;
+}
+.addCharacter {
+  justify-self: start;
+}
+.characterList {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.character {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 11px 11px 13px;
+  border: 1px solid var(--cm-line);
+  border-radius: 13px;
+  background: var(--d-fill-1);
+}
+.characterText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.characterName {
+  font-size: 0.86rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.characterRole {
+  color: var(--cm-violet-hi);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.characterDetails {
+  margin-top: 3px;
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.removeButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid var(--d-danger-bd);
+  border-radius: 10px;
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg-strong);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.removeButton:hover {
+  border-color: var(--d-danger-bd-hover);
+}
+.removeButton:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+}
+.textButton {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-link);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.textButton:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ the chat */
+.chat {
+  --glow: rgba(160, 80, 255, 0.22);
+  scroll-margin-top: 24px;
+  background:
+    radial-gradient(60% 45% at 92% -8%, var(--glow), transparent 70%),
+    var(--d-card-bg);
+}
+:global(:root[data-theme='light']) .chat {
+  --glow: rgba(150, 90, 255, 0.1);
+}
+.chatHead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--d-hairline);
+}
+.chatTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatActions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+/* the AI model, as a pill (a real <select> underneath) */
+.modelPick {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+.modelPick select {
+  appearance: none;
+  max-width: 190px;
+  padding: 8px 34px 8px 14px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.modelPick select:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.modelPick select option {
+  background: var(--d-popover-bg);
+  color: var(--cm-ink);
+}
+.modelPick svg {
+  position: absolute;
+  right: 12px;
+  color: var(--cm-ink-faint);
+  pointer-events: none;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pill:hover:not(:disabled) {
+  border-color: var(--d-btn2-hover-border);
+  background: var(--d-fill-2);
+}
+.pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.pill:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.pill svg {
+  flex: none;
+}
+
+.chatBody {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 22px 22px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.chatLoading {
+  padding: 30px;
+  text-align: center;
+}
+.chatNotice {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+/* the empty chat */
+.hero {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  min-height: 100%;
+  padding: 10px 0;
+  text-align: center;
+}
+.orb {
+  margin-bottom: 2px;
+}
+.heroTitle {
+  font-family: var(--cm-font-display);
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 400;
+  line-height: 1.1;
+}
+.heroText {
+  max-width: 50ch;
+  color: var(--cm-ink-dim);
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
+/* the messages */
+.thread {
+  display: grid;
+  gap: 20px;
+  width: min(860px, 100%);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.threadItem {
+  min-width: 0;
+}
+.userRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.bubble {
+  display: grid;
+  gap: 6px;
+  max-width: min(78%, 580px);
+  padding: 12px 16px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 18px 18px 4px 18px;
+  background: var(--d-fill-2);
+  animation: rise 0.35s var(--cm-ease) both;
+}
+.bubbleLabel {
+  color: var(--cm-violet-hi);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.bubbleText {
+  color: var(--cm-ink);
+  font-size: 0.93rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubbleClamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+.moreButton {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--d-link);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.bubbleTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.bubbleTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.you {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 50%;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.aiRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: rise 0.35s var(--cm-ease) 0.05s both;
+}
+.aiRow > span:first-child {
+  margin: -4px 0 0 -6px;
+}
+.aiBody {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 3px;
+}
+.aiName {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.aiTime {
+  margin-left: 6px;
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.aiStatus {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+}
+.dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 2px;
+}
+.dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  animation: dot 1.2s ease-in-out infinite;
+}
+.dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* a version of the story, as Cinemor's answer */
+.answer {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 18px 20px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-fill-1);
+}
+.answerHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.answerTitle {
+  min-width: 0;
+  font-family: var(--cm-font-display);
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  font-weight: 400;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.versionTag {
+  margin-top: 4px;
+  padding: 3px 9px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  color: var(--cm-ink-faint);
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.versionTagNow {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+}
+.answerText {
+  display: grid;
+  gap: 12px;
+  max-height: 440px;
+  padding-right: 6px;
+  overflow-y: auto;
+  color: var(--cm-ink);
+  font-size: 0.95rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  scrollbar-width: thin;
+}
+/* an older version shows its first lines, fading out */
+.answerTextShut {
+  max-height: 7.2em;
+  overflow: hidden;
+  -webkit-mask: linear-gradient(#000 45%, transparent);
+  mask: linear-gradient(#000 45%, transparent);
+}
+.storyFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--d-hairline);
+}
+.wordCount {
+  color: var(--cm-ink-faint);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.storyActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.storyActions svg {
+  flex: none;
+}
+
+/* something done elsewhere (an edit in the Story Editor, a restore) */
+.event {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--cm-ink-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+.event::before,
+.event::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--d-hairline);
+}
+.eventTime {
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ the message box */
+.composerWrap {
+  display: grid;
+  flex: none;
+  gap: 8px;
+  width: min(860px, 100%);
+  margin: 0 auto;
+  padding: 8px 18px 14px;
+}
+.composer {
+  display: grid;
+  gap: 8px;
+  padding: 8px 8px 8px 10px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 26px;
+  background: var(--d-field-bg);
+  box-shadow: 0 24px 60px -40px rgba(122, 60, 255, 0.6);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.composer:focus-within {
+  border-color: var(--cm-violet-hi);
+  box-shadow: 0 0 0 4px var(--d-accent-fill), 0 24px 60px -40px rgba(122, 60, 255, 0.6);
+}
+.composerBusy {
+  opacity: 0.75;
+}
+.composerRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.attach {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cm-ink-dim);
+  cursor: pointer;
+}
+.attach:hover:not(:disabled) {
+  background: var(--d-fill-2);
+  color: var(--d-strong);
+}
+.attach:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.attach:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+}
+.message {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  max-height: 160px;
+  padding: 9px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+  field-sizing: content;
+}
+.message::placeholder {
+  color: var(--cm-ink-faint);
+}
+.send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6 55%, #d05cff);
+  box-shadow: 0 10px 24px -10px rgba(139, 92, 246, 0.9);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.send:disabled {
+  cursor: progress;
+}
+.send:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 3px;
+}
+.sendSpinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.attachChip {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  max-width: 100%;
+  margin: 2px 0 0 4px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 12px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.attachChip svg {
+  flex: none;
+}
+.attachName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachMeta {
+  color: var(--cm-ink-faint);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.attachChip button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.attachChip button:hover {
+  background: var(--d-fill-2);
+}
+.hint {
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  text-align: center;
+}
+.error {
+  padding: 10px 14px;
+  border: 1px solid var(--d-danger-bd);
+  border-radius: 12px;
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg-strong);
+  font-size: 0.86rem;
+}
+.muted {
+  color: var(--cm-ink-faint);
+  font-size: 0.86rem;
+}
+
+/* ------------------------------------------------------------------ chat lists (the Story page, and "Chats") */
+.recent {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--cm-line);
+  border-radius: 24px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.chooseIconQuiet {
+  border: 1px solid var(--d-violet-bd);
+  background: var(--d-accent-fill-2);
+  box-shadow: none;
+  color: var(--cm-violet-hi);
+}
+.emptyChats {
+  padding: 22px 16px;
+  border: 1.5px dashed var(--cm-line-strong);
+  border-radius: 16px;
+  color: var(--cm-ink-faint);
+  font-size: 0.88rem;
+  text-align: center;
+}
+.chatList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chatItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: var(--d-fill-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.chatItem:hover {
+  border-color: var(--d-btn2-hover-border);
+  background: var(--d-fill-2);
+}
+.chatItem:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+/* a chat with its delete button (bottom right, on the meta line) */
+.chatRow {
+  position: relative;
+}
+.chatRow .chatItem {
+  padding-right: 54px;
+}
+.chatDelete {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--cm-ink-faint);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.chatDelete:hover {
+  border-color: var(--d-danger-bd);
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg);
+}
+.chatDelete:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.chatConfirm {
+  display: grid;
+  gap: 8px;
+  padding: 13px 15px;
+  border: 1px solid var(--d-danger-bd);
+  border-radius: 16px;
+  background: var(--d-danger-bg);
+}
+.chatConfirmTitle {
+  font-weight: 800;
+}
+.chatConfirmText {
+  color: var(--cm-ink-dim);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.chatConfirmError {
+  color: var(--d-danger-fg-strong);
+  font-size: 0.8rem;
+}
+.chatConfirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.chatItemOn,
+.chatItemOn:hover {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+}
+.chatItemTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.chatItemTitle {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatItemTime {
+  flex: none;
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+}
+.chatItemLast {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.chatItemMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+}
+.sourceTag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-weight: 800;
+}
+.sourceTagImport {
+  background: var(--d-info-bg);
+  color: var(--d-info-fg);
+}
+.history {
+  display: grid;
+  gap: 16px;
+}
+.historyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ------------------------------------------------------------------ the import form's fields */
+.label {
+  margin-top: 6px;
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.titleInput {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+.titleInput:focus {
+  border-color: var(--cm-violet-hi);
+  background: var(--d-field-bg-focus);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--d-accent-fill);
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------------ smaller screens */
+@media (max-width: 1180px) {
+  .pillText {
+    display: none;
+  }
+  .pill {
+    padding: 8px 10px;
+  }
+}
+@media (max-width: 1000px) {
+  /* the brief above, the chat below; the brief folds away once a chat is open */
+  .studio {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+  .briefToggle {
+    cursor: pointer;
+  }
+  .brief:not(.briefOpen) .briefToggle {
+    border-bottom: 0;
+  }
+  .briefToggle:focus-visible {
+    outline: 2px solid var(--cm-violet-hi);
+    outline-offset: -4px;
+    border-radius: 24px;
+  }
+  .briefToggleHint {
+    display: inline;
+    color: var(--cm-ink-faint);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .briefChevron {
+    display: block;
+    color: var(--cm-ink-faint);
+    transition: transform 0.2s ease;
+  }
+  .briefOpen .briefChevron {
+    transform: rotate(180deg);
+  }
+  .brief:not(.briefOpen) .briefBody {
+    display: none;
+  }
+  .briefBody {
+    overflow: visible;
+  }
+  .chat {
+    height: max(560px, 78vh);
+  }
+}
+@media (max-width: 760px) {
+  .options {
+    grid-template-columns: 1fr;
+  }
+  .choose,
+  .importPanel,
+  .recent {
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+  .chatHead {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 12px;
+  }
+  .chatTitle {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .chatActions {
+    margin-left: auto;
+  }
+  .modelPick select {
+    max-width: 150px;
+  }
+  .chatBody {
+    padding: 16px 12px 8px;
+  }
+  .composerWrap {
+    padding: 6px 10px 12px;
+  }
+  .bubble {
+    max-width: 86%;
+  }
+  .answer {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sendSpinner,
+  .dots span,
+  .bubble,
+  .aiRow,
+  .importPanel {
+    animation: none;
+  }
+}
+
+/* Creative Direction dropdowns (Language, POV, Story Format) */
+.selectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.select {
+  appearance: none;
+  padding-right: 36px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.select option {
+  background: var(--d-popover-bg);
+  color: var(--cm-ink);
+}
+.selectWrap svg {
+  position: absolute;
+  right: 12px;
+  color: var(--cm-ink-faint);
+  pointer-events: none;
+}

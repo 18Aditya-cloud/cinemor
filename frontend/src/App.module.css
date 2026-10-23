@@ -1,0 +1,5 @@
+/* Sits above the fixed particle canvas (z-index 0). */
+.main {
+  position: relative;
+  z-index: var(--cm-z-content);
+}

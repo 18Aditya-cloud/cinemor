@@ -1,0 +1,96 @@
+.card {
+  border: 1px solid var(--cm-line);
+  border-radius: 22px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow);
+  overflow: hidden;
+  animation: rise 0.5s var(--cm-ease) both;
+}
+
+.bare {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.scroll {
+  overflow-x: auto;
+  outline-offset: -3px;
+}
+
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 20px 13px 16px;
+  border-bottom: 1px solid var(--cm-line);
+  color: var(--cm-ink-faint);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 17px 13px;
+  border-bottom: 1px solid var(--d-hairline);
+  white-space: nowrap;
+  color: var(--cm-ink-dim);
+  font-size: 0.92rem;
+  vertical-align: middle;
+}
+.table td strong {
+  color: var(--cm-ink);
+  font-weight: 800;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 24px;
+}
+.table th:last-child,
+.table td:last-child {
+  padding-right: 24px;
+}
+
+.table th.wrapCell,
+.table td.wrapCell {
+  min-width: 220px;
+  white-space: normal;
+}
+
+.row {
+  transition: background 0.2s ease;
+  animation: rowIn 0.45s var(--cm-ease) both;
+}
+.row:hover {
+  background: var(--d-row-hover);
+}
+.row:last-child td {
+  border-bottom: 0;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .row {
+    animation: none;
+  }
+}

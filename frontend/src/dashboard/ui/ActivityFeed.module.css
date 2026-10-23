@@ -1,0 +1,153 @@
+/* The activity timeline: a day heading, then one row per thing that happened, joined by a thin thread. */
+.feed {
+  /* each kind has its own colour (the icon and its tile) */
+  --k-project: #a78bfa;
+  --k-stage: #34d399;
+  --k-employee: #6ea0ff;
+  --k-invitation: #f472b6;
+  --k-client: #2dd4bf;
+  --k-role: #fbbf24;
+  --k-tool: #38bdf8;
+  --k-organization: #a3a9c2;
+
+  display: grid;
+  margin-top: 6px;
+}
+:global(:root[data-theme='light']) .feed {
+  --k-project: #6d3fe0;
+  --k-stage: #0f8a5f;
+  --k-employee: #2b62d9;
+  --k-invitation: #c42a7c;
+  --k-client: #0c8577;
+  --k-role: #a35c00;
+  --k-tool: #0b77ad;
+  --k-organization: #5b6280;
+}
+
+.day {
+  margin: 18px 0 4px;
+  color: var(--cm-ink-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.day:first-child {
+  margin-top: 8px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  --k: var(--k-project);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 0;
+}
+/* the thread between two rows of the same day */
+.item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 46px;
+  bottom: -6px;
+  left: 15.5px;
+  width: 1px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--k) 45%, transparent), var(--d-hairline));
+}
+
+.k_project { --k: var(--k-project); }
+.k_stage { --k: var(--k-stage); }
+.k_employee { --k: var(--k-employee); }
+.k_invitation { --k: var(--k-invitation); }
+.k_client { --k: var(--k-client); }
+.k_role { --k: var(--k-role); }
+.k_tool { --k: var(--k-tool); }
+.k_organization { --k: var(--k-organization); }
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--k) 34%, transparent);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--k) 14%, transparent);
+  color: var(--k);
+}
+
+.body {
+  min-width: 0;
+  padding-top: 1px;
+}
+.text {
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.actor {
+  color: var(--cm-ink);
+  font-weight: 700;
+}
+.thing {
+  color: var(--cm-ink);
+  font-weight: 650;
+}
+.person {
+  color: var(--cm-ink);
+  font-weight: 600;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+.role {
+  padding: 1px 8px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.roleAdmin {
+  border-color: var(--d-violet-bd, var(--cm-line-strong));
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+}
+.roleLead {
+  border-color: var(--d-info-bd);
+  background: var(--d-info-bg);
+  color: var(--d-info-fg);
+}
+.roleReviewer {
+  border-color: var(--d-success-bd);
+  background: var(--d-success-bg);
+  color: var(--d-success-fg);
+}
+.roleEmployee {
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+}
+
+/* the Overview card: a little tighter */
+.compact .item {
+  padding: 8px 0;
+}
+.compact .day {
+  margin-top: 14px;
+}
+.compact .day:first-child {
+  margin-top: 6px;
+}

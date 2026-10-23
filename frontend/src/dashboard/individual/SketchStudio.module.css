@@ -1,0 +1,467 @@
+/*
+ * Sketch Studio (SketchStudioPage.jsx): the scene cards and a scene's sketch workspace (scene | sketch |
+ * sketches). Cards, fields, the frame and its "Generating" effect come from CharacterStudio.module.css; only what is
+ * different for scenes (wide 16:9 pictures, the scene strip, the sketch list) is here.
+ */
+
+/* ------------------------------------------------------------------ the scene cards */
+.sceneGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sceneCard {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-card-bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.sceneCard:hover {
+  border-color: var(--d-violet-bd);
+  box-shadow: var(--d-card-shadow-sm);
+  transform: translateY(-2px);
+}
+.sceneCard:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.sceneThumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-bottom: 1px solid var(--cm-line);
+  background:
+    radial-gradient(70% 90% at 50% 20%, var(--d-accent-fill-2), transparent 70%),
+    var(--d-fill-1);
+}
+.sceneThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumbEmpty {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border: 1.5px dashed var(--cm-line-strong);
+  border-radius: 14px;
+  color: var(--cm-ink-faint);
+}
+.sceneNoTag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(10, 8, 20, 0.62);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.sceneBody {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 14px 16px 16px;
+}
+.sceneName {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.sceneText {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.sceneFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  margin-top: 4px;
+}
+.placeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cm-ink-dim);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.sketchCount {
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.sketchCountOn {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--d-accent-fill-2);
+  color: var(--cm-violet-hi);
+}
+
+/* ------------------------------------------------------------------ the workspace */
+.sceneStrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px;
+}
+.stripItem {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 36px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 10px;
+  background: var(--d-fill-2);
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.stripItem img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+}
+.stripItem span {
+  position: relative;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+.stripItem img + span {
+  background: rgba(10, 8, 20, 0.6);
+  color: #fff;
+}
+.stripItem:hover {
+  border-color: var(--cm-line-strong);
+  transform: translateY(-1px);
+}
+.stripItem:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.stripItemOn {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--cm-void), 0 0 0 4px var(--cm-violet-hi);
+  color: var(--d-strong);
+  cursor: default;
+}
+.stripItemOn img {
+  opacity: 1;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(250px, 290px) minmax(0, 1fr) minmax(250px, 290px);
+  grid-template-areas: 'scene sketch history';
+  gap: 16px;
+  align-items: start;
+}
+.sceneCardSide {
+  grid-area: scene;
+  gap: 12px;
+}
+.sketchCard {
+  grid-area: sketch;
+  position: sticky;
+  top: 24px;
+  background:
+    radial-gradient(70% 55% at 50% 40%, var(--d-accent-fill), transparent 70%),
+    var(--d-card-bg);
+}
+.historyCard {
+  grid-area: history;
+}
+
+/* the scene, on the left */
+.kicker {
+  margin: 0;
+  color: var(--cm-violet-hi);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.sceneTitle {
+  margin: -4px 0 0;
+  font-family: var(--cm-font-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1.1;
+}
+.summary {
+  margin: 0;
+  color: var(--cm-ink-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.block {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--d-hairline);
+}
+.blockLabel {
+  margin: 0;
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+.blockText {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+.personAvatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #8b5cf6, #4f46e5);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+.personAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 12%;
+  background: #e9ebf3;
+}
+
+/* the sketch, in the middle: a wide 16:9 frame */
+.stageWrap {
+  width: 100%;
+}
+.stage {
+  aspect-ratio: 16 / 9;
+}
+.photo {
+  object-fit: cover;
+}
+.placeholderMark {
+  border-radius: 18px;
+  color: var(--cm-ink-faint);
+}
+
+/* the sketches made so far, on the right */
+.historyEmpty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--cm-line-strong);
+  border-radius: 14px;
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.history {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.historyItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-fill-1);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.historyItem:hover {
+  border-color: var(--cm-line-strong);
+}
+.historyItemOn {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+  box-shadow: inset 0 0 0 1px var(--d-violet-bd);
+}
+.historyPick {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.historyPick img {
+  width: 72px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.historyPick:focus-visible,
+.historyDelete:focus-visible {
+  border-radius: 10px;
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: -2px;
+}
+.historyPick:disabled,
+.historyDelete:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.historyText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.historyName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+.mainBadge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--d-success-bg);
+  color: var(--d-success-fg);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+.historyMeta {
+  overflow: hidden;
+  color: var(--cm-ink-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.historyDelete {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cm-ink-faint);
+  cursor: pointer;
+}
+.historyDelete:hover:not(:disabled) {
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg);
+}
+
+/* ------------------------------------------------------------------ smaller screens */
+@media (max-width: 1180px) {
+  /* the sketch across the top, the scene and the sketches side by side under it */
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'sketch sketch'
+      'scene history';
+  }
+  .sketchCard {
+    position: static;
+  }
+}
+@media (max-width: 760px) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'sketch'
+      'history'
+      'scene';
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sceneCard,
+  .stripItem {
+    transition: none;
+  }
+}
+/* under the generate bar: use the creator's own image instead */
+.uploadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 0 4px;
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+}

@@ -1,0 +1,26 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1;
+}
+
+.mark {
+  flex: none;
+  filter: drop-shadow(0 0 14px rgba(122, 60, 255, 0.55));
+}
+
+.word {
+  font-family: var(--cm-font-body);
+  font-weight: 800;
+  font-size: 1.28rem;
+  letter-spacing: -0.03em;
+  color: var(--cm-ink);
+  white-space: nowrap;
+}
+
+.accent {
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--cm-violet-hi);
+}

@@ -1,0 +1,147 @@
+.stage {
+  /* how big the logo is, and how thick */
+  --size: clamp(200px, min(30vw, 36vh), 330px);
+  --depth: calc(var(--size) * 0.13);
+
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+}
+
+/* the light it gives off: a soft halo behind it that slowly swells and fades */
+.glow {
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: var(--d-logo-glow);
+  filter: blur(20px);
+  animation: breathe 5.5s ease-in-out infinite;
+}
+
+/* the glow that hugs the logo itself (this element is flat; the 3D happens inside it) */
+/* Coloured light spilling around it: a heavily blurred copy of the logo, so it reads as a soft cloud of light and
+   not as a second logo. It is drawn once and only fades in and out, so it costs almost nothing. */
+.halo {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: contain;
+  filter: blur(42px) saturate(1.4);
+  opacity: var(--d-halo-opacity);
+  animation: pulse 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* the wrapper of the 3D part (no filters here: they would have to be redrawn every frame) */
+.lit {
+  position: absolute;
+  inset: 0;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  perspective: 1100px;
+}
+
+/* Every layer from here down keeps the 3D going: gently bobbing, tilted a little, and turning. */
+.float,
+.tilt,
+.spin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.float {
+  animation: bob 6.5s ease-in-out infinite;
+}
+.tilt {
+  transform: rotateX(-9deg);
+}
+.spin {
+  animation: turn 18s linear infinite;
+  will-change: transform;
+}
+
+.slice {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+/* phones: half the body layers are enough, and much lighter for the browser */
+@media (max-width: 700px) {
+  .thin {
+    display: none;
+  }
+}
+
+/* a band of light that glides across the front face, cut to the shape of the logo */
+.shine {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(calc(var(--depth) * 0.5 + 1px));
+  -webkit-mask: var(--logo) center / contain no-repeat;
+  mask: var(--logo) center / contain no-repeat;
+  background: linear-gradient(112deg, transparent 40%, rgba(255, 255, 255, 0.55) 50%, transparent 60%);
+  background-size: 280% 100%;
+  animation: sweep 6s ease-in-out infinite;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+@keyframes turn {
+  to {
+    transform: rotateY(360deg);
+  }
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.34;
+  }
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.62;
+    transform: scale(1.07);
+  }
+}
+@keyframes sweep {
+  0% {
+    background-position: 130% 0;
+  }
+  60%,
+  100% {
+    background-position: -30% 0;
+  }
+}
+
+/* scrolled out of view: stop everything */
+.stage[data-active='false'] * {
+  animation-play-state: paused !important;
+}
+
+/* "reduce motion": no turning or bobbing. It stays angled, so its thickness still shows. */
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+    transform: rotateY(-30deg);
+  }
+  .float,
+  .glow,
+  .halo {
+    animation: none;
+  }
+  .shine {
+    display: none;
+  }
+}

@@ -1,0 +1,180 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 20px 18px;
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 22px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+  transition: transform 0.4s var(--cm-ease), border-color 0.25s ease, box-shadow 0.4s ease;
+}
+/* a thin coloured line along the top edge */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4d8bff, #8b5cf6, #d05cff);
+  opacity: 0.85;
+}
+.delivered::before {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--cm-line-strong);
+  box-shadow: 0 28px 60px -34px rgba(122, 60, 255, 0.7);
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.id {
+  color: var(--cm-ink-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.title {
+  margin-top: 2px;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.desc {
+  display: -webkit-box;
+  min-height: 2.7em;
+  overflow: hidden;
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.client {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cm-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.client svg {
+  color: var(--cm-violet-hi);
+}
+
+/* how far along: six segments, one per stage */
+.progress {
+  margin-top: 4px;
+}
+.bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+}
+.segment {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--d-fill-3);
+  transition: background 0.4s ease;
+}
+.segmentDone {
+  background: linear-gradient(90deg, #4d8bff, #8b5cf6);
+}
+.delivered .segmentDone {
+  background: #22c55e;
+}
+.segmentNow {
+  background: linear-gradient(90deg, #4d8bff, #d05cff);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.7);
+  animation: now 2s ease-in-out infinite;
+}
+@keyframes now {
+  50% {
+    opacity: 0.6;
+  }
+}
+.stageText {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+}
+.stageText strong {
+  color: var(--cm-ink);
+  font-weight: 800;
+}
+.delivered .stageText {
+  color: var(--d-success-fg);
+  font-weight: 800;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--d-hairline);
+}
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.leader {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.leaderLabel {
+  color: var(--cm-ink-faint);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.leaderEmail {
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.date {
+  flex: none;
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+}
+.demoButton {
+  align-self: flex-start;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmentNow {
+    animation: none;
+  }
+  .card {
+    transition: none;
+  }
+}
+
+/* Edit / Delete, top-right of the card */
+.cardActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

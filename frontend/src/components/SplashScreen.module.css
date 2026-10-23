@@ -1,0 +1,242 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 38%, rgba(122, 60, 255, 0.18), transparent 62%),
+    radial-gradient(120% 120% at 50% 100%, #0b0718 0%, var(--cm-void) 55%, #020103 100%);
+  cursor: pointer;
+  animation: rootIn 0.4s ease both;
+}
+.root[data-phase='exit'] {
+  animation: rootOut var(--fade-ms) ease both;
+  pointer-events: none;
+}
+.root:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: -6px;
+}
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- the stage: hands + logo ---------------------------------------------------------------- */
+.stage {
+  position: relative;
+  width: min(1100px, 100vw);
+  flex: 1;
+  min-height: 0;
+  --logo-size: clamp(150px, 19vw, 230px);
+}
+.ambient {
+  position: absolute;
+  inset: -10%;
+  background: radial-gradient(45% 45% at 50% 48%, rgba(122, 60, 255, 0.22), transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.centerpiece {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+}
+.centerGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60vh;
+  height: 60vh;
+  max-width: 520px;
+  max-height: 520px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(122, 60, 255, 0.55) 0%, rgba(47, 107, 255, 0.26) 42%, transparent 72%);
+  filter: blur(14px);
+  animation: breathe 3.2s ease-in-out infinite;
+}
+.root[data-phase='burst'] .centerGlow,
+.root[data-phase='exit'] .centerGlow {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.logoWrap {
+  position: relative;
+}
+.logo3d {
+  --size: var(--logo-size);
+  position: relative;
+}
+
+/* the burst: the logo's own particles letting go, in the same colours the real page's particles use */
+.burst {
+  position: absolute;
+  inset: 0;
+}
+.spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: hsl(calc(200 + var(--hue) * 130), 92%, 68%);
+  box-shadow: 0 0 8px 1px hsl(calc(200 + var(--hue) * 130), 95%, 62%);
+  opacity: 0;
+  transform: rotate(var(--rot)) translateX(6px) scale(0.5);
+  animation: sparkFly var(--burst-ms) var(--delay) cubic-bezier(0.14, 0.8, 0.3, 1) both;
+}
+@keyframes sparkFly {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--rot)) translateX(6px) scale(0.4);
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--rot)) translateX(var(--dist)) scale(1);
+  }
+}
+
+/* ---------------------------------------------------------------- the two hands ---------------------------------------------------------------- */
+/* each hand's own (0,0) corner sits exactly at the point on the logo its finger is aimed at (--tox/--toy,
+   an offset from centre); --tx/--ty (set from JS, in vw/vh so screen size decides the distance, not the
+   hand's own size) is how much further out it still is, shrinking to 0 by the time the bar reaches 98% */
+.hand {
+  position: absolute;
+  top: calc(46% + var(--logo-size) * var(--toy));
+  left: calc(50% + var(--logo-size) * var(--tox));
+  z-index: 2;
+  transform: translate(var(--tx), var(--ty));
+  transition: transform 0.12s linear;
+  pointer-events: none;
+}
+.handImg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: clamp(240px, 30vw, 480px);
+  height: auto;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.55));
+  /* slides the image so the fingertip (--tipx/--tipy, a point inside the picture) lands exactly at (0,0) */
+  transform: translate(calc(-1 * var(--tipx)), calc(-1 * var(--tipy)));
+  transform-origin: 0 0;
+}
+.hand[data-hand='robot'] .handImg {
+  width: clamp(260px, 32vw, 520px);
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 26px rgba(77, 139, 255, 0.35));
+}
+.hand[data-hand='human'] .handImg {
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 22px rgba(255, 190, 150, 0.22));
+}
+.root[data-phase='burst'] .hand,
+.root[data-phase='exit'] .hand {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* ---------------------------------------------------------------- the loader ---------------------------------------------------------------- */
+.loader {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(420px, 78vw);
+  padding-bottom: clamp(28px, 6vh, 64px);
+  transition: opacity 0.25s ease;
+}
+.root[data-phase='exit'] .loader {
+  opacity: 0;
+}
+.message {
+  margin: 0;
+  height: 1.3em;
+  color: var(--cm-ink-dim);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: center;
+  animation: messageIn 0.4s var(--cm-ease) both;
+}
+.barTrack {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--cm-grad, linear-gradient(90deg, #2f6bff, #7a3cff, #c026d3));
+  box-shadow: 0 0 12px rgba(122, 60, 255, 0.7);
+}
+.percent {
+  margin: 0;
+  color: var(--cm-ink);
+  font-family: var(--cm-font-display);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+@keyframes rootIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rootOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (max-width: 640px) {
+  .stage {
+    width: 100vw;
+  }
+  .handImg,
+  .hand[data-hand='robot'] .handImg {
+    width: clamp(220px, 58vw, 340px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .centerGlow,
+  .message,
+  .hand,
+  .logoWrap {
+    animation: none !important;
+    transition: none !important;
+  }
+}

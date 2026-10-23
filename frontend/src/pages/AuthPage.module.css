@@ -1,0 +1,389 @@
+.page {
+  position: relative;
+  z-index: var(--cm-z-content);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 32px 16px;
+}
+
+/* the form area fades in when you switch between Log in and Sign up */
+.swap {
+  animation: swap 0.5s var(--cm-ease) both;
+}
+
+.head {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--cm-font-body);
+  font-weight: 800;
+  font-size: clamp(1.7rem, 5vw, 2.05rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.sub {
+  margin-top: 8px;
+  color: var(--cm-ink-dim);
+  font-size: 0.98rem;
+  text-wrap: balance;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--cm-line);
+}
+
+.formError {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fecaca;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  animation: swap 0.35s var(--cm-ease) both;
+}
+.formError svg {
+  flex: none;
+  margin-top: 2px;
+}
+.formError a {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* A friendly note above the form, e.g. "Your password was changed ..." on Log in */
+.notice {
+  padding: 12px 14px;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 14px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #bbf7d0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  animation: swap 0.35s var(--cm-ease) both;
+}
+
+/* two classes, so this wins over the button's own width */
+.form .submit {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.switch {
+  margin-top: 20px;
+  color: var(--cm-ink-dim);
+  font-size: 0.92rem;
+  text-align: center;
+}
+.switch a {
+  margin-left: 6px;
+  color: var(--cm-violet-hi);
+  font-weight: 700;
+  text-decoration: none;
+}
+.switch a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.demo {
+  margin-top: 16px;
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Sign up: which account type was chosen, with a way back */
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 9px 10px 9px 12px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 16px;
+  background: rgba(122, 60, 255, 0.1);
+}
+.chipInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chipIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--cm-grad);
+  color: #fff;
+}
+.chipChange {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cm-violet-hi);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.chipChange:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Sign up: the two steps slide in from the side you are moving toward */
+.stepForward {
+  animation: fromRight 0.5s var(--cm-ease) both;
+}
+.stepBack {
+  animation: fromLeft 0.5s var(--cm-ease) both;
+}
+
+/* the placeholder studio page */
+.studio {
+  width: min(520px, 100%);
+  padding: 36px 32px 30px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 30px;
+  background: linear-gradient(180deg, #171029 0%, #0d0919 100%);
+  box-shadow: 0 50px 140px -30px rgba(122, 60, 255, 0.5);
+  text-align: center;
+  animation: swap 0.7s var(--cm-ease) both;
+}
+.studio p {
+  margin-top: 12px;
+  color: var(--cm-ink-dim);
+}
+.studio strong {
+  color: var(--cm-ink);
+}
+.studioActions {
+  display: flex;
+  justify-content: center;
+  margin-top: 26px;
+}
+
+@keyframes swap {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes fromRight {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes fromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swap,
+  .formError,
+  .stepForward,
+  .stepBack,
+  .studio {
+    animation: none;
+  }
+}
+
+/* /choose-account: which Google account is being set up, and the small text button under the form */
+.who {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 10px 14px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+  text-align: left;
+}
+.who svg {
+  flex: none;
+}
+.who strong {
+  color: var(--cm-ink);
+  overflow-wrap: anywhere;
+}
+.linkButton {
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--cm-violet-hi);
+  font-weight: 700;
+  cursor: pointer;
+}
+.linkButton:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.checking {
+  padding: 46px 0;
+  color: var(--cm-ink-dim);
+  text-align: center;
+}
+
+/* Forgot / reset password */
+.iconTile {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 22px auto 0;
+  border-radius: 20px;
+  background: var(--cm-grad);
+  color: #fff;
+  box-shadow: 0 18px 50px -14px rgba(122, 60, 255, 0.85);
+}
+.forgotRow {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 2px;
+}
+.forgot {
+  color: var(--cm-violet-hi);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.forgot:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.backRow {
+  margin-top: 20px;
+  text-align: center;
+}
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cm-ink-dim);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease, gap 0.3s var(--cm-ease);
+}
+.backLink:hover {
+  gap: 12px;
+  color: #fff;
+}
+.actions {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-top: 18px;
+}
+.actions .submit {
+  width: 100%;
+}
+.helper {
+  margin-top: 6px;
+  color: var(--cm-ink-faint);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.resendRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 14px;
+  margin-top: 10px;
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+}
+.textButton {
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--cm-violet-hi);
+  font-weight: 700;
+  cursor: pointer;
+}
+.textButton:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.textButton:disabled {
+  color: var(--cm-ink-faint);
+  cursor: default;
+}
+.liveNote {
+  min-height: 1.3em;
+  margin-top: 6px;
+  color: #86efac;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-align: center;
+}
+.demoBox {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px dashed var(--cm-line-strong);
+  border-radius: 14px;
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  text-align: center;
+}
+.demoBox a {
+  color: var(--cm-violet-hi);
+  font-weight: 700;
+}
+.maskedEmail {
+  color: var(--cm-ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.checking {
+  padding: 56px 0;
+  color: var(--cm-ink-dim);
+  text-align: center;
+}

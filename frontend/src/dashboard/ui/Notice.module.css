@@ -1,0 +1,40 @@
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--d-warn-bd);
+  border-radius: 16px;
+  background: var(--d-warn-bg);
+  color: var(--d-warn-fg);
+  font-size: 0.88rem;
+  animation: drop 0.4s var(--cm-ease) both;
+}
+.message {
+  flex: 1;
+}
+.retry {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--d-warn-fg-2);
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.retry:hover {
+  background: var(--d-warn-hover);
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice {
+    animation: none;
+  }
+}

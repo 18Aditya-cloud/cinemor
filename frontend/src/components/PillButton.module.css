@@ -1,0 +1,78 @@
+.pill {
+  --mx: 50%;
+  --my: 50%;
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  /* a dark, lit-from-above surface: light at the top edge, deeper at the bottom */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.05) 46%, rgba(0, 0, 0, 0.28) 100%),
+    #1a1626;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 10px 26px -12px rgba(0, 0, 0, 0.9);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.35s var(--cm-ease),
+    border-color 0.3s ease,
+    box-shadow 0.35s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* the light that follows the cursor */
+.pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(90px circle at var(--mx) var(--my), rgba(183, 155, 255, 0.4), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.icon {
+  display: inline-flex;
+  transition: transform 0.35s var(--cm-ease);
+}
+
+.pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(200, 180, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 12px 32px -10px rgba(122, 60, 255, 0.75);
+}
+.pill:hover::before {
+  opacity: 1;
+}
+.pill:hover .icon {
+  transform: translate(2px, -2px);
+}
+.pill:active {
+  transform: translateY(0) scale(0.96);
+  transition-duration: 0.12s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill,
+  .icon,
+  .pill::before {
+    transition: none;
+  }
+}

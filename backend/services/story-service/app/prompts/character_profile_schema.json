@@ -1,0 +1,33 @@
+{
+    "face_shape": "",
+    "skin_tone": "",
+    "eye_color": "",
+    "eye_shape": "",
+    "eyebrow_style": "",
+    "nose_shape": "",
+    "lip_shape": "",
+    "facial_hair": "",
+    "gender": "",
+    "age_group": "",
+    "special_features": [],
+    "hair_style": "",
+    "hair_color": "",
+    "hair_length": "",
+    "height_category": "",
+    "body_type": "",
+    "body_proportions": "",
+    "default_body_posture": "",
+    "upper_clothing": [],
+    "lower_clothing": [],
+    "footwear": [],
+    "accessories": [],
+    "jewellery": [],
+    "weapon": [],
+    "style_name": "",
+    "color_palette": [],
+    "dominant_materials": [],
+    "generation_metadata": {
+      "model": "",
+      "version": ""
+    }
+  }

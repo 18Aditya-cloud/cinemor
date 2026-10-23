@@ -1,0 +1,120 @@
+{
+    "story_metadata": {
+        "title": "",
+        "language": "",
+        "genre": [],
+        "style": [],
+        "theme": [],
+        "logline": "",
+        "synopsis": "",
+        "has_narrator": false
+    },
+    "characters": [
+        {
+            "character_id": 0,
+            "name": "",
+            "aliases": [],
+            "is_revealed": false,
+            "revealed_identity": "",
+            "role": "protagonist|antagonist|supporting|minor",
+            "importance": "primary|secondary|tertiary",
+            "first_appearance_scene_id": 0,
+            "description": "",
+            "appearance": {
+                "physical_traits": "",
+                "clothing": "",
+                "special_features": ""
+            },
+            "appearance_history": [
+                {
+                    "scene_id": 0,
+                    "age_group": "child|teen|young_adult|adult|elderly|unknown",
+                    "physical_traits": "",
+                    "clothing": "",
+                    "special_features": ""
+                }
+            ],
+            "gender": "",
+            "age_group": "child|teen|young_adult|adult|elderly|unknown",
+            "dominant_emotions": []
+        }
+    ],
+    "relationships": [
+        {
+            "source_id": 0,
+            "target_id": 0,
+            "type": "parent|child|sibling|grandparent|grandchild|spouse|lover|relative|friend|ally|rival|enemy|mentor|student|guardian|ward|leader|follower|ruler|subject|advisor|servant",
+            "directional": false,
+            "description": ""
+        }
+    ],
+    "locations": [
+        {
+            "location_id": 0,
+            "name": "",
+            "aliases": [],
+            "description": "",
+            "type": "interior|exterior|unknown",
+            "first_appearance_scene_id": 0
+        }
+    ],
+    "objects": [
+        {
+            "object_id": 0,
+            "name": "",
+            "aliases": [],
+            "description": "",
+            "category": "",
+            "owner_character_id": 0,
+            "current_location_id": 0,
+            "first_appearance_scene_id": 0
+        }
+    ],
+    "narrator": {
+        "present": false,
+        "narrator_id": 0,
+        "point_of_view": "first_person|second_person|third_person_limited|third_person_omniscient",
+        "description": ""
+    },
+    "scenes": [
+        {
+            "scene_id": 0,
+            "title": "",
+            "importance": "",
+            "summary": "",
+            "primary_action": "",
+            "overall_emotion": "",
+            "visual_description": "",
+            "camera_suggestion": "",
+            "scene_transition": "",
+            "location": {
+                "name": "",
+                "type": "interior|exterior|unknown",
+                "time_of_day": "morning|afternoon|evening|night|unspecified",
+                "description": ""
+            },
+            "language": "",
+            "extraction_confidence": 95,
+            "characters_present": [
+                {
+                    "character_id": 0,
+                    "name": "",
+                    "emotion": "",
+                    "emotion_intensity": "low|medium|high"
+                }
+            ],
+            "dialogues": [
+                {
+                    "dialogue_id": 0,
+                    "speaker_type": "",
+                    "speaker_id": 0,
+                    "speaker_name": "",
+                    "text": "",
+                    "language": "",
+                    "emotion": "",
+                    "delivery": ""
+                }
+            ]
+        }
+    ]
+}

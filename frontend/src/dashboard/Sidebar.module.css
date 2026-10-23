@@ -1,0 +1,549 @@
+/*
+ * The rail is always the same dark colours, whichever theme (light or dark) the rest of the dashboard is in — a
+ * fixed set of the dark theme's own values, defined here so the whole file can keep using the usual "--cm-" and
+ * "--d-" names without caring which theme is active. Only this file needs to know that.
+ */
+.sidebar {
+  --cm-ink: #f4f0ff;
+  --cm-ink-dim: #b0a6d0;
+  --cm-ink-faint: #9187b2;
+  --cm-line: rgba(183, 155, 255, 0.14);
+  --cm-line-strong: rgba(183, 155, 255, 0.3);
+  --cm-violet-hi: #b79bff;
+  --d-fill-1: rgba(255, 255, 255, 0.045);
+  --d-fill-2: rgba(255, 255, 255, 0.065);
+  --d-fill-3: rgba(255, 255, 255, 0.11);
+  --d-accent-fill: rgba(122, 60, 255, 0.18);
+  --d-accent-fill-2: rgba(122, 60, 255, 0.2);
+  --d-nav-active: linear-gradient(90deg, rgba(122, 60, 255, 0.26), rgba(122, 60, 255, 0.1));
+  --d-popover-bg: #1a1430;
+  --d-popover-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.9);
+  --d-strong: #fff;
+  --d-brand-blue: #6aa0ff;
+  --d-sidebar-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.85);
+
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: 272px;
+  height: 100vh;
+  height: 100svh;
+  color: var(--cm-ink); /* the fixed colour above, not whichever the site's own theme currently has */
+  background: linear-gradient(180deg, #100a24 0%, #0a0616 100%);
+  transition: width 0.4s var(--cm-ease), margin 0.4s var(--cm-ease);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  height: 84px;
+  padding: 0 22px;
+}
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--cm-ink); /* anchors have their own default link colour otherwise, which would win over inheriting this */
+  text-decoration: none;
+}
+.logoImg {
+  flex: none;
+  filter: drop-shadow(0 4px 14px rgba(122, 60, 255, 0.65));
+}
+.wordmark {
+  font-size: 1.16rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+.wordmark em {
+  color: var(--d-brand-blue);
+  font-style: normal;
+}
+
+.nav {
+  flex: 1;
+  padding: 6px 14px 12px;
+  overflow-y: auto;
+  overflow-x: visible;
+}
+.group + .group {
+  margin-top: 14px;
+}
+.section {
+  margin: 14px 10px 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  margin-bottom: 4px;
+  padding: 0 13px;
+  border-radius: 14px;
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.3s var(--cm-ease);
+}
+.link:hover {
+  background: var(--d-fill-2);
+  color: var(--d-strong);
+}
+.linkIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+}
+.active,
+.active:hover {
+  background: var(--d-nav-active);
+  color: var(--d-strong);
+}
+/* a bright bar on the left edge of the current page (the labelled, expanded rail) */
+.active::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #4d8bff, #9a5cff);
+  box-shadow: 0 0 14px rgba(122, 60, 255, 0.9);
+}
+.active svg {
+  color: var(--cm-violet-hi);
+}
+
+/* the one label shown next to whichever icon has the mouse or the keyboard focus, once the rail is icon-only.
+   It is positioned in JS (Sidebar.jsx: showTip) and sits directly in <aside>, not inside the scrolling <nav>, so
+   nav's own scrollbar can never clip it (a scrolling box clips both directions once either one scrolls). */
+.railTip {
+  position: absolute;
+  left: 100%;
+  z-index: 45;
+  margin-left: 10px;
+  padding: 7px 13px;
+  border-radius: 10px;
+  background: var(--d-popover-bg);
+  box-shadow: var(--d-popover-shadow);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  animation: tipIn 0.12s var(--cm-ease) both;
+  pointer-events: none;
+}
+.railTip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--d-popover-bg);
+  transform: translateY(-50%) rotate(45deg);
+}
+@keyframes tipIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px);
+  }
+}
+
+.collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 44px;
+  margin: 4px 14px 16px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-faint);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.collapse:hover {
+  background: var(--d-fill-3);
+  color: var(--d-strong);
+}
+
+/* ---- the foot: Light / Dark and the account ---- */
+.foot {
+  display: grid;
+  gap: 8px;
+  margin: 0 14px 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cm-line);
+}
+.footButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+.footButton:hover {
+  border-color: var(--cm-line-strong);
+  background: var(--d-fill-3);
+  color: var(--d-strong);
+}
+.themeIcon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  color: var(--cm-violet-hi);
+  animation: swapIcon 0.5s var(--cm-ease) both;
+}
+@keyframes swapIcon {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+}
+.menuWrap {
+  position: relative;
+}
+.user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 10px 5px 5px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: var(--d-fill-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.user:hover {
+  border-color: var(--cm-line-strong);
+  background: var(--d-fill-3);
+}
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px -8px rgba(122, 60, 255, 0.9);
+}
+.userText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+.userName {
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userRole {
+  overflow: hidden;
+  color: var(--cm-ink-faint);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chevron {
+  flex: none;
+  color: var(--cm-ink-faint);
+  transform: rotate(-90deg);
+  transition: transform 0.3s var(--cm-ease);
+}
+.flip {
+  transform: rotate(90deg);
+}
+/* the account menu opens beside the rail, lined up with its bottom */
+.menu {
+  position: absolute;
+  bottom: 0;
+  left: calc(100% + 26px);
+  z-index: 46;
+  width: 230px;
+  padding: 6px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 18px;
+  background: var(--d-popover-bg);
+  box-shadow: var(--d-popover-shadow);
+  animation: menuIn 0.24s var(--cm-ease) both;
+}
+.menuHead {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 4px;
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid var(--cm-line);
+}
+.menuName {
+  overflow: hidden;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menuRole {
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.menuItem:hover {
+  background: var(--d-accent-fill-2);
+}
+.footButton:focus-visible,
+.user:focus-visible,
+.menuItem:focus-visible,
+.collapse:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+/* ---- collapsed: the icon-only rail (the default look) ---- */
+.collapsed {
+  width: 92px;
+}
+.collapsed .wordmark,
+.collapsed .linkText,
+.collapsed .collapseText,
+.collapsed .section {
+  display: none;
+}
+.collapsed .brand {
+  justify-content: center;
+  padding: 0;
+}
+.collapsed .link {
+  justify-content: center;
+  padding: 0;
+}
+/* the rounded, filled shape behind the current icon, instead of the left bar (which needs the wider rail) */
+.collapsed .active::before {
+  display: none;
+}
+.collapsed .active {
+  border-radius: 15px;
+  box-shadow: 0 10px 26px -14px rgba(122, 60, 255, 0.95);
+}
+.collapsed .group + .group {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cm-line);
+}
+.collapsed .foot {
+  justify-items: center;
+  margin-left: 0;
+  margin-right: 0;
+}
+.collapsed .footText,
+.collapsed .userText,
+.collapsed .chevron {
+  display: none;
+}
+.collapsed .footButton {
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+}
+.collapsed .user {
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.collapsed .user:hover {
+  background: transparent;
+}
+.collapsed .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+}
+.collapsed .menu {
+  left: calc(100% + 22px);
+}
+.collapsed .collapse {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+  width: 44px;
+}
+
+/* ---- desktop and wide tablets: the rail floats, with a little room around it ---- */
+@media (min-width: 961px) {
+  .sidebar {
+    top: 14px;
+    height: calc(100vh - 28px);
+    height: calc(100svh - 28px);
+    margin: 14px 0 14px 14px;
+    border-radius: 26px;
+    box-shadow: var(--d-sidebar-shadow), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  }
+}
+
+/* ---- phones and small tablets: the menu slides in over the page, always with its labels ---- */
+@media (max-width: 960px) {
+  .sidebar,
+  .collapsed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(300px, 86vw);
+    border-radius: 0;
+    box-shadow: none;
+    transform: translateX(-104%);
+    transition: transform 0.45s var(--cm-ease), box-shadow 0.45s ease;
+  }
+  /* the shadow only while the menu is open; when it is tucked away off-screen it must not leak onto the page */
+  .drawerOpen {
+    transform: none;
+    box-shadow: var(--d-sidebar-shadow);
+  }
+  .collapsed .wordmark,
+  .collapsed .linkText,
+  .collapsed .section {
+    display: revert;
+  }
+  .collapsed .link {
+    justify-content: flex-start;
+    padding: 0 13px;
+  }
+  .collapsed .active::before {
+    display: block;
+  }
+  .collapsed .active {
+    border-radius: 14px;
+    box-shadow: none;
+  }
+  .collapsed .brand {
+    justify-content: flex-start;
+    padding: 0 22px;
+  }
+  .collapse {
+    display: none;
+  }
+  .collapsed .foot {
+    justify-items: stretch;
+    margin: 0 14px 16px;
+  }
+  .collapsed .footText {
+    display: inline;
+  }
+  .collapsed .userText {
+    display: grid;
+  }
+  .collapsed .chevron {
+    display: block;
+  }
+  .collapsed .footButton,
+  .collapsed .user {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .collapsed .footButton {
+    padding: 0 13px;
+  }
+  .collapsed .user {
+    height: auto;
+    padding: 5px 10px 5px 5px;
+    border: 1px solid var(--cm-line);
+    background: var(--d-fill-1);
+  }
+  .collapsed .avatar {
+    width: 34px;
+    height: 34px;
+  }
+  .foot {
+    margin-bottom: 16px;
+  }
+  .menu,
+  .collapsed .menu {
+    bottom: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+  .chevron {
+    transform: none;
+  }
+  .flip {
+    transform: rotate(180deg);
+  }
+  .railTip {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .link {
+    transition: none;
+  }
+  .railTip,
+  .menu,
+  .themeIcon {
+    animation: none;
+  }
+}

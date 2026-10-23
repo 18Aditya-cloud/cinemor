@@ -1,0 +1,221 @@
+import base64
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# ============================================================
+# Paths
+# ============================================================
+
+# config.py is located at:
+# story-service/app/core/config.py
+#
+# We need the .env located at:
+# story-service/.env
+
+CORE_DIR = Path(__file__).resolve().parent
+APP_DIR = CORE_DIR.parent
+STORY_SERVICE_DIR = APP_DIR.parent
+
+ENV_FILE = STORY_SERVICE_DIR / ".env"
+
+print(f"[CONFIG] CORE_DIR: {CORE_DIR}")
+print(f"[CONFIG] STORY_SERVICE_DIR: {STORY_SERVICE_DIR}")
+print(f"[CONFIG] ENV_FILE: {ENV_FILE}")
+print(f"[CONFIG] ENV_FILE EXISTS: {ENV_FILE.exists()}")
+# ============================================================
+# Settings
+# ============================================================
+
+class Settings(BaseSettings):
+    """
+    Application configuration for the Cinemor Story Service.
+    """
+
+    # ---------------------------------------------------------
+    # Application
+    # ---------------------------------------------------------
+
+    APP_NAME: str = "Cinemor Story Service"
+
+    APP_VERSION: str = "1.0.0"
+
+    DEBUG: bool = True
+
+
+    # ---------------------------------------------------------
+    # Database
+    # ---------------------------------------------------------
+
+    DATABASE_URL: str
+
+
+    # ---------------------------------------------------------
+    # OpenRouter
+    # ---------------------------------------------------------
+
+    OPENROUTER_API_KEY: str
+
+    OPENROUTER_BASE_URL: str = (
+        "https://openrouter.ai/api/v1"
+    )
+
+    # ---------------------------------------------------------
+    # OpenRouter Video Generation
+    # ---------------------------------------------------------
+
+    OPENROUTER_VIDEO_DEFAULT_MODEL: str = "heygen/heygen-video-1"
+
+    OPENROUTER_VIDEO_MODELS: list[str] = [
+        "heygen/heygen-video-1",
+        "x-ai/grok-imagine-video-1.5-lite",
+        "black-forest-labs/flux-video-edit",
+        "minimax/hailuo-3-max",
+        "alibaba/wan-3.0-prime",
+        "kwaivgi/kling-v3.0-std",
+    ]
+
+    # ---------------------------------------------------------
+    # Supabase
+    # ---------------------------------------------------------
+
+    # Supabase is used for Google OAuth authentication.
+
+    SUPABASE_URL: str
+
+    SUPABASE_ANON_KEY: str
+
+
+    # ---------------------------------------------------------
+    # JWT
+    # ---------------------------------------------------------
+
+    JWT_PRIVATE_KEY_B64: str = Field(
+        min_length=100,
+    )
+
+    JWT_PUBLIC_KEY_B64: str = Field(
+        min_length=100,
+    )
+
+    JWT_ALGORITHM: str = "RS256"
+
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+
+    # ---------------------------------------------------------
+    # Authentication Security
+    # ---------------------------------------------------------
+
+    MAX_LOGIN_ATTEMPTS: int = 5
+
+    LOGIN_LOCKOUT_MINUTES: int = 15
+
+
+    # ---------------------------------------------------------
+    # Refresh Token Cookie
+    # ---------------------------------------------------------
+
+    REFRESH_COOKIE_NAME: str = (
+        "cinemor_refresh_token"
+    )
+
+    REFRESH_COOKIE_SECURE: bool = False
+
+    REFRESH_COOKIE_HTTP_ONLY: bool = True
+
+    REFRESH_COOKIE_SAME_SITE: str = "lax"
+
+    REFRESH_COOKIE_PATH: str = "/api/auth"
+
+
+    # ---------------------------------------------------------
+    # Organization / Email
+    # ---------------------------------------------------------
+
+    ORGANIZATION_CODE_LENGTH: int = 12
+
+    RESEND_API_KEY: str
+
+    EMAIL_FROM: str = "onboarding@resend.dev"
+
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    EMAIL_FROM: str
+
+    FRONTEND_URL: str = "http://localhost:5173"
+
+
+    # ---------------------------------------------------------
+    # Password Security
+    # ---------------------------------------------------------
+
+    DUMMY_PASSWORD_HASH: str = Field(
+        min_length=50,
+    )
+
+
+    # ---------------------------------------------------------
+    # Pydantic Settings
+    # ---------------------------------------------------------
+
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+
+    # ---------------------------------------------------------
+    # Decoded JWT Private Key
+    # ---------------------------------------------------------
+
+    @property
+    def JWT_PRIVATE_KEY(self) -> str:
+        """
+        Return the decoded RSA private key in PEM format.
+        """
+
+        return base64.b64decode(
+            self.JWT_PRIVATE_KEY_B64
+        ).decode("utf-8")
+
+
+    # ---------------------------------------------------------
+    # Decoded JWT Public Key
+    # ---------------------------------------------------------
+
+    @property
+    def JWT_PUBLIC_KEY(self) -> str:
+        """
+        Return the decoded RSA public key in PEM format.
+        """
+
+        return base64.b64decode(
+            self.JWT_PUBLIC_KEY_B64
+        ).decode("utf-8")
+
+
+# ============================================================
+# Settings Factory
+# ============================================================
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+# ============================================================
+# Settings Instance
+# ============================================================
+
+settings = get_settings()

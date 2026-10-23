@@ -1,0 +1,72 @@
+/* Base styles, scoped to .cm-scope so they never leak into a host app. */
+html {
+  background: var(--cm-void);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  background: var(--cm-void);
+}
+
+/* The resets use :where() so they have ZERO specificity. Any component class can
+   override them without needing !important or a longer selector. */
+:where(.cm-scope) {
+  color: var(--cm-ink);
+  font-family: var(--cm-font-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+:where(.cm-scope) *,
+:where(.cm-scope) *::before,
+:where(.cm-scope) *::after {
+  box-sizing: border-box;
+}
+
+:where(.cm-scope) :is(h1, h2, h3, p) {
+  margin: 0;
+}
+
+:where(.cm-scope) :is(button, input, textarea, select) {
+  font: inherit;
+  color: inherit;
+}
+
+:where(.cm-scope) :is(img, video, svg, canvas) {
+  display: block;
+  max-width: 100%;
+}
+
+:where(.cm-scope) :focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 3px;
+}
+
+:where(.cm-scope) ::selection {
+  background: rgba(122, 60, 255, 0.55);
+  color: #fff;
+}
+
+/* The page wrapper. overflow-x: clip (not hidden) so position: sticky keeps working. */
+.cinemor-app {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: clip;
+}
+
+.cm-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

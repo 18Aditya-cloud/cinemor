@@ -1,0 +1,71 @@
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LocationProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "location_type": { "type": "string" },
+    "environment": { "type": "string" },
+    "geography": { "type": "string" },
+    "architecture": { "type": "string" },
+    "layout_and_spatial_structure": { "type": "string" },
+    "landmarks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "surface_materials": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "color_palette": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "lighting": { "type": "string" },
+    "weather_and_atmosphere": { "type": "string" },
+    "vegetation": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "background_elements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "time_of_day": { "type": "string" },
+    "camera_and_composition": { "type": "string" },
+    "visual_consistency_rules": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "style_name": { "type": "string" },
+    "generation_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "required": ["model", "version"]
+    }
+  },
+  "required": [
+    "location_type",
+    "environment",
+    "geography",
+    "architecture",
+    "layout_and_spatial_structure",
+    "landmarks",
+    "surface_materials",
+    "color_palette",
+    "lighting",
+    "weather_and_atmosphere",
+    "vegetation",
+    "background_elements",
+    "time_of_day",
+    "camera_and_composition",
+    "visual_consistency_rules",
+    "style_name",
+    "generation_metadata"
+  ]
+}

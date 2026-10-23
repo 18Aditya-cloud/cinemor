@@ -1,0 +1,113 @@
+/* the two permission cards in the Create Job Role window */
+.card {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--cm-line);
+  border-radius: 20px;
+  background: var(--d-fill-1);
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 800;
+}
+.badge {
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--d-info-bg);
+  color: var(--d-info-fg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.cardHint {
+  margin: 4px 0 14px;
+  color: var(--cm-ink-dim);
+  font-size: 0.82rem;
+}
+.cardEmpty {
+  padding: 4px 0 2px;
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.3s var(--cm-ease);
+}
+.chip:hover {
+  border-color: var(--cm-line-strong);
+  color: var(--d-strong);
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chip:focus-within {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.chipOn {
+  border-color: var(--cm-violet-hi);
+  background: var(--d-accent-fill);
+  color: var(--cm-ink);
+}
+.chipDisabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* the real checkbox covers the whole chip, so a click anywhere on it works */
+.chipInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.chipInput:disabled {
+  cursor: default;
+}
+.chipBox {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--d-checkbox-line);
+  border-radius: 7px;
+  color: transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.chipOn .chipBox {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}

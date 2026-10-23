@@ -1,0 +1,292 @@
+.section {
+  position: relative;
+  z-index: var(--cm-z-content);
+  padding: clamp(24px, 6vh, 72px) 0 clamp(80px, 14vh, 150px);
+  overflow-x: clip;
+}
+
+.title {
+  padding: 0 24px;
+  text-align: center;
+  font-family: var(--cm-font-display);
+  font-weight: 400;
+  font-size: clamp(2.1rem, 4.6vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* Card size: a little over half the screen wide, capped on huge screens.
+   Height = picture (16:9) + the text row underneath. */
+.stage {
+  --card-w: min(56vw, 880px);
+  --pad: 12px;
+  --info-h: 128px;
+
+  position: relative;
+  height: calc((var(--card-w) - var(--pad) * 2) * 0.5625 + var(--pad) * 2 + var(--info-h));
+  margin-top: clamp(28px, 5vh, 56px);
+  outline-offset: 6px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.stage[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+/* Every card is placed by numbers set from JS: --x --s --b --br (see StoryCarousel.jsx).
+   --drag is the live pointer offset while dragging.
+   Cards are fully opaque, so the background particles never show through them. */
+.card {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: var(--z);
+  display: flex;
+  flex-direction: column;
+  width: var(--card-w);
+  height: 100%;
+  margin-left: calc(var(--card-w) / -2);
+  padding: var(--pad);
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 30px;
+  background: #0a0716;
+  transform: translate3d(calc(var(--x) * var(--card-w) + var(--drag, 0px)), 0, 0) scale(var(--s));
+  filter: blur(var(--b)) brightness(var(--br));
+  transition:
+    transform 0.9s cubic-bezier(0.65, 0, 0.35, 1),
+    filter 0.9s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.9s ease,
+    box-shadow 0.9s ease;
+}
+
+/* while dragging, the row must follow the pointer with no delay */
+.stage[data-dragging='true'] .card {
+  transition: filter 0.4s ease;
+}
+
+.card[data-far='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.active {
+  filter: none; /* the sharp card needs no filter pass at all */
+  cursor: default;
+  border-color: var(--cm-line-strong);
+  box-shadow: 0 50px 120px -40px hsl(var(--h) 90% 55% / 0.5);
+}
+
+/* ---- the picture (16:9). Replace with a real video or image via content.js ---- */
+.media {
+  position: relative;
+  flex: none;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #06030e;
+}
+
+.file {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* placeholder picture: a small eclipse, tinted by --h */
+.art {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #06030e 0%, #0a0620 64%, #08050f 100%);
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    50% 64% at 50% 64%,
+    hsl(var(--h) 100% 62% / 0.55),
+    hsl(var(--h) 90% 45% / 0.24) 46%,
+    transparent 76%
+  );
+}
+
+.disc {
+  position: absolute;
+  left: 50%;
+  bottom: 36%;
+  width: 24%;
+  aspect-ratio: 2 / 1;
+  transform: translateX(-50%);
+  border-radius: 999px 999px 0 0;
+  background: radial-gradient(120% 130% at 50% 100%, #0b0524 55%, hsl(var(--h) 80% 30%) 100%);
+  box-shadow:
+    0 -3px 18px 1px hsl(var(--h) 100% 84% / 0.95),
+    0 -10px 64px 8px hsl(var(--h) 95% 60% / 0.55);
+}
+
+.line {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 64%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, hsl(var(--h) 100% 88%) 50%, transparent);
+  box-shadow: 0 0 22px 2px hsl(var(--h) 100% 70% / 0.8);
+}
+
+.reflect {
+  position: absolute;
+  left: 50%;
+  top: 64%;
+  width: 24%;
+  aspect-ratio: 2 / 1;
+  transform: translateX(-50%);
+  border-radius: 0 0 999px 999px;
+  background: radial-gradient(120% 130% at 50% 0%, #0b0524 55%, hsl(var(--h) 80% 30%) 100%);
+  box-shadow: 0 10px 44px 4px hsl(var(--h) 95% 60% / 0.4);
+  opacity: 0.4;
+  filter: blur(3px);
+}
+
+/* ---- the text row under the picture ---- */
+.info {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 14px 12px;
+}
+
+.text {
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--cm-font-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.icon {
+  flex: none;
+  color: var(--cm-violet-hi);
+}
+
+.blurb {
+  max-width: 46ch;
+  margin-top: 8px;
+  color: var(--cm-ink-dim);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+/* ---- arrows and dots ---- */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: clamp(24px, 4vh, 40px);
+}
+
+.arrow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(0, 0, 0, 0.25) 100%),
+    #1a1626;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 24px -12px rgba(0, 0, 0, 0.9);
+  color: var(--cm-ink);
+  cursor: pointer;
+  transition:
+    transform 0.35s var(--cm-ease),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
+}
+.arrow:hover {
+  border-color: transparent;
+  background: var(--cm-grad);
+  box-shadow: 0 10px 34px -6px rgba(140, 80, 255, 0.85);
+  transform: scale(1.08);
+}
+.arrow:active {
+  transform: scale(0.92);
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  transition: width 0.5s var(--cm-ease), background 0.3s ease;
+}
+.dot:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+.dotActive {
+  width: 26px;
+  background: var(--cm-violet-hi);
+}
+
+/* Tablets and phones: a larger share of the width, and the button drops under the text. */
+@media (max-width: 900px) {
+  .stage {
+    --card-w: min(78vw, 560px);
+    --info-h: 132px;
+  }
+}
+
+@media (max-width: 600px) {
+  .stage {
+    --card-w: 78vw;
+    --pad: 8px;
+    --info-h: 206px;
+  }
+  .card {
+    border-radius: 24px;
+  }
+  .media {
+    border-radius: 16px;
+  }
+  .info {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 10px 10px;
+  }
+  .name {
+    font-size: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition-duration: 0.01s;
+  }
+}

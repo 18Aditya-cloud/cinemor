@@ -1,0 +1,130 @@
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* the card with a heading, used by All Projects */
+.panel {
+  border: 1px solid var(--cm-line);
+  border-radius: 26px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow);
+  overflow: hidden;
+  animation: rise 0.6s var(--cm-ease) both;
+}
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 8px;
+}
+.panelEyebrow {
+  color: var(--cm-ink-faint);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.panelTitle {
+  margin-top: 4px;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.panelSub {
+  margin-top: 4px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+}
+.panelIcon {
+  color: var(--cm-violet-hi);
+}
+.panelBody {
+  padding: 0 0 4px;
+}
+.panelEmpty {
+  padding: 40px 24px 56px;
+}
+
+/* a person's contact line in a table cell: icon + text */
+.contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cm-ink-dim);
+}
+.contact svg {
+  flex: none;
+  color: var(--cm-ink-faint);
+}
+
+.muted {
+  color: var(--cm-ink-faint);
+}
+.center {
+  text-align: center;
+}
+
+/* the note inside the Invite Employee window */
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--d-info-bd);
+  border-radius: 14px;
+  background: var(--d-info-bg);
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+.note svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--d-info-fg);
+}
+.note strong {
+  color: var(--cm-ink);
+}
+
+.hint {
+  margin-top: -8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+}
+
+.inlineLink {
+  color: var(--cm-violet-hi);
+  font-weight: 700;
+  text-decoration: none;
+}
+.inlineLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+}
+
+.formError {
+  padding: 12px 14px;
+  border: 1px solid var(--d-danger-bd);
+  border-radius: 14px;
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg-strong);
+  font-size: 0.9rem;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}

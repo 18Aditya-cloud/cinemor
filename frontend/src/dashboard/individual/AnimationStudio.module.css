@@ -1,0 +1,409 @@
+/*
+ * AI Animation (AnimationStudioPage.jsx): the film's player with the controls beside it, and the scenes underneath.
+ * Shared pieces (page head, story picker, cards, fields, the line of light round the frame) come from
+ * CharacterStudio.module.css; colours from the dashboard theme (theme.css).
+ */
+
+/* ------------------------------------------------------------------ player + controls */
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 18px;
+  align-items: start;
+}
+
+.playerCard {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 24px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+
+.screenWrap {
+  position: relative;
+  border-radius: 18px;
+}
+.screen {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(70% 90% at 50% 40%, rgba(122, 60, 255, 0.18), transparent 70%),
+    radial-gradient(60% 60% at 80% 100%, rgba(47, 107, 255, 0.12), transparent 70%),
+    #07050f;
+  box-shadow: inset 0 0 0 1px var(--cm-line);
+}
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+.making {
+  display: grid;
+  place-items: center;
+  transform: scale(0.82);
+}
+.placeholder {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 20px;
+  color: rgba(236, 233, 255, 0.86);
+  text-align: center;
+}
+.placeholder p {
+  margin: 0;
+  font-family: var(--cm-font-display);
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  line-height: 1.1;
+}
+.placeholder span:last-child {
+  color: rgba(236, 233, 255, 0.55);
+  font-size: 0.85rem;
+}
+.placeholderIcon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: #c9b8ff;
+}
+.screenTag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(8, 6, 16, 0.72);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 0 4px;
+}
+.status {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--cm-ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.statusBad {
+  color: var(--d-danger-fg);
+  font-weight: 600;
+}
+.pct {
+  color: var(--cm-ink-dim);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  height: 4px;
+  margin: -4px 4px 2px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--d-fill-2);
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7a3cff, #2f6bff);
+  transition: width 0.6s ease;
+}
+
+.controls {
+  align-content: start;
+}
+.modes {
+  display: grid;
+  gap: 8px;
+}
+.mode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-fill-1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.mode:hover:not(:disabled) {
+  border-color: var(--cm-line-strong);
+}
+.mode:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.mode:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.modeOn {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+}
+.modeDot {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--cm-line-strong);
+  border-radius: 50%;
+}
+.modeOn .modeDot {
+  border: 5px solid var(--cm-violet-hi);
+}
+.modeText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.modeName {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.modeHint {
+  color: var(--cm-ink-dim);
+  font-size: 0.78rem;
+}
+.filmActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------------ the scenes */
+.scenes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.scene {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-card-bg);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.sceneOn {
+  border-color: var(--d-violet-bd);
+  box-shadow: 0 0 0 1px var(--d-violet-bd), var(--d-card-shadow-sm);
+}
+.thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: var(--d-fill-2);
+  color: var(--cm-ink-faint);
+  cursor: default;
+}
+.thumb:not(:disabled) {
+  cursor: pointer;
+}
+.thumb:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: -2px;
+}
+.thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+.thumb:not(:disabled):hover img {
+  transform: scale(1.04);
+}
+.thumbIcon {
+  opacity: 0.7;
+}
+.playMark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding-left: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(122, 60, 255, 0.92), rgba(47, 107, 255, 0.92));
+  box-shadow: 0 8px 24px rgba(40, 20, 120, 0.45);
+  color: #fff;
+}
+/* a soft light passes over the picture while its clip is being made */
+.thumbBusy {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%) 0 0 / 250% 100%, rgba(8, 6, 16, 0.35);
+  animation: sweep 1.8s linear infinite;
+}
+@keyframes sweep {
+  from {
+    background-position: 120% 0, 0 0;
+  }
+  to {
+    background-position: -120% 0, 0 0;
+  }
+}
+.sceneNo {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(8, 6, 16, 0.72);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+}
+.sceneBody {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 12px 14px 14px;
+}
+.sceneTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.sceneText {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--cm-ink-dim);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.sceneFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+.sceneError {
+  margin: 0;
+  color: var(--d-danger-fg);
+  font-size: 0.76rem;
+}
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip_ready {
+  border-color: var(--d-success-bd);
+  background: var(--d-success-bg);
+  color: var(--d-success-fg);
+}
+.chip_busy {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+  color: var(--cm-ink);
+}
+.chip_failed {
+  border-color: var(--d-danger-bd);
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg);
+}
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.pickBox {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--cm-line-strong);
+  border-radius: 6px;
+  background: var(--d-field-bg);
+  color: #fff;
+}
+.pickOn {
+  color: var(--cm-ink);
+}
+.pickOn .pickBox {
+  border-color: transparent;
+  background: linear-gradient(135deg, #7a3cff, #2f6bff);
+}
+.pick input:focus-visible + .pickBox {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1000px) {
+  .top {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumbBusy {
+    animation: none;
+  }
+}

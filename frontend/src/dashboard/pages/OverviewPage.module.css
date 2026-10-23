@@ -1,0 +1,122 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: clamp(0px, 2vh, 20px);
+  text-align: center;
+}
+
+/* the turning 3D logo; the space below it also leaves room for its glow */
+.model {
+  margin-top: clamp(4px, 1.5vh, 16px);
+  margin-bottom: clamp(20px, 4vh, 40px);
+}
+
+.eyebrow {
+  margin-top: 0;
+  color: var(--cm-ink-faint);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-top: 14px;
+  font-family: var(--cm-font-display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6.4vw, 4.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.name {
+  background: linear-gradient(100deg, #4d8bff 0%, #8b5cf6 55%, #d05cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sub {
+  margin-top: 16px;
+  color: var(--cm-ink-dim);
+  font-size: 1.05rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  width: 100%;
+  margin-top: clamp(40px, 7vh, 72px);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 22px 28px;
+  border: 1px solid transparent;
+  border-radius: 24px;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.4s var(--cm-ease), background 0.3s ease, border-color 0.3s ease, box-shadow 0.4s ease;
+}
+.tile {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 18px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 20px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  transition: background 0.3s ease, color 0.3s ease, transform 0.4s var(--cm-ease);
+}
+
+/* hover effects only where there is a mouse (on a phone they would stick after a tap) */
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-6px);
+    border-color: var(--cm-line-strong);
+    background: var(--d-fill-1);
+    box-shadow: 0 30px 70px -36px rgba(122, 60, 255, 0.7);
+  }
+  .card:hover .tile {
+    background: var(--cm-grad);
+    color: #fff;
+    transform: scale(1.06);
+  }
+}
+.card:focus-visible {
+  border-color: var(--cm-violet-hi);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(122, 60, 255, 0.3);
+}
+
+.cardTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.cardText {
+  max-width: 24ch;
+  margin-top: 6px;
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .tile {
+    transition: none;
+  }
+}

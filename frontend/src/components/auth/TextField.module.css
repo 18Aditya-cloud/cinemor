@@ -1,0 +1,155 @@
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.label {
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.control {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink);
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.hasTrailing .input {
+  padding-right: 54px;
+}
+.input::placeholder {
+  color: var(--cm-ink-faint);
+}
+.input:hover {
+  border-color: var(--cm-line-strong);
+}
+.input:focus {
+  border-color: var(--cm-violet-hi);
+  background: var(--d-field-bg-focus);
+  box-shadow: 0 0 0 4px rgba(122, 60, 255, 0.25);
+}
+.input:disabled {
+  opacity: 0.6;
+}
+
+/* keep browser autofill dark instead of pale yellow/blue */
+.input:-webkit-autofill,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--cm-ink);
+  caret-color: var(--d-caret);
+  box-shadow: 0 0 0 1000px var(--d-autofill) inset;
+  transition: background-color 9999s ease-out;
+}
+
+.hasError .input {
+  border-color: var(--d-danger-line);
+}
+.hasError .input:focus {
+  box-shadow: 0 0 0 4px var(--d-danger-ring);
+}
+.ok .input {
+  border-color: var(--d-success-line);
+}
+.ok .input:focus {
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+}
+
+.trailing {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: flex;
+  transform: translateY(-50%);
+}
+
+.tick {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  display: flex;
+  color: var(--d-success-strong);
+  transform: translateY(-50%);
+  animation: pop 0.4s var(--cm-ease);
+}
+
+/* The message line opens and closes smoothly, so the form does not jump. */
+.msgWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s var(--cm-ease);
+}
+.msgWrap[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--cm-ink-faint);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+.msgError {
+  color: var(--d-danger-fg);
+  font-weight: 600;
+}
+.msgIcon {
+  flex: none;
+  margin-top: 1px;
+}
+.tone_ok {
+  color: var(--d-success-fg);
+  font-weight: 600;
+}
+.tone_warn {
+  color: var(--d-warn-fg);
+  font-weight: 600;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msgWrap,
+  .input {
+    transition: none;
+  }
+  .tick {
+    animation: none;
+  }
+}
+
+/* required star, "Optional" tag, and the textarea version */
+.req {
+  color: var(--d-danger-star);
+}
+.opt {
+  margin-left: 8px;
+  color: var(--d-danger-tag);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.textarea {
+  height: auto;
+  min-height: 116px;
+  padding: 14px 16px;
+  line-height: 1.5;
+  resize: vertical;
+}

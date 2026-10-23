@@ -1,0 +1,191 @@
+/* ---------------------------------------------------------------- the Employees table */
+.id {
+  color: var(--d-link);
+  font-weight: 800;
+}
+.email {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--cm-ink);
+}
+.email svg {
+  color: var(--cm-ink-faint);
+}
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 280px;
+}
+.role {
+  padding: 3px 9px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 8px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.num {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.over {
+  color: var(--d-warn-fg);
+}
+
+/* ---------------------------------------------------------------- the Update Employee window */
+.section {
+  margin-top: 18px;
+}
+.section:first-child {
+  margin-top: 0;
+}
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.sectionTitle {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.sectionHint {
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  text-align: right;
+}
+.help {
+  margin-top: 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+.error {
+  margin-top: 8px;
+  color: var(--d-danger-fg);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.empty {
+  padding: 14px;
+  border: 1px dashed var(--cm-line);
+  border-radius: 14px;
+  color: var(--cm-ink-faint);
+  font-size: 0.84rem;
+}
+
+/* a grid of tickable cards (job roles, Team Leader / Reviewer, Reviewer For) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.check {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-field-bg);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.check:hover {
+  border-color: var(--d-violet-bd);
+}
+.checkOn {
+  border-color: var(--d-violet-bd);
+  background: var(--d-accent-fill);
+}
+.checkDisabled {
+  cursor: default;
+  opacity: 0.6;
+}
+/* the real checkbox covers the whole card, invisible, so a click anywhere ticks it and the keyboard and screen
+   readers get a normal checkbox */
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--d-checkbox-line);
+  border-radius: 7px;
+  color: transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.checkOn .box {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6);
+  color: #fff;
+}
+.input:focus-visible + .box {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.checkText {
+  min-width: 0;
+}
+.checkTitle {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.checkOn .checkTitle {
+  color: var(--cm-ink);
+}
+.checkDesc {
+  display: block;
+  margin-top: 2px;
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+
+/* the blue note at the bottom */
+.note {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--d-info-bd);
+  border-radius: 14px;
+  background: var(--d-info-bg);
+  color: var(--cm-ink-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.note svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--d-info-fg);
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sectionHead {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sectionHint {
+    text-align: left;
+  }
+}

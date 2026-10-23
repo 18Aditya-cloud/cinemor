@@ -1,0 +1,114 @@
+.section {
+  position: relative;
+  z-index: var(--cm-z-content);
+  padding: clamp(72px, 14vh, 150px) clamp(16px, 3vw, 40px) clamp(96px, 16vh, 170px);
+}
+
+.title {
+  text-align: center;
+  font-family: var(--cm-font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(2.4rem, 5.8vw, 4.2rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* The panel is opaque, so background particles never show behind the questions. */
+.panel {
+  max-width: 880px;
+  margin: clamp(32px, 6vh, 56px) auto 0;
+  overflow: hidden;
+  border: 1px solid var(--cm-line);
+  border-radius: 28px;
+  background: var(--cm-panel);
+  box-shadow: 0 50px 140px -60px rgba(122, 60, 255, 0.45);
+}
+
+.row + .row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.q {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 24px clamp(20px, 3.2vw, 34px);
+  border: 0;
+  background: transparent;
+  color: var(--cm-ink);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.trigger:hover {
+  background: rgba(122, 60, 255, 0.09);
+}
+.trigger:focus-visible {
+  outline-offset: -3px;
+}
+
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--cm-ink-dim);
+  transition: transform 0.45s var(--cm-ease), color 0.3s ease, background 0.3s ease;
+}
+.trigger:hover .icon {
+  color: #fff;
+}
+.open .icon {
+  transform: rotate(45deg);
+  color: #fff;
+  background: rgba(122, 60, 255, 0.35);
+}
+
+/* Height animates from 0fr to 1fr, so no JavaScript measuring is needed. */
+.answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s var(--cm-ease);
+}
+.open .answer {
+  grid-template-rows: 1fr;
+}
+
+.answerInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.answerInner p {
+  max-width: 62ch;
+  padding: 0 clamp(20px, 3.2vw, 34px) 26px;
+  color: var(--cm-ink-dim);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.answerInner a {
+  color: var(--cm-violet-hi);
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answer,
+  .icon {
+    transition: none;
+  }
+}

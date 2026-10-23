@@ -1,0 +1,17 @@
+.footer {
+  position: relative;
+  z-index: var(--cm-z-content);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 36px clamp(16px, 3vw, 40px) 44px;
+  border-top: 1px solid var(--cm-line);
+  background: var(--cm-void);
+}
+
+.copy {
+  color: var(--cm-ink-faint);
+  font-size: 0.86rem;
+}

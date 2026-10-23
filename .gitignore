@@ -1,0 +1,12 @@
+
+# Sensitive private keys
+**/jwt_private.pem
+**/keys/jwt_private.pem
+
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+
+# Runtime-generated media and user uploads
+backend/services/story-service/storage/
+backend/services/story-service/app/storage/

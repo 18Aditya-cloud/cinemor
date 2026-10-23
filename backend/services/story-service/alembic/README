@@ -1,0 +1,56 @@
+Cinemor Story Service Database Migrations
+=========================================
+
+This directory contains Alembic configuration and migration files
+for the Cinemor Story Service.
+
+Database:
+    PostgreSQL
+
+Database name:
+    cinemor
+
+Migration tool:
+    Alembic
+
+Important commands
+------------------
+
+Create a new migration:
+
+    alembic revision --autogenerate -m "migration message"
+
+
+Apply migrations:
+
+    alembic upgrade head
+
+
+Rollback the latest migration:
+
+    alembic downgrade -1
+
+
+Show current migration:
+
+    alembic current
+
+
+Show migration history:
+
+    alembic history
+
+
+Migration files
+---------------
+
+Generated migration files are stored in:
+
+    alembic/versions/
+
+
+Do not manually modify generated migration files unless there is
+a specific reason to do so.
+
+Database credentials are stored in the service .env file and
+must not be committed to source control.

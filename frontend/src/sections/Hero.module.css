@@ -1,0 +1,87 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--cm-nav-h) + clamp(20px, 6vh, 72px)) 24px 0;
+  overflow: clip;
+}
+
+/* Scroll depth: as --cm-scroll goes from 0 to 1 the text and button move by different amounts.
+   Only transform and opacity change, so the browser can do it on the GPU. */
+.copy {
+  position: relative;
+  z-index: 2;
+  max-width: 980px;
+  text-align: center;
+  transform: translate3d(0, calc(var(--cm-scroll, 0) * -56px), 0);
+  opacity: calc(1 - var(--cm-scroll, 0) * 1.15);
+}
+
+.title {
+  font-family: var(--cm-font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, min(7vw, 10.4vh), 5.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  text-shadow: 0 2px 40px rgba(5, 3, 12, 0.7);
+}
+
+/* Opening sequence. fill-mode "backwards" means nothing is left applied afterwards,
+   so no permanent filters or layers remain once it has played. */
+.word {
+  display: inline-block;
+  animation: wordIn 1.2s var(--cm-ease) backwards;
+  animation-delay: calc(0.5s + var(--i) * 0.08s);
+}
+
+.sub {
+  margin: clamp(12px, 2.2vh, 22px) auto 0;
+  max-width: 44ch;
+  color: var(--cm-ink-dim);
+  font-size: clamp(0.98rem, 1.5vw, 1.2rem);
+  text-wrap: balance;
+  animation: riseIn 1.1s var(--cm-ease) 1.25s backwards;
+}
+
+.cta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(44px, 10.5vh, 116px);
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  transform: translate3d(0, calc(var(--cm-scroll, 0) * -30px), 0);
+  opacity: calc(1 - var(--cm-scroll, 0) * 1.4);
+}
+
+.ctaIn {
+  animation: riseIn 1.1s var(--cm-ease) 1.55s backwards;
+}
+
+@keyframes wordIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.42em);
+    filter: blur(10px);
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word,
+  .sub,
+  .ctaIn {
+    animation: none;
+  }
+}

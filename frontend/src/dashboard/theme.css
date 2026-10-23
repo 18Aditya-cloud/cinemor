@@ -1,0 +1,224 @@
+/*
+ * Dashboard colours, in one place, for both themes.
+ *
+ * Dark is the default (these values are exactly the colours the dashboard has always had), and light is switched on
+ * with data-theme="light" on the <html> element, which the dashboard sets while it is open and removes when you leave it.
+ * So the landing page and the log in / sign up pages are never affected.
+ *
+ * To change how the light theme looks, change the values in the light block. Nothing else needs to change.
+ */
+:root {
+  /* surfaces */
+  --d-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)), #0e0a1b;
+  --d-card-shadow: 0 40px 90px -50px rgba(0, 0, 0, 0.9);
+  --d-card-shadow-sm: 0 24px 60px -36px rgba(0, 0, 0, 0.9);
+  --d-solid: #0f0a1d; /* a plain fill that hides what scrolls under it (the sticky Role column) */
+  --d-popover-bg: #140f26;
+  --d-popover-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.9);
+  --d-modal-bg: linear-gradient(180deg, #171029 0%, #0d0919 100%);
+  --d-modal-shadow: 0 50px 140px -30px rgba(122, 60, 255, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  --d-scrim: rgba(3, 1, 10, 0.72);
+  --d-sidebar-bg: linear-gradient(180deg, #0b0718 0%, #080512 100%);
+  --d-sidebar-shadow: 30px 0 90px -30px rgba(0, 0, 0, 0.9);
+  --d-topbar-bg: rgba(8, 5, 18, 0.94);
+  --d-topbar-ring: #0b0718;
+  --d-shell-glow-1: rgba(122, 60, 255, 0.18);
+  --d-shell-glow-2: rgba(47, 107, 255, 0.08);
+  --d-grid-line: rgba(255, 255, 255, 0.022);
+
+  /* soft fills laid over a surface, and thin lines */
+  --d-fill-1: rgba(255, 255, 255, 0.04);
+  --d-fill-2: rgba(255, 255, 255, 0.06);
+  --d-fill-3: rgba(255, 255, 255, 0.1);
+  --d-hairline: rgba(255, 255, 255, 0.055);
+  --d-checkbox-line: rgba(255, 255, 255, 0.28);
+  --d-row-hover: rgba(122, 60, 255, 0.07);
+  --d-row-selected: rgba(122, 60, 255, 0.14);
+  --d-col-focus: rgba(122, 60, 255, 0.16);
+  --d-col-focus-selected: rgba(122, 60, 255, 0.24);
+  --d-accent-fill: rgba(122, 60, 255, 0.16);
+  --d-accent-fill-2: rgba(122, 60, 255, 0.18);
+  --d-accent-fill-3: rgba(122, 60, 255, 0.2);
+  --d-nav-active: linear-gradient(90deg, rgba(122, 60, 255, 0.26), rgba(122, 60, 255, 0.1));
+  --d-tile-shadow: 0 18px 50px -20px rgba(122, 60, 255, 0.8);
+
+  /* form fields */
+  --d-field-bg: rgba(255, 255, 255, 0.05);
+  --d-field-bg-focus: rgba(255, 255, 255, 0.08);
+  --d-autofill: #1b1430;
+  --d-caret: #fff;
+
+  /* buttons */
+  --d-btn2-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)), #141026;
+  --d-btn2-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --d-btn2-hover-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)), #19133060;
+  --d-btn2-hover-border: rgba(200, 180, 255, 0.55);
+
+  /* text colours that must flip */
+  --d-strong: #fff; /* brightest text: hover and current-page */
+  --d-switch-knob: #cfc6ee;
+  --d-success-line: rgba(74, 222, 128, 0.55);
+  --d-eyebrow: #8ab4ff;
+  --d-link: #93b4ff;
+  --d-brand-blue: #6aa0ff;
+
+  /* status colours: success (green), warning (amber), danger (red), info (blue) */
+  --d-success-fg: #86efac;
+  --d-success-strong: #4ade80;
+  --d-success-bg: rgba(34, 197, 94, 0.12);
+  --d-success-bd: rgba(74, 222, 128, 0.4);
+  --d-toast-bg: #0d1a14;
+  --d-toast-fg: #bbf7d0;
+  --d-warn-fg: #fcd34d;
+  --d-warn-fg-2: #fbbf24;
+  --d-warn-bg: rgba(251, 191, 36, 0.12);
+  --d-warn-bd: rgba(251, 191, 36, 0.4);
+  --d-warn-hover: rgba(251, 191, 36, 0.15);
+  --d-danger-fg: #fca5a5;
+  --d-danger-fg-strong: #fecaca;
+  --d-danger-star: #f87171;
+  --d-danger-tag: #fb7185;
+  --d-danger-bg: rgba(239, 68, 68, 0.1);
+  --d-danger-bg-hover: rgba(239, 68, 68, 0.18);
+  --d-danger-bd: rgba(248, 113, 113, 0.5);
+  --d-danger-bd-hover: rgba(252, 165, 165, 0.8);
+  --d-danger-line: rgba(248, 113, 113, 0.75);
+  --d-danger-ring: rgba(239, 68, 68, 0.22);
+  --d-info-fg: #93c5fd;
+  --d-info-bg: rgba(59, 130, 246, 0.14);
+  --d-info-bd: rgba(96, 165, 250, 0.35);
+  --d-violet-bd: rgba(183, 155, 255, 0.4);
+
+  /* the 3D logo's light */
+  --d-logo-glow: radial-gradient(circle, rgba(122, 60, 255, 0.46) 0%, rgba(47, 107, 255, 0.16) 42%, transparent 68%);
+  --d-halo-opacity: 0.62;
+}
+
+/* The dark dashboard's small faint labels were a little under the recommended text contrast (4.2 to 4.4 : 1, minimum 4.5),
+   so inside the dashboard they are a touch brighter. The landing page and log in pages are not affected. */
+:root[data-theme='dark'] {
+  --cm-ink-faint: #9187b2;
+}
+
+/* ------------------------------------------------------------------------------------------ light */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* the site-wide tokens the dashboard uses (only while the dashboard is open) */
+  /* not paper-white: a soft lavender-grey page, slightly lighter cards with clear edges, and white only where
+     you type, so every surface reads as its own layer */
+  --cm-void: #dfdbec;
+  --cm-ink: #140f2b;
+  --cm-ink-dim: #48435f;
+  --cm-ink-faint: #5b5579;
+  --cm-violet-hi: #5b2fd6;
+  --cm-line: rgba(64, 42, 150, 0.17);
+  --cm-line-strong: rgba(64, 42, 150, 0.32);
+
+  --d-card-bg: linear-gradient(180deg, #fcfbff 0%, #f6f4fc 100%);
+  --d-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 3px rgba(48, 30, 120, 0.1), 0 30px 60px -38px rgba(60, 36, 150, 0.45);
+  --d-card-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 2px rgba(48, 30, 120, 0.1), 0 18px 40px -28px rgba(60, 36, 150, 0.4);
+  --d-solid: #f8f7fd;
+  --d-popover-bg: #fdfcff;
+  --d-popover-shadow: 0 24px 60px -18px rgba(60, 36, 150, 0.4), 0 0 0 1px rgba(64, 42, 150, 0.12);
+  --d-modal-bg: linear-gradient(180deg, #fcfbff 0%, #f5f3fc 100%);
+  --d-modal-shadow: 0 40px 110px -30px rgba(72, 44, 160, 0.5);
+  --d-scrim: rgba(30, 20, 62, 0.42);
+  --d-sidebar-bg: linear-gradient(180deg, #f8f6fe 0%, #efecf8 100%);
+  --d-sidebar-shadow: 30px 0 90px -30px rgba(60, 36, 150, 0.45);
+  --d-topbar-bg: rgba(248, 246, 254, 0.9);
+  --d-topbar-ring: #f8f6fe;
+  --d-shell-glow-1: rgba(122, 60, 255, 0.2);
+  --d-shell-glow-2: rgba(47, 107, 255, 0.13);
+  --d-grid-line: rgba(64, 42, 150, 0.06);
+
+  --d-fill-1: rgba(64, 42, 150, 0.055);
+  --d-fill-2: rgba(64, 42, 150, 0.08);
+  --d-fill-3: rgba(64, 42, 150, 0.13);
+  --d-hairline: rgba(64, 42, 150, 0.13);
+  --d-checkbox-line: rgba(64, 42, 150, 0.42);
+  --d-row-hover: rgba(122, 60, 255, 0.07);
+  --d-row-selected: rgba(122, 60, 255, 0.12);
+  --d-col-focus: rgba(122, 60, 255, 0.11);
+  --d-col-focus-selected: rgba(122, 60, 255, 0.18);
+  --d-accent-fill: rgba(110, 56, 245, 0.11);
+  --d-accent-fill-2: rgba(110, 56, 245, 0.14);
+  --d-accent-fill-3: rgba(110, 56, 245, 0.17);
+  --d-nav-active: linear-gradient(90deg, rgba(110, 56, 245, 0.18), rgba(110, 56, 245, 0.06));
+  --d-tile-shadow: 0 14px 34px -16px rgba(110, 56, 245, 0.55);
+
+  /* white is kept for the places you type and the buttons, so they stand out on the lavender cards */
+  --d-field-bg: #ffffff;
+  --d-field-bg-focus: #ffffff;
+  --d-autofill: #ffffff;
+  --d-caret: #140f2b;
+
+  --d-btn2-bg: linear-gradient(180deg, #ffffff, #f8f6fe);
+  --d-btn2-shadow: 0 1px 2px rgba(48, 30, 120, 0.12), inset 0 1px 0 #ffffff;
+  --d-btn2-hover-bg: #f1edff;
+  --d-btn2-hover-border: rgba(91, 47, 214, 0.5);
+
+  --d-strong: #0f0a26;
+  --d-switch-knob: #ffffff;
+  --d-success-line: rgba(22, 163, 74, 0.55);
+  --d-eyebrow: #2f55d4;
+  --d-link: #3f33cf;
+  --d-brand-blue: #2563eb;
+
+  --d-success-fg: #166534;
+  --d-success-strong: #16a34a;
+  --d-success-bg: rgba(22, 163, 74, 0.12);
+  --d-success-bd: rgba(22, 163, 74, 0.35);
+  --d-toast-bg: #f0fdf4;
+  --d-toast-fg: #166534;
+  --d-warn-fg: #92400e;
+  --d-warn-fg-2: #b45309;
+  --d-warn-bg: rgba(217, 119, 6, 0.12);
+  --d-warn-bd: rgba(217, 119, 6, 0.4);
+  --d-warn-hover: rgba(217, 119, 6, 0.14);
+  --d-danger-fg: #b91c1c;
+  --d-danger-fg-strong: #991b1b;
+  --d-danger-star: #dc2626;
+  --d-danger-tag: #e11d48;
+  --d-danger-bg: rgba(220, 38, 38, 0.07);
+  --d-danger-bg-hover: rgba(220, 38, 38, 0.13);
+  --d-danger-bd: rgba(220, 38, 38, 0.4);
+  --d-danger-bd-hover: rgba(220, 38, 38, 0.7);
+  --d-danger-line: rgba(220, 38, 38, 0.7);
+  --d-danger-ring: rgba(220, 38, 38, 0.2);
+  --d-info-fg: #1d4ed8;
+  --d-info-bg: rgba(37, 99, 235, 0.1);
+  --d-info-bd: rgba(37, 99, 235, 0.3);
+  --d-violet-bd: rgba(91, 47, 214, 0.36);
+
+  --d-logo-glow: radial-gradient(circle, rgba(122, 60, 255, 0.36) 0%, rgba(47, 107, 255, 0.14) 42%, transparent 68%);
+  --d-halo-opacity: 0.6;
+}
+
+/* The list a dropdown opens (its <option>s): some browsers (Chrome on Windows) draw it white while the text
+   takes the field's light colour, so it could not be read. Give it the theme's own colours. */
+:root[data-theme] select option,
+:root[data-theme] select optgroup {
+  background-color: var(--d-popover-bg);
+  color: var(--cm-ink);
+}
+:root[data-theme] select option:checked {
+  /* solid, so it reads the same however the browser draws the list */
+  background-color: color-mix(in srgb, var(--cm-violet) 30%, var(--d-popover-bg));
+}
+:root[data-theme] select option:disabled {
+  color: var(--cm-ink-faint);
+}
+
+/* Switching themes fades the colours instead of flipping them (added briefly by the toggle, see ThemeContext) */
+:root.cm-theme-fade *,
+:root.cm-theme-fade *::before,
+:root.cm-theme-fade *::after {
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    color 0.4s ease,
+    box-shadow 0.4s ease,
+    fill 0.4s ease,
+    stroke 0.4s ease !important;
+}

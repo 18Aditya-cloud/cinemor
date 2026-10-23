@@ -1,0 +1,198 @@
+/* The Cinemor logo "orb" (CinemorOrb.jsx). --s is the logo's size; everything else follows from it. */
+.orb {
+  --s: 104px;
+  --ring-line: rgba(168, 146, 255, 0.55);
+  --ring-glow: rgba(122, 92, 255, 0.45);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--s) * 1.85);
+  height: calc(var(--s) * 1.3);
+}
+.sm {
+  --s: 30px;
+  width: calc(var(--s) * 1.5);
+  height: calc(var(--s) * 1.5);
+}
+
+/* the soft light behind it */
+.glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--s) * 1.7);
+  height: calc(var(--s) * 1.7);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 92, 255, 0.55) 0%, rgba(77, 139, 255, 0.22) 38%, transparent 68%);
+  filter: blur(calc(var(--s) * 0.06));
+  transform: translate(-50%, -50%);
+  animation: breathe 4.6s ease-in-out infinite;
+}
+
+.float {
+  position: relative;
+  display: block;
+  width: var(--s);
+  height: var(--s);
+  perspective: calc(var(--s) * 6);
+  animation: float 6s ease-in-out infinite;
+}
+
+/* the logo itself, swaying a little in 3D */
+.mark {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  animation: sway 7s ease-in-out infinite alternate;
+}
+.logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 calc(var(--s) * 0.08) calc(var(--s) * 0.22) rgba(122, 60, 255, 0.55));
+  user-select: none;
+}
+/* a band of light that sweeps across the logo (only where the logo is) */
+.shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.7) 50%, transparent 62%);
+  background-size: 300% 100%;
+  -webkit-mask: var(--logo) center / contain no-repeat;
+  mask: var(--logo) center / contain no-repeat;
+  mix-blend-mode: screen;
+  animation: shine 6.5s ease-in-out infinite;
+}
+
+/* the ring around it: tilted into an ellipse, its light and spark travel round */
+.ringClip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: calc(var(--s) * 1.75);
+  height: calc(var(--s) * 1.75);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+/* the near half of the ring passes in front of the logo (the split follows the ring's 16 degree tilt) */
+.ringFront {
+  z-index: 2;
+  clip-path: polygon(0% 64.3%, 100% 35.7%, 100% 100%, 0% 100%);
+}
+.ringTilt {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-16deg) rotateX(74deg);
+}
+.ring {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, var(--ring-line) 70deg, rgba(208, 92, 255, 0.85) 120deg, transparent 200deg, var(--ring-line) 300deg, transparent 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  filter: drop-shadow(0 0 6px var(--ring-glow));
+  animation: spin 9s linear infinite;
+}
+.spark {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px 4px rgba(190, 160, 255, 0.95);
+}
+.sm .spark {
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  box-shadow: 0 0 6px 2px rgba(190, 160, 255, 0.95);
+}
+/* the spark goes round on its own track (the ring's mask would cut it off) */
+.track {
+  position: absolute;
+  inset: 0;
+  animation: spin 9s linear infinite;
+}
+
+/* while a story is being written */
+.busy .ring,
+.busy .track {
+  animation-duration: 2.2s;
+}
+.busy .glow {
+  animation-duration: 1.6s;
+}
+.busy .float {
+  animation-duration: 3s;
+}
+
+:global(:root[data-theme='light']) .orb {
+  --ring-line: rgba(110, 80, 240, 0.5);
+  --ring-glow: rgba(110, 80, 240, 0.35);
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--s) * -0.06));
+  }
+}
+@keyframes sway {
+  from {
+    transform: rotateY(-16deg) rotateX(5deg);
+  }
+  to {
+    transform: rotateY(16deg) rotateX(-5deg);
+  }
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes shine {
+  0% {
+    background-position: 150% 0;
+  }
+  35%,
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow,
+  .float,
+  .mark,
+  .ring,
+  .track,
+  .shine {
+    animation: none;
+  }
+}

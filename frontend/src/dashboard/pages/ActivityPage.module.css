@@ -1,0 +1,102 @@
+/* Activity page: the filter chips, the timeline card and "Show older activity". */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.filter {
+  padding: 7px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.filter:hover {
+  border-color: var(--cm-line-strong);
+  color: var(--cm-ink);
+}
+.filter:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.filterOn,
+.filterOn:hover {
+  border-color: transparent;
+  background: linear-gradient(100deg, #4d8bff 0%, #8b5cf6 60%, #b45cff 100%);
+  color: #fff;
+}
+
+.card {
+  max-width: 860px;
+  padding: 10px 28px 22px;
+  border: 1px solid var(--cm-line);
+  border-radius: 24px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow);
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--d-hairline);
+}
+.end {
+  color: var(--cm-ink-faint);
+  font-size: 0.84rem;
+}
+
+/* loading placeholders */
+.loading {
+  display: grid;
+  gap: 22px;
+  margin: 0;
+  padding: 26px 0 10px;
+  list-style: none;
+}
+.loading li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.skDot,
+.skLine {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--d-fill-1), var(--d-fill-3), var(--d-fill-1));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skDot {
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+.skLine {
+  height: 12px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skDot,
+  .skLine {
+    animation: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .card {
+    padding: 6px 16px 18px;
+    border-radius: 20px;
+  }
+}

@@ -1,0 +1,366 @@
+/* ---------- the welcome heading on the dashboard */
+.eyebrow {
+  color: var(--d-eyebrow, var(--cm-violet-hi));
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.welcome {
+  margin-top: 6px;
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.welcomeName {
+  background: linear-gradient(90deg, var(--d-brand-blue, #4d8bff), var(--cm-violet-hi));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.lead {
+  margin-top: 6px;
+  color: var(--cm-ink-dim);
+}
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+/* ---------- a small icon tile, used on cards and rows */
+.tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--d-violet-bd);
+  border-radius: 12px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+}
+
+/* ---------- project cards (dashboard) */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 8px 28px 28px;
+  list-style: none;
+}
+.projectCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  padding: 20px;
+  border: 1px solid var(--cm-line);
+  border-radius: 20px;
+  background: var(--d-fill-1);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.projectCard:hover {
+  border-color: var(--d-violet-bd);
+  background: var(--d-row-hover);
+  transform: translateY(-2px);
+}
+.projectCard:focus-visible,
+.row:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cardTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.cardDesc {
+  flex: 1;
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+.cardFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cm-line);
+  font-size: 0.82rem;
+}
+.label {
+  color: var(--cm-ink-faint);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.value {
+  margin-top: 4px;
+  font-weight: 700;
+}
+
+/* ---------- project rows (My Projects) */
+.list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+}
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.row:hover {
+  border-color: var(--d-violet-bd);
+  background: var(--d-row-hover);
+}
+.rowTitle {
+  font-weight: 800;
+}
+.rowDesc {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowMeta {
+  color: var(--cm-ink-dim);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.arrow {
+  color: var(--cm-ink-faint);
+}
+
+/* ---------- project detail */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 8px 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--d-btn2-bg, var(--d-fill-1));
+  color: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.back:hover {
+  border-color: var(--d-violet-bd);
+}
+.info {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.infoCard {
+  padding: 16px 18px;
+  border: 1px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.stack {
+  display: grid;
+  gap: 18px;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 28px 26px;
+}
+.finished {
+  padding: 8px 28px 26px;
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+}
+
+/* the inline "Add Team Member" form */
+.addBox {
+  margin: 8px 28px 18px;
+  padding: 20px;
+  border: 1px solid var(--cm-line);
+  border-radius: 18px;
+  background: var(--d-fill-1);
+}
+.addTitle {
+  font-weight: 800;
+}
+.addSub {
+  margin: 2px 0 14px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+}
+.segment {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--d-field-bg);
+}
+.segment button {
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.segment button[aria-pressed='true'] {
+  background: var(--d-accent-fill-2, var(--d-accent-fill));
+  color: var(--cm-ink);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.addFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cm-line);
+}
+
+/* ---------- a person (team member, team page) */
+.people {
+  display: grid;
+  gap: 10px;
+  padding: 8px 28px 28px;
+  list-style: none;
+}
+.person {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: var(--d-fill-1);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.email {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.tag {
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--d-fill-2);
+  color: var(--cm-ink-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.load {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .row .rowMeta,
+  .row .arrow {
+    display: none;
+  }
+  .person {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 10px;
+  }
+  /* the panel heading with buttons beside it: put the buttons on their own line */
+  .wrapHead {
+    flex-wrap: wrap;
+  }
+  .wrapHead > :last-child {
+    width: 100%;
+  }
+  .person .load {
+    display: none;
+  }
+  .cardGrid,
+  .people,
+  .controls,
+  .finished {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .addBox {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+}
+
+.personActions { display: inline-flex; align-items: center; gap: 8px; }
+.roleChecks { min-width: 0; margin: 0 0 16px; padding: 0; border: 0; }
+.roleLegend { margin-bottom: 8px; padding: 0; font-size: 0.86rem; font-weight: 700; }
+.roleList { display: flex; flex-wrap: wrap; gap: 8px; }
+.roleCheck {
+  position: relative; display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 14px 9px 10px; border: 1px solid var(--cm-line); border-radius: 12px;
+  background: var(--d-field-bg); color: var(--cm-ink-dim); font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.roleCheck:hover { border-color: var(--cm-line-strong); color: var(--cm-ink); }
+.roleCheck[data-on='true'] { border-color: var(--d-violet-bd, var(--cm-line-strong)); background: var(--d-accent-fill); color: var(--cm-ink); }
+.roleCheck input { position: absolute; opacity: 0; pointer-events: none; }
+.roleCheck:has(input:focus-visible) { outline: 2px solid var(--cm-violet-hi); outline-offset: 2px; }
+.roleBox {
+  display: grid; flex: none; place-items: center; width: 18px; height: 18px;
+  border: 1.5px solid var(--d-checkbox-line, var(--cm-line-strong)); border-radius: 6px; color: #fff;
+}
+.roleCheck[data-on='true'] .roleBox { border-color: transparent; background: linear-gradient(135deg, #4d8bff, #8b5cf6); }
+.roleChecks:disabled .roleCheck { cursor: default; opacity: 0.6; }
+.roleHint { margin-top: 8px; color: var(--cm-ink-faint); font-size: 0.82rem; line-height: 1.4; }

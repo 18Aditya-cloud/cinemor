@@ -1,0 +1,189 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--cm-z-modal);
+  display: flex;
+  overflow-y: auto;
+  padding: 28px 16px;
+  background: var(--d-scrim);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: fade 0.22s ease both;
+}
+.closing {
+  animation: fadeOut 0.18s ease both;
+}
+
+/* margin: auto centres it, and lets a tall window scroll instead of being cut off */
+.card {
+  width: min(560px, 100%);
+  margin: auto;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 26px;
+  background: var(--d-modal-bg);
+  box-shadow: var(--d-modal-shadow);
+  outline: none;
+  animation: pop 0.45s var(--cm-ease) both;
+}
+.wide {
+  width: min(780px, 100%);
+}
+.closing .card {
+  animation: popOut 0.18s ease both;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 26px 8px;
+}
+.divider {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--cm-line);
+}
+
+.tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 14px;
+  background: var(--d-accent-fill);
+  color: var(--cm-violet-hi);
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.subtitle {
+  margin-top: 3px;
+  color: var(--cm-ink-dim);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  align-self: flex-start;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.3s var(--cm-ease);
+}
+.close:hover {
+  background: var(--d-fill-3);
+  color: var(--d-strong);
+  transform: rotate(90deg);
+}
+
+.body {
+  padding: 18px 26px 24px;
+}
+.body form {
+  display: grid;
+  gap: 18px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 20px;
+  border-top: 1px solid var(--cm-line);
+}
+
+/* side panel: full height, on the right edge */
+.sideOverlay {
+  padding: 0;
+}
+.sideCard {
+  width: min(440px, 100%);
+  min-height: 100%;
+  /* grow with long content (instead of stretching to the window and letting the rest spill out) */
+  align-self: flex-start;
+  margin: 0 0 0 auto;
+  border-radius: 26px 0 0 26px;
+  animation: slideIn 0.5s var(--cm-ease) both;
+}
+.closing .sideCard {
+  animation: slideOut 0.2s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+@keyframes slideOut {
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+}
+@keyframes popOut {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@media (max-width: 480px) {
+  .head {
+    padding: 20px 18px 6px;
+  }
+  .body {
+    padding: 14px 18px 20px;
+  }
+  .footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .card,
+  .sideCard,
+  .closing .sideCard,
+  .closing .card,
+  .closing {
+    animation: none;
+  }
+  .close {
+    transition: none;
+  }
+}

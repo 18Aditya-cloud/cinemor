@@ -1,0 +1,179 @@
+.btn {
+  --tx: 0px;
+  --ty: 0px;
+  --mx: 50%;
+  --my: 50%;
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  overflow: hidden;
+  transform: translate(var(--tx), var(--ty));
+  transition: transform 0.35s var(--cm-ease), box-shadow 0.35s var(--cm-ease);
+  box-shadow:
+    0 12px 44px -10px rgba(122, 60, 255, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+  animation: breathe 3.6s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.md {
+  min-height: 48px;
+  font-size: 0.98rem;
+}
+.md .content {
+  padding: 0 24px;
+  gap: 10px;
+}
+
+.lg {
+  min-height: 60px;
+  font-size: 1.08rem;
+}
+.lg .content {
+  padding: 0 34px;
+  gap: 12px;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background: linear-gradient(100deg, #2f6bff 0%, #7a3cff 34%, #c026d3 68%, #2f6bff 100%);
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+  transition: background-position 0.9s var(--cm-ease);
+}
+
+/* The light that follows the cursor */
+.spot {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: 0;
+  background: radial-gradient(150px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.5), transparent 70%);
+  transition: opacity 0.3s ease;
+}
+
+/* A diagonal band of light that sweeps across on hover */
+.shine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 46%;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  transform: translateX(-140%) skewX(-18deg);
+}
+
+.content {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.arrow {
+  display: inline-flex;
+  transition: transform 0.4s var(--cm-ease);
+}
+
+.btn:hover:not(:disabled) {
+  box-shadow:
+    0 16px 60px -8px rgba(160, 90, 255, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+}
+.btn:hover:not(:disabled) .fill {
+  background-position: 100% 50%;
+}
+.btn:hover:not(:disabled) .spot {
+  opacity: 1;
+}
+.btn:hover:not(:disabled) .shine {
+  animation: sweep 0.9s var(--cm-ease) forwards;
+}
+.btn:hover:not(:disabled) .arrow {
+  transform: translateX(5px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(var(--tx), var(--ty)) scale(0.965);
+  transition-duration: 0.12s;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  animation: none;
+  filter: saturate(0.6);
+  opacity: 0.85;
+}
+
+.loading .arrow {
+  animation: pulse 0.9s ease-in-out infinite;
+}
+
+.ripple {
+  position: absolute;
+  z-index: 0;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  animation: ripple 0.75s ease-out forwards;
+}
+
+@keyframes sweep {
+  to {
+    transform: translateX(330%) skewX(-18deg);
+  }
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(48);
+    opacity: 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 12px 44px -10px rgba(122, 60, 255, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+  }
+  50% {
+    box-shadow:
+      0 14px 58px -6px rgba(140, 80, 255, 0.85),
+      0 0 0 1px rgba(255, 255, 255, 0.22) inset;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    animation: none;
+  }
+  .btn:hover:not(:disabled) .shine {
+    animation: none;
+  }
+  .ripple {
+    animation-duration: 0.01s;
+  }
+}

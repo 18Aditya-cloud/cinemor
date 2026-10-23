@@ -1,0 +1,71 @@
+.word {
+  display: inline-flex;
+  justify-content: center;
+  margin: 0;
+  font-family: var(--cm-font-body);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 11.5vw, 8.4rem);
+  line-height: 1;
+  filter: drop-shadow(0 0 26px rgba(139, 92, 255, 0.55));
+}
+
+/* Fixed-width cells so the word never jiggles while letters change. */
+.cell {
+  position: relative;
+  display: inline-block;
+  width: 0.9em;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 10%, #d9c8ff 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.scramble {
+  background: none;
+  -webkit-text-fill-color: var(--cm-cyan);
+  color: var(--cm-cyan);
+  text-shadow: 0 0 18px rgba(34, 211, 238, 0.9);
+}
+
+.settled {
+  animation: settle 0.5s var(--cm-ease);
+}
+
+.caret {
+  position: absolute;
+  right: 0.02em;
+  top: 8%;
+  bottom: 8%;
+  width: 0.05em;
+  border-radius: 2px;
+  background: var(--cm-violet-hi);
+  -webkit-text-fill-color: initial;
+  box-shadow: 0 0 14px rgba(183, 155, 255, 0.9);
+  animation: blink 0.9s steps(2, jump-none) infinite;
+}
+
+@keyframes settle {
+  0% {
+    transform: translateY(-0.12em) scale(1.12);
+    filter: brightness(1.8);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settled,
+  .caret {
+    animation: none;
+  }
+}

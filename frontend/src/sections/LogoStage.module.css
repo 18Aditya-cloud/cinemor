@@ -1,0 +1,180 @@
+.stage {
+  position: relative;
+  z-index: var(--cm-z-content);
+  /* Scroll length of the whole scene: about 1 screen to arrive, 1 to hold, 1 to leave. */
+  height: 340vh;
+}
+
+.sticky {
+  --h: var(--cm-hand, 0); /* 0 = hand hidden below the screen, 1 = raised */
+
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: clip;
+  /* Vertical drags still scroll the page; sideways drags rotate the logo. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stage[data-grab='true'] .sticky {
+  cursor: grab;
+}
+.stage[data-drag='true'] .sticky {
+  cursor: grabbing;
+}
+
+/* ---------- the hand ---------- */
+
+/* It swings up from below the screen, pivoting at the wrist, and turns as it comes
+   (a 3D turn plus a roll), then settles under the logo. Only transform and opacity change,
+   so it stays smooth. The picture is 464 x 659 and the palm sits at 61% of its width. */
+.hand {
+  position: absolute;
+  left: 50%;
+  bottom: -2svh;
+  height: min(52svh, 98vw);
+  aspect-ratio: 760 / 795;
+  transform-origin: 71% 100%;
+  transform:
+    translate3d(-61.4%, calc((1 - var(--h)) * 74svh), 0)
+    perspective(1500px)
+    rotateY(calc((1 - var(--h)) * -62deg))
+    rotateZ(calc((1 - var(--h)) * 26deg))
+    scale(calc(0.82 + 0.18 * var(--h)));
+  opacity: clamp(0, calc(var(--h) * 3.2), 1);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Once raised, it hangs in the air with a slow, tiny drift. */
+.float {
+  width: 100%;
+  height: 100%;
+  transform-origin: 71% 100%;
+  animation: drift 7s ease-in-out infinite;
+}
+
+.img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-user-drag: none;
+}
+
+/* ---------- the ring around the logo ---------- */
+.hud {
+  --show: clamp(0, calc((var(--cm-formed, 0) - 0.82) * 5.5), 1);
+
+  position: absolute;
+  left: 50%;
+  top: var(--cm-logo-y, 35%);
+  width: calc(var(--cm-logo-size, 300px) * 1.2);
+  height: calc(var(--cm-logo-size, 300px) * 1.2);
+  transform: translate(-50%, -50%);
+  fill: none;
+  stroke: rgba(120, 205, 255, 0.7);
+  stroke-width: 0.5;
+  opacity: calc(var(--show) * 0.6);
+  pointer-events: none;
+}
+
+.ringFaint {
+  stroke: rgba(150, 120, 255, 0.35);
+}
+
+.ringDots {
+  stroke-dasharray: 0.4 3.2;
+  stroke-linecap: round;
+  stroke-width: 1.1;
+  transform-origin: 0 0;
+  animation: spin 60s linear infinite;
+}
+
+.ringArcs {
+  stroke-dasharray: 46 30 12 40 22 60;
+  stroke-width: 0.9;
+  transform-origin: 0 0;
+  animation: spin 40s linear infinite reverse;
+}
+
+/* ---------- the three lines around the logo ---------- */
+.label {
+  position: absolute;
+  z-index: 2;
+  max-width: 24vw;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: clamp(0.92rem, 1.3vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  text-align: center;
+  text-shadow: 0 0 26px rgba(60, 140, 255, 0.7);
+  /* they appear as the hand arrives and go with it */
+  opacity: clamp(0, calc((var(--h) - 0.4) * 2), 1);
+  pointer-events: none;
+}
+
+.top {
+  left: 50%;
+  top: calc(var(--cm-logo-y, 35%) - var(--cm-logo-size, 300px) * 0.6 - 38px);
+  max-width: 60vw;
+  transform: translate3d(-50%, calc((1 - var(--h)) * -28px), 0);
+}
+
+.left {
+  left: calc(50% - 24vw);
+  top: var(--cm-logo-y, 35%);
+  transform: translate3d(calc(-50% + (1 - var(--h)) * -36px), -50%, 0);
+}
+
+.right {
+  left: calc(50% + 24vw);
+  top: var(--cm-logo-y, 35%);
+  transform: translate3d(calc(-50% + (1 - var(--h)) * 36px), -50%, 0);
+}
+
+/* Phones: the side lines sit above the logo's shoulders so nothing overlaps the ring. */
+@media (max-width: 700px) {
+  .label {
+    max-width: 30vw;
+    font-size: 0.8rem;
+  }
+  .left,
+  .right {
+    top: calc(var(--cm-logo-y, 35%) - var(--cm-logo-size, 200px) * 0.5);
+  }
+  .left {
+    left: 20%;
+  }
+  .right {
+    left: 80%;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -7px, 0) rotate(0.7deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringDots,
+  .ringArcs,
+  .float {
+    animation: none;
+  }
+}

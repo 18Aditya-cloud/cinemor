@@ -1,0 +1,24 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+sqlalchemy
+psycopg[binary]
+alembic
+httpx
+
+# Authentication & Security
+PyJWT
+pwdlib[argon2]
+email-validator
+
+pypdf
+
+python-docx
+
+# File uploads (stories, storyboards, images)
+python-multipart
+
+# Video (scene clips, last-frame extraction and final assembly)
+moviepy
+Pillow

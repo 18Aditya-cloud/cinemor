@@ -1,0 +1,50 @@
+/* The glow is drawn once and then only its whole layer is animated (scale and opacity),
+   which the browser does on the GPU. Animating shapes inside the SVG would make the browser
+   repaint its heavy blurs every frame and make scrolling stutter. */
+.wrap {
+  position: absolute;
+  left: 50%;
+  top: var(--horizon, 60%);
+  width: max(1000px, 84vw);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation:
+    ignite 2.4s var(--cm-ease) 0.15s both,
+    breathe 9s ease-in-out 2.6s infinite;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+@keyframes ignite {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) scale(1.025);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    animation: none;
+  }
+}
