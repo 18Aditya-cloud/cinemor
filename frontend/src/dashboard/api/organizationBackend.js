@@ -252,6 +252,12 @@ export async function updateEmployee(id, { maxProjects, jobRoleIds, teamLeader, 
   return findEmployee(id);
 }
 
+/** Delete an employee for good (the backend refuses while they lead a project or are on an unfinished one). */
+export async function deleteEmployee(id) {
+  await request(org(`/employees/${id}`), { method: 'DELETE' });
+  return {};
+}
+
 /* ------------------------------------------------------------------------ clients */
 const clientView = (c) => ({
   id: c.id,

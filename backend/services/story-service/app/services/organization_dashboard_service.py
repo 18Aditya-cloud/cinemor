@@ -15,6 +15,7 @@ from app.core.security import (
 )
 
 from app.services.auth_service import AuthService
+from app.services.employee_removal_service import check_responsibility_change
 
 class OrganizationDashboardService:
     """
@@ -877,6 +878,17 @@ class OrganizationDashboardService:
                 "Employee not found."
             )
 
+        # A Team Leader / Reviewer post can only be taken away once the
+        # person no longer holds it on a project that is not finished.
+        check_responsibility_change(
+            self.db,
+            organization_id=organization_id,
+            employee=employee,
+            is_team_leader=is_team_leader,
+            is_reviewer=is_reviewer,
+            reviewer_job_role_ids=reviewer_job_role_ids,
+        )
+        
         # --------------------------------------------------------
         # If removing Team Leader responsibility, clear all
         # employees currently reporting to this Team Leader.

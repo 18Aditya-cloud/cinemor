@@ -817,3 +817,23 @@
     transform: none;
   }
 }
+
+/* the project has not started yet (or has ended): nobody can work on it */
+.closedNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 13px 16px;
+  border: 1px solid var(--d-warn-bd);
+  border-radius: 14px;
+  background: var(--d-warn-bg);
+  color: var(--d-warn-fg);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.closedNote svg {
+  flex: none;
+  margin-top: 2px;
+}

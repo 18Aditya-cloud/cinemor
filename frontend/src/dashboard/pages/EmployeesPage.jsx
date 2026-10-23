@@ -2,12 +2,13 @@ import { useId, useMemo, useState } from 'react';
 import TextField from '../../components/auth/TextField.jsx';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import cx from '../../utils/cx.js';
-import { listEmployees, listJobRoles, updateEmployee } from '../api/organizationApi.js';
+import { listEmployees, listJobRoles, updateEmployee, deleteEmployee } from '../api/organizationApi.js';
 import useModalForm from '../hooks/useModalForm.js';
 import useResource from '../hooks/useResource.js';
 import Button from '../ui/Button.jsx';
 import DataTable from '../ui/DataTable.jsx';
-import { IconCheck, IconCheckCircle, IconMail, IconPencil, IconShield, IconUserCog } from '../ui/DashIcons.jsx';
+import { IconCheck, IconCheckCircle, IconMail, IconPencil, IconShield, IconUserCog, IconTrash } from '../ui/DashIcons.jsx';
+import ConfirmModal from '../ui/ConfirmModal.jsx';
 import EmptyState from '../ui/EmptyState.jsx';
 import Modal, { ModalFooter } from '../ui/Modal.jsx';
 import Notice from '../ui/Notice.jsx';
@@ -32,6 +33,7 @@ export default function EmployeesPage() {
   const toast = useToast();
   const { data, loading, error, reload } = useResource(listEmployees, []);
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const employees = useMemo(() => data ?? [], [data]);
 
   const columns = [
@@ -77,11 +79,16 @@ export default function EmployeesPage() {
     { key: 'rv', header: 'Reviewer', render: (row) => <YesNo value={row.reviewer} /> },
     {
       key: 'update',
-      header: 'Update',
+      header: 'Actions',
       render: (row) => (
-        <Button variant="secondary" icon={IconPencil} onClick={() => setEditing(row)} aria-label={`Update ${row.email}`}>
-          Update
-        </Button>
+        <span style={{ display: 'inline-flex', gap: 8 }}>
+          <Button variant="secondary" icon={IconPencil} onClick={() => setEditing(row)} aria-label={`Update ${row.email}`}>
+            Update
+          </Button>
+          <Button variant="secondary" icon={IconTrash} iconOnly onClick={() => setDeleting(row)} aria-label={`Delete ${row.email}`}>
+            Delete
+          </Button>
+        </span>
       ),
     },
   ];
@@ -112,6 +119,22 @@ export default function EmployeesPage() {
         onClose={() => setEditing(null)}
         onSaved={(saved) => {
           toast(`${saved.email} updated`);
+          reload();
+        }}
+      />
+      <ConfirmModal
+        open={Boolean(deleting)}
+        title="Delete employee?"
+        text={
+          deleting
+            ? `${deleting.email} will be removed from your organization for good: their account, job roles and their place on finished projects. They will no longer be able to sign in. This can't be undone. Someone who leads a project or is on a project that isn't finished can't be deleted yet.`
+            : ''
+        }
+        confirmLabel="Delete Employee"
+        onClose={() => setDeleting(null)}
+        onConfirm={async () => {
+          await deleteEmployee(deleting.id);
+          toast(`${deleting.email} deleted`);
           reload();
         }}
       />

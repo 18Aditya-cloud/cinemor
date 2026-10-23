@@ -37,6 +37,7 @@ from app.services.organization_dashboard_service import (
     OrganizationDashboardService,
 )
 from app.services.project_service import ProjectService
+from app.services import employee_removal_service
 
 from app.schemas.organization_tool import (
     OrganizationToolCreateRequest,
@@ -409,6 +410,32 @@ def update_employee_responsibilities(
     except (ValueError, PermissionError) as exc:
         raise _service_error(exc) from exc
 
+# ============================================================
+# Delete Employee
+# ============================================================
+
+
+@router.delete(
+    "/employees/{user_id}",
+)
+def delete_employee(
+    organization_id: int,
+    user_id: int,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """Delete an employee for good (admins only)."""
+
+    try:
+        return employee_removal_service.delete_employee(
+            db,
+            organization_id=organization_id,
+            actor_user_id=current_user.id,
+            target_user_id=user_id,
+        )
+
+    except (ValueError, PermissionError) as exc:
+        raise _service_error(exc) from exc
 
 # ============================================================
 # Employee Project Capacity

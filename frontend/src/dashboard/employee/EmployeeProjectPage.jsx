@@ -97,6 +97,11 @@ export default function EmployeeProjectPage({ projectId }) {
       </div>
       {error && <Notice message={error.message} onRetry={reload} />}
       {project.description && <p className={e.lead} style={{ marginTop: -6, marginBottom: 20 }}>{project.description}</p>}
+      {!project.workOpen && (
+        <p className={e.closedNote} role="status">
+          <IconLock width={17} height={17} /> {project.workClosedReason}
+        </p>
+      )}
 
       <ol className={e.flow} aria-label="Stages, in order">
         {project.stages.map((s) => {
@@ -108,7 +113,7 @@ export default function EmployeeProjectPage({ projectId }) {
           const canReopen = project.isTeamLeader && ['approved', 'in_review', 'changes_requested'].includes(s.status);
           const storyId = s.key === 'story' ? (s.status === 'approved' ? project.storyId : null) : project.storyId;
           return (
-            <li key={s.key} className={cx(e.stage, (s.canWork || s.canReview) && e.stageMine, s.status === 'locked' && e.stageLocked)}>
+            <li key={s.key} className={cx(e.stage, (s.roleAllows || s.canReview) && e.stageMine, s.status === 'locked' && e.stageLocked)}>
               <div className={e.stageTop}>
                 <span className={e.stageName}>
                   <span className={e.tile} aria-hidden="true">

@@ -28,7 +28,8 @@ export default function StageBar({ projectId, stageKey }) {
   const lastAsk = project.submissions.find((x) => x.stage === stageKey && x.status === 'changes_requested');
 
   let text;
-  if (stage.status === 'locked') text = stage.lockedReason;
+  if (!project.workOpen) text = project.workClosedReason;
+  else if (stage.status === 'locked') text = stage.lockedReason;
   else if (stage.status === 'approved') text = `Approved${stage.approvedBy ? ` by ${stage.approvedBy.name}` : ''}. It is locked; the Team Leader can reopen it.`;
   else if (stage.status === 'in_review') text = mine ? `Waiting for ${mine.reviewer?.name || 'the reviewer'} to review it.` : 'Waiting for review.';
   else if (stage.status === 'changes_requested') text = lastAsk?.comment ? `${lastAsk.reviewedBy?.name || 'The reviewer'} asked: “${lastAsk.comment}”` : 'The reviewer asked for changes.';

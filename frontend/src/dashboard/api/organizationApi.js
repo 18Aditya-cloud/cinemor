@@ -381,7 +381,15 @@ export async function updateEmployee(id, { maxProjects, jobRoleIds, teamLeader, 
     const reviews = isReviewer ? [...new Set((reviewerJobRoleIds || []).map(Number))] : [];
     if (isReviewer && !reviews.length) throw fail('Select at least one job role for which this employee will be a Reviewer.', 400);
     if (reviews.some((rid) => !ids.includes(rid))) throw fail("Reviewer job roles must be selected from the employee's assigned job roles.", 400);
-
+    // the same rule as the backend: a post can only be taken away once it is not used on an unfinished project
+    const led = db.projects.filter((p) => isActive(p) && p.teamLeaderId === employee.id);
+    if (teamLeader === false && employee.teamLeader && led.length) {
+      throw fail(`${employee.email} is still the Team Leader of ${led.map((p) => `“${p.title}”`).join(', ')}, which is not finished. Give it another Team Leader first (Projects → Edit), then remove the Team Leader post.`, 400);
+    }
+    const reviewing = db.projects.filter((p) => isActive(p) && (p.members || []).some((m) => m.kind === 'reviewer' && m.employeeId === employee.id && !reviews.includes(m.jobRoleId)));
+    if (employee.reviewer && reviewing.length) {
+      throw fail(`${employee.email} is still a reviewer on ${reviewing.map((p) => `“${p.title}”`).join(', ')}, which is not finished. Ask the project's Team Leader to remove them as a reviewer first, then change their Reviewer post.`, 400);
+    }
     const was = { teamLeader: Boolean(employee.teamLeader), reviewer: Boolean(employee.reviewer) };
     employee.jobRoleIds = ids;
     delete employee.jobRoleId;
@@ -393,6 +401,26 @@ export async function updateEmployee(id, { maxProjects, jobRoleIds, teamLeader, 
     if (employee.teamLeader !== was.teamLeader) log('employee', `${employee.email} ${employee.teamLeader ? 'is now' : 'is no longer'} a Team Leader`);
     if (employee.reviewer !== was.reviewer) log('employee', `${employee.email} ${employee.reviewer ? 'is now' : 'is no longer'} a Reviewer`);
     return employeeView(employee);
+  });
+}
+
+/** Delete an employee for good. Refused while they lead a project or are on a project that is not finished. */
+export async function deleteEmployee(id) {
+  if (isBackendConnected) return backend.deleteEmployee(id);
+  return demo(() => {
+    const employee = db.employees.find((e) => e.id === id);
+    if (!employee) throw fail('That employee no longer exists.', 404);
+    const led = db.projects.filter((p) => p.teamLeaderId === employee.id);
+    if (led.length) throw fail(`${employee.email} is the Team Leader of ${led.map((p) => `“${p.title}”`).join(', ')}. Give each project another Team Leader first (Projects → Edit), then delete the employee.`, 400);
+    const busy = db.projects.filter((p) => isActive(p) && (p.members || []).some((m) => m.employeeId === employee.id));
+    if (busy.length) throw fail(`${employee.email} is still on ${busy.map((p) => `“${p.title}”`).join(', ')}, which is not finished. Ask the Team Leader to remove them from the team first (or finish the project), then delete the employee.`, 400);
+    db.projects.forEach((p) => {
+      p.members = (p.members || []).filter((m) => m.employeeId !== employee.id);
+    });
+    db.employees = db.employees.filter((e) => e.id !== employee.id);
+    db.invitations = (db.invitations || []).filter((i) => i.email.toLowerCase() !== employee.email.toLowerCase());
+    log('employee', `${employee.email} was deleted`);
+    return {};
   });
 }
 

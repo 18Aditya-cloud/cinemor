@@ -44,6 +44,7 @@ from app.constants.workflow_stages import (
     stages_for_features,
 )
 from app.models.client import Client
+from app.models.employee import Employee
 from app.models.employee_workflow import (
     EmployeeNotification,
     OrganizationProjectWorkspace,
@@ -188,7 +189,67 @@ class EmployeeWorkflowService:
             else:
                 access.work_roles.append(role_info)
                 access.work_stages.update(role_info["stages"])
+
+        # The Team Leader works on their project in the job roles the organization
+        # gave them, and (if they are a Reviewer) reviews it in their reviewer roles,
+        # without being added to the team.
+        if access.is_team_leader:
+            lead_work, lead_review = self._leader_role_ids(project)
+            lead_work -= {r["job_role_id"] for r in access.work_roles}
+            lead_review -= {r["job_role_id"] for r in access.review_roles}
+            extra = self._role_info(lead_work | lead_review)
+            for role_id in sorted(lead_work):
+                role_info = {"job_role_id": role_id, **extra[role_id]}
+                access.work_roles.append(role_info)
+                access.work_stages.update(role_info["stages"])
+            for role_id in sorted(lead_review):
+                role_info = {"job_role_id": role_id, **extra[role_id]}
+                access.review_roles.append(role_info)
+                access.review_stages.update(role_info["stages"])
         return access
+
+    def _leader_role_ids(self, project: Project) -> tuple[set[int], set[int]]:
+        """(job roles, reviewer job roles) of the project's Team Leader in the organization."""
+        employee = (
+            self.db.query(Employee)
+            .filter(
+                Employee.organization_id == project.organization_id,
+                Employee.user_id == project.team_leader_id,
+            )
+            .first()
+        )
+        if employee is None:
+            return set(), set()
+        work = {a.job_role_id for a in employee.job_roles if a.job_role_id}
+        review = {a.job_role_id for a in employee.reviewer_job_roles if a.job_role_id} if employee.is_reviewer else set()
+        return work, review
+
+    def _leader_pairs(self, project_id: int, review: bool) -> list[tuple[int, int, User | None]]:
+        """The Team Leader as a worker / reviewer of the project: [(user_id, job_role_id, user)]."""
+        project = self.db.get(Project, project_id)
+        if project is None:
+            return []
+        work, reviews = self._leader_role_ids(project)
+        leader = self.db.get(User, project.team_leader_id)
+        return [(project.team_leader_id, role_id, leader) for role_id in sorted(reviews if review else work)]
+
+    @staticmethod
+    def work_closed_reason(project: Project) -> str | None:
+        """Why nobody can work on the project right now (None while it is Ongoing)."""
+        status = getattr(project.status, "value", project.status)
+        if status == "pending":
+            return (
+                "This project has not started yet. You can look around; "
+                "the work opens when the Team Leader starts the project."
+            )
+        if status in ("completed", "aborted"):
+            return f"This project is {status}, so its work can no longer change."
+        return None
+
+    def _require_work_open(self, project: Project) -> None:
+        reason = self.work_closed_reason(project)
+        if reason:
+            raise WorkflowError(reason, 423)
 
     def require_view(self, project_id: int, user: User) -> tuple[Project, ProjectAccess]:
         project = self.get_project(project_id)
@@ -301,27 +362,31 @@ class EmployeeWorkflowService:
     # ================================================================ people
     def reviewers_for(self, project_id: int, stage: str, exclude_user_id: int | None = None) -> list[dict]:
         """Reviewers of this stage on the project: reviewers whose job role belongs to the stage."""
-        members = [m for m in self._members(project_id) if m.is_reviewer and m.job_role_id]
-        info = self._role_info({m.job_role_id for m in members})
+        pairs = [(m.user_id, m.job_role_id, m.user) for m in self._members(project_id) if m.is_reviewer and m.job_role_id]
+        pairs += self._leader_pairs(project_id, review=True)  # a Team Leader who is a Reviewer reviews their project
+        info = self._role_info({role_id for _, role_id, _ in pairs})
         found: dict[int, dict] = {}
-        for m in members:
-            if stage not in info.get(m.job_role_id, {}).get("stages", []):
+        for user_id, role_id, person in pairs:
+            if stage not in info.get(role_id, {}).get("stages", []):
                 continue
-            if exclude_user_id is not None and m.user_id == exclude_user_id:
+            if exclude_user_id is not None and user_id == exclude_user_id:
                 continue
-            entry = found.setdefault(m.user_id, {**(_person(m.user) or {"user_id": m.user_id}), "roles": []})
-            entry["roles"].append(info[m.job_role_id]["name"])
+            entry = found.setdefault(user_id, {**(_person(person) or {"user_id": user_id}), "roles": []})
+            if info[role_id]["name"] not in entry["roles"]:
+                entry["roles"].append(info[role_id]["name"])
         return sorted(found.values(), key=lambda r: r.get("email", ""))
 
     def workers_for(self, project_id: int, stage: str) -> list[dict]:
-        members = [m for m in self._members(project_id) if not m.is_reviewer and m.job_role_id]
-        info = self._role_info({m.job_role_id for m in members})
+        pairs = [(m.user_id, m.job_role_id, m.user) for m in self._members(project_id) if not m.is_reviewer and m.job_role_id]
+        pairs += self._leader_pairs(project_id, review=False)  # the Team Leader works in their own job roles
+        info = self._role_info({role_id for _, role_id, _ in pairs})
         found: dict[int, dict] = {}
-        for m in members:
-            if stage not in info.get(m.job_role_id, {}).get("stages", []):
+        for user_id, role_id, person in pairs:
+            if stage not in info.get(role_id, {}).get("stages", []):
                 continue
-            entry = found.setdefault(m.user_id, {**(_person(m.user) or {"user_id": m.user_id}), "roles": []})
-            entry["roles"].append(info[m.job_role_id]["name"])
+            entry = found.setdefault(user_id, {**(_person(person) or {"user_id": user_id}), "roles": []})
+            if info[role_id]["name"] not in entry["roles"]:
+                entry["roles"].append(info[role_id]["name"])
         return sorted(found.values(), key=lambda r: r.get("email", ""))
 
     def _notify(self, user_ids, project: Project, stage: str | None, kind: str, message: str, skip: int | None = None) -> None:
@@ -376,6 +441,7 @@ class EmployeeWorkflowService:
             .all()
         } if rows else {}
 
+        closed = self.work_closed_reason(project)
         stages = []
         for stage in WORKFLOW_STAGES:
             key = stage["key"]
@@ -386,7 +452,8 @@ class EmployeeWorkflowService:
                 "label": stage["label"],
                 "requires": stage["requires"],
                 "status": state,
-                "can_work": key in access.work_stages,
+                "can_work": key in access.work_stages and closed is None,
+                "role_allows": key in access.work_stages,
                 "can_review": key in access.review_stages,
                 "approved_at": row.approved_at if row and state == STATUS_APPROVED else None,
                 "approved_by": _person(approvers.get(row.approved_by_user_id)) if row and state == STATUS_APPROVED else None,
@@ -409,6 +476,8 @@ class EmployeeWorkflowService:
             "my_review_roles": access.review_roles,
             "stages": stages,
             "approved_count": sum(1 for s in stages if s["status"] == STATUS_APPROVED),
+            "work_open": closed is None,
+            "work_closed_reason": closed,
             "total_stages": len(stages),
             "story_id": workspace.story_id if workspace else None,
             "created_at": project.created_at,
@@ -543,6 +612,7 @@ class EmployeeWorkflowService:
         label = _label(stage)
         if stage not in access.work_stages:
             raise WorkflowError(f"Your role on this project does not include the {label}.", 403)
+        self._require_work_open(project)
         states = self.stage_states(project.id)
         state = states[stage]
         if state == STATUS_LOCKED:
@@ -781,6 +851,7 @@ class EmployeeWorkflowService:
         label = _label(stage)
         if stage not in access.work_stages:
             raise WorkflowError(f"Your role on this project does not include the {label}. You can look at it, but not change it.", 403)
+        self._require_work_open(project)
         states = self.stage_states(project.id)
         state = states[stage]
         if state == STATUS_LOCKED:

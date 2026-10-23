@@ -14,7 +14,8 @@ const stage = (s) => ({
   label: s.label,
   requires: s.requires || [],
   status: s.status, // locked | open | in_review | changes_requested | approved
-  canWork: Boolean(s.can_work),
+  canWork: Boolean(s.can_work), // their role includes it AND the project is Ongoing
+  roleAllows: Boolean(s.role_allows ?? s.can_work), // their role includes it (even before the project starts)
   canReview: Boolean(s.can_review),
   approvedAt: s.approved_at || null,
   approvedBy: person(s.approved_by),
@@ -54,6 +55,8 @@ const project = (p) => ({
   reviewRoles: (p.my_review_roles || []).map(role),
   stages: (p.stages || []).map(stage),
   approvedCount: p.approved_count || 0,
+  workOpen: p.work_open !== false, // false until the Team Leader starts the project (and after it ends)
+  workClosedReason: p.work_closed_reason || '',
   totalStages: p.total_stages || 6,
   storyId: p.story_id || null,
   createdAt: p.created_at,
