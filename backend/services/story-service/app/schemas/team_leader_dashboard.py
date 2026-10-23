@@ -43,6 +43,7 @@ class TeamLeaderEmployeeResponse(BaseModel):
     is_reviewer: bool
     is_team_leader: bool
     is_available: bool
+    is_on_project: bool = False
 
 # ============================================================
 # Project Member

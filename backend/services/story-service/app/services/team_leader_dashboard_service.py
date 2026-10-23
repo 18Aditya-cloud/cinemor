@@ -361,12 +361,13 @@ class TeamLeaderDashboardService:
         *,
         employee,
         team_leader_id: int,
+        on_project_user_ids: set[int] | None = None,
     ):
         """
         Convert an Employee ORM object into the response shape
         expected by TeamLeaderEmployeeResponse.
         """
-
+        is_on_project = employee.user_id in (on_project_user_ids or set())
         current_project_count = (
             self.repository.count_active_projects(
                 team_leader_id=team_leader_id,
@@ -431,6 +432,7 @@ class TeamLeaderDashboardService:
             ),
 
             "is_available": is_available,
+            "is_on_project": is_on_project,
         }
 
     # ========================================================
@@ -443,6 +445,8 @@ class TeamLeaderDashboardService:
         team_leader_id: int,
         search: str | None = None,
         job_role_id: int | None = None,
+        project_id: int | None = None,
+        
     ):
         """
         Get available employees in the Team Leader's
@@ -452,6 +456,11 @@ class TeamLeaderDashboardService:
         self._require_team_leader(
             team_leader_id=team_leader_id,
         )
+        
+        on_project = self._on_project_user_ids(
+            team_leader_id=team_leader_id,
+            project_id=project_id,
+        )
 
         employees = (
             self.repository.get_available_people(
@@ -460,6 +469,7 @@ class TeamLeaderDashboardService:
                 search=search,
                 job_role_id=job_role_id,
                 reviewer_only=False,
+                project_id=project_id,
             )
         )
 
@@ -467,10 +477,29 @@ class TeamLeaderDashboardService:
             self._build_available_employee_response(
                 employee=employee,
                 team_leader_id=team_leader_id,
+                on_project_user_ids=on_project,
             )
             for employee in employees
         ]
+    
+    def _on_project_user_ids(
+        self,
+        *,
+        team_leader_id: int,
+        project_id: int | None,
+    ) -> set[int]:
+        """Everyone on one of the Team Leader's projects (any role)."""
 
+        if project_id is None:
+            return set()
+
+        project = self._get_owned_project(
+            team_leader_id=team_leader_id,
+            project_id=project_id,
+        )
+
+        return {member.user_id for member in project.members}
+    
     # ========================================================
     # Available Reviewers
     # ========================================================
@@ -480,6 +509,7 @@ class TeamLeaderDashboardService:
         *,
         team_leader_id: int,
         search: str | None = None,
+        project_id: int | None = None,
     ):
         """
         Get available reviewers in the Team Leader's
@@ -489,7 +519,12 @@ class TeamLeaderDashboardService:
         self._require_team_leader(
             team_leader_id=team_leader_id,
         )
-
+        
+        on_project = self._on_project_user_ids(
+            team_leader_id=team_leader_id,
+            project_id=project_id,
+        )
+        
         reviewers = (
             self.repository.get_available_people(
                 team_leader_id=team_leader_id,
@@ -497,6 +532,7 @@ class TeamLeaderDashboardService:
                 search=search,
                 job_role_id=None,
                 reviewer_only=True,
+                project_id=project_id,
             )
         )
 
@@ -504,6 +540,7 @@ class TeamLeaderDashboardService:
             self._build_available_employee_response(
                 employee=reviewer,
                 team_leader_id=team_leader_id,
+                on_project_user_ids=on_project,
             )
             for reviewer in reviewers
         ]

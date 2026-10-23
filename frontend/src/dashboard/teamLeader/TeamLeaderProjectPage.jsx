@@ -223,7 +223,12 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
                 label={kind === 'reviewer' ? 'Reviewer' : 'Employee'}
                 icon={kind === 'reviewer' ? IconUserCog : IconUsers}
                 placeholder={kind === 'reviewer' ? 'Select reviewer' : 'Select employee'}
-                options={pool.map((p) => ({ value: p.id, label: `${p.email} (${p.maxProjects == null ? `${p.activeProjects} active` : `${p.activeProjects} of ${p.maxProjects} projects`})` }))}
+                options={pool.map((p) => ({
+                  value: p.id,
+                  label: p.onProject
+                    ? `${p.email} (already on this project)`
+                    : `${p.email} (${p.maxProjects == null ? `${p.activeProjects} active` : `${p.activeProjects} of ${p.maxProjects} projects`})`,
+                }))}
                 value={personId}
                 onChange={(v) => {
                   setPersonId(v);

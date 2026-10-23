@@ -445,6 +445,7 @@ class TeamLeaderDashboardRepository:
         search: str | None = None,
         job_role_id: int | None = None,
         reviewer_only: bool = False,
+        project_id: int | None = None,
     ) -> list[Employee]:
         """
         Get available employees/reviewers from the Team
@@ -566,16 +567,23 @@ class TeamLeaderDashboardRepository:
         # Capacity
         # ----------------------------------------------------
 
-        statement = statement.where(
-            (
-                Employee.max_concurrent_projects.is_(None)
-            )
-            |
-            (
-                active_project_count
-                < Employee.max_concurrent_projects
-            )
+        has_room = (
+            Employee.max_concurrent_projects.is_(None)
+        ) | (
+            active_project_count
+            < Employee.max_concurrent_projects
         )
+
+        # People already on this project are always offered for it:
+        # the project already counts for them, so another role or a
+        # reviewer assignment here takes no new project slot.
+        if project_id is not None:
+            has_room = has_room | Employee.user_id.in_(
+                select(ProjectMember.user_id)
+                .where(ProjectMember.project_id == project_id)
+            )
+
+        statement = statement.where(has_room)
 
         statement = statement.order_by(
             Employee.user_id.asc(),

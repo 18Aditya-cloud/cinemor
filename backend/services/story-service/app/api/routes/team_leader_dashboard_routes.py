@@ -287,6 +287,10 @@ def get_available_employees(
         default=None,
         gt=0,
     ),
+    project_id: int | None = Query(
+        default=None,
+        gt=0,
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -319,6 +323,7 @@ def get_available_employees(
             team_leader_id=team_leader_id,
             search=search,
             job_role_id=job_role_id,
+            project_id=project_id,
         )
 
     except (ValueError, PermissionError) as exc:
@@ -339,6 +344,10 @@ def get_available_reviewers(
     search: str | None = Query(
         default=None,
         min_length=1,
+    ),
+    project_id: int | None = Query(
+        default=None,
+        gt=0,
     ),
     db: Session = Depends(get_db),
 ):
@@ -365,6 +374,7 @@ def get_available_reviewers(
         return service.get_available_reviewers(
             team_leader_id=team_leader_id,
             search=search,
+            project_id=project_id,
         )
 
     except (ValueError, PermissionError) as exc:

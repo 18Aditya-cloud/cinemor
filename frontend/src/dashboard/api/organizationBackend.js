@@ -385,6 +385,7 @@ const personView = (e) => ({
   activeProjects: e.current_project_count ?? 0,
   maxProjects: e.max_concurrent_projects ?? null,
   available: e.is_available !== false,
+  onProject: Boolean(e.is_on_project), // already on the project asked about
 });
 
 const memberView = (m) => ({
@@ -421,8 +422,8 @@ export async function listTeamLeaderProjects(teamLeaderId) {
 export async function getTeamLeaderProject(teamLeaderId, projectId) {
   const [project, employees, reviewers] = await Promise.all([
     request(leader(teamLeaderId, `/projects/${projectId}`)),
-    request(leader(teamLeaderId, '/available-employees')),
-    request(leader(teamLeaderId, '/available-reviewers')),
+    request(leader(teamLeaderId, `/available-employees?project_id=${projectId}`)),
+    request(leader(teamLeaderId, `/available-reviewers?project_id=${projectId}`)),
   ]);
   const members = (project?.members || []).map(memberView);
   const on = new Set(members.map((m) => `${m.kind}:${m.employeeId}`));

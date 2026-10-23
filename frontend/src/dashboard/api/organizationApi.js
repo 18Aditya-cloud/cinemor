@@ -534,8 +534,14 @@ export async function getTeamLeaderProject(teamLeaderId, projectId) {
         return { id: m.id, kind: m.kind, employeeId: m.employeeId, email: e?.email ?? '(removed employee)', jobRoleName: jobRoleName(m.jobRoleId) || (m.kind === 'reviewer' ? 'Reviewer' : ''),jobRoleId: m.jobRoleId ?? null,
           employeeJobRoles: e ? rolesOf(e).map((id) => ({ id, name: jobRoleName(id) })).filter((r) => r.name) : [], };
       }),
-      availableEmployees: db.employees.filter((e) => e.id !== project.teamLeaderId && !on.has(`employee:${e.id}`)).map(personView).filter((e) => e.available),
-      availableReviewers: db.employees.filter((e) => e.reviewer && e.id !== project.teamLeaderId && !on.has(`reviewer:${e.id}`)).map(personView),
+      availableEmployees: db.employees
+        .filter((e) => e.id !== project.teamLeaderId && !on.has(`employee:${e.id}`))
+        .map((e) => ({ ...personView(e), onProject: project.members.some((m) => m.employeeId === e.id) }))
+        .filter((e) => e.available || e.onProject),
+      availableReviewers: db.employees
+        .filter((e) => e.reviewer && e.id !== project.teamLeaderId && !on.has(`reviewer:${e.id}`))
+        .map((e) => ({ ...personView(e), onProject: project.members.some((m) => m.employeeId === e.id) }))
+        .filter((e) => e.available || e.onProject),
     };
   });
 }
