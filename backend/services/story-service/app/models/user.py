@@ -34,6 +34,8 @@ class AccountType(str, PyEnum):
 
     INDIVIDUAL = "individual"
     ORGANIZATION = "organization"
+    # an organization's client, invited to follow their projects (app/models/client_portal.py)
+    CLIENT = "client"
 
 
 class User(Base):
@@ -93,6 +95,12 @@ class User(Base):
     #   User selected Organization.
     #
     # =========================================================
+
+    # The name the person chose in Settings (shown to others instead of the email's first part).
+    display_name: Mapped[str | None] = mapped_column(
+        String(120),
+        nullable=True,
+    )
 
     account_type: Mapped[AccountType | None] = mapped_column(
         SAEnum(

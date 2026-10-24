@@ -12,7 +12,7 @@ const BASE = String(import.meta.env?.BASE_URL || '/').replace(/\/+$/, '');
 const MEMORY = import.meta.env?.VITE_ROUTER_MODE === 'memory';
 
 // Every page except the home page. Anything not listed here shows the home page.
-export const APP_ROUTES = ['/login', '/signup', '/choose-account', '/auth/callback', '/forgot-password', '/reset-password', '/accept-invitation', '/app'];
+export const APP_ROUTES = ['/login', '/signup', '/choose-account', '/auth/callback', '/forgot-password', '/reset-password', '/accept-invitation', '/client-invitation', '/app'];
 // The organization dashboard: /organization and every page under it (/organization/projects, ...)
 export const isDashboardPath = (path) => path === '/organization' || path.startsWith('/organization/');
 export const isTeamLeaderPath = (path) => path === '/team-leader' || path.startsWith('/team-leader/');
@@ -20,7 +20,8 @@ export const isTeamLeaderPath = (path) => path === '/team-leader' || path.starts
 export const isIndividualPath = (path) => path === '/dashboard' || path.startsWith('/dashboard/');
 // The employee dashboard (/employee/...).
 export const isEmployeePath = (path) => path === '/employee' || path.startsWith('/employee/');
-export const isHomePath = (path) => !APP_ROUTES.includes(path) && !isDashboardPath(path) && !isTeamLeaderPath(path) && !isIndividualPath(path) && !isEmployeePath(path);
+export const isClientPath = (path) => path === '/client' || path.startsWith('/client/');
+export const isHomePath = (path) => !APP_ROUTES.includes(path) && !isDashboardPath(path) && !isTeamLeaderPath(path) && !isIndividualPath(path) && !isEmployeePath(path) && !isClientPath(path);
 export const isAuthPath = (path) => path === '/login' || path === '/signup';
 
 const normalize = (p) => {

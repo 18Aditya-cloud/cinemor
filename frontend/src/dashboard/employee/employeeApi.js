@@ -125,6 +125,19 @@ export const deleteProjectStory = async (projectId, storyId) => {
   await request(`${E}/projects/${Number(projectId)}/work/stories/${Number(storyId)}`, { method: 'DELETE' });
 };
 
+/** The project's client (on the client portal or not), their messages and film decisions. Team Leader only. */
+export async function getClientComments(projectId) {
+  const d = await request(`${E}/projects/${Number(projectId)}/client-comments`);
+  return {
+    client: { name: d.client?.name || '', email: d.client?.email || '', onPortal: Boolean(d.client?.on_portal) },
+    comments: (d.comments || []).map((c) => ({ id: c.id, side: c.side, author: c.author, storyId: c.story_id || null, story: c.story || '', body: c.body, at: c.at })),
+    decisions: (d.decisions || []).map((x) => ({ storyId: x.story_id, decision: x.decision, comment: x.comment || '', at: x.at })),
+  };
+}
+/** The Team Leader answers the client (storyId: about one story, or null for the whole project). */
+export const replyToClient = (projectId, body, storyId = null) =>
+  request(`${E}/projects/${Number(projectId)}/client-comments`, { method: 'POST', body: { body, story_id: storyId ? Number(storyId) : null } });
+
 export const reopenStage = async (projectId, stageKey, reason, storyId) =>
   project(await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/reopen`, { method: 'POST', body: { reason: reason?.trim() || null, story_id: storyId ? Number(storyId) : null } }));
 

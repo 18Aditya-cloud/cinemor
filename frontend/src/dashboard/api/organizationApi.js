@@ -425,6 +425,46 @@ export async function deleteEmployee(id) {
   });
 }
 
+/* ------------------------------------------------------------------------------ the client portal */
+// (demo: kept with the clients; the backend sends the email and the client chooses a password from its link)
+const portalOf = () => {
+  if (!db.clientPortal) db.clientPortal = {};
+  return db.clientPortal;
+};
+export async function listClientPortal() {
+  if (isBackendConnected) return backend.listClientPortal();
+  return demo(() => Object.fromEntries(db.clients.map((c) => [c.id, portalOf()[c.id] || { status: 'not_invited' }])));
+}
+/** Invite a client to the portal (again: a new link replaces the old one). */
+export async function inviteClientToPortal(clientId) {
+  if (isBackendConnected) return backend.inviteClientToPortal(clientId);
+  return demo(() => {
+    const client = db.clients.find((c) => c.id === clientId);
+    if (!client) throw fail('That client no longer exists.', 404);
+    if (!client.email) throw fail('This client has no email. Add one first.', 422);
+    if (portalOf()[clientId]?.status === 'joined') throw fail(`${client.name} already has access to the client portal.`, 409);
+    portalOf()[clientId] = { status: 'invited', invitedAt: new Date().toISOString() };
+    log('client', `${client.name} was invited to the client portal`);
+    return portalOf()[clientId];
+  });
+}
+export async function cancelClientInvitation(clientId) {
+  if (isBackendConnected) return backend.cancelClientInvitation(clientId);
+  return demo(() => {
+    if (portalOf()[clientId]?.status !== 'invited') throw fail('There is no pending invitation for this client.', 404);
+    delete portalOf()[clientId];
+    return {};
+  });
+}
+export async function removeClientAccess(clientId) {
+  if (isBackendConnected) return backend.removeClientAccess(clientId);
+  return demo(() => {
+    if (portalOf()[clientId]?.status !== 'joined') throw fail('This client has no access to remove.', 404);
+    delete portalOf()[clientId];
+    return {};
+  });
+}
+
 export async function deleteClient(id) {
   if (isBackendConnected) return backend.deleteClient(id);
   return demo(() => {

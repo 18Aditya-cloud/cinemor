@@ -8,7 +8,8 @@ import DashboardLayout from '../DashboardLayout.jsx';
 import { ThemeProvider } from '../ThemeContext.jsx';
 import { WorkspaceProvider } from '../WorkspaceContext.jsx';
 import '../theme.css';
-import { IconCheckCircle, IconOverview, IconProjects, IconUsers } from '../ui/DashIcons.jsx';
+import { IconCheckCircle, IconGear, IconOverview, IconProjects, IconUsers } from '../ui/DashIcons.jsx';
+import { AccountSettingsPage } from '../pages/SettingsPage.jsx';
 import { ToastProvider } from '../ui/Toast.jsx';
 import TeamLeaderDashboardPage from './TeamLeaderDashboardPage.jsx';
 import TeamLeaderProjectPage from './TeamLeaderProjectPage.jsx';
@@ -44,7 +45,7 @@ export default function TeamLeaderApp() {
   const current = user && !isBackendConnected ? { ...user, ...(findDemoEmployee(user.email) || { teamLeader: false }) } : user;
   const allowed = current?.accountType === 'employee' && Boolean(current.teamLeader);
   const match = path.match(/^\/team-leader\/projects\/(\d+)$/);
-  const known = ['/team-leader', '/team-leader/projects', '/team-leader/team'].includes(path) || Boolean(match);
+  const known = ['/team-leader', '/team-leader/projects', '/team-leader/team', '/team-leader/settings'].includes(path) || Boolean(match);
 
   useEffect(() => {
     if (checking) return;
@@ -57,13 +58,15 @@ export default function TeamLeaderApp() {
 
   return (
     <ThemeProvider>
-      <WorkspaceProvider role={ROLE} personName={user.email}>
+      <WorkspaceProvider role={ROLE} personName={user.displayName || user.email}>
         <ToastProvider>
-          <DashboardLayout nav={NAV} home="/team-leader" settingsTo={null}>
+          <DashboardLayout nav={NAV} home="/team-leader" settingsTo="/team-leader/settings">
             {match ? (
               <TeamLeaderProjectPage teamLeaderId={current.employeeId} projectId={Number(match[1])} />
             ) : path === '/team-leader/projects' ? (
               <TeamLeaderProjectsPage teamLeaderId={current.employeeId} />
+            ) : path === '/team-leader/settings' ? (
+              <AccountSettingsPage />
             ) : path === '/team-leader/team' ? (
               <TeamLeaderTeamPage teamLeaderId={current.employeeId} />
             ) : (

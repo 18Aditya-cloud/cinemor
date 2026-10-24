@@ -6,8 +6,10 @@ import Navbar from './components/Navbar.jsx';
 import DashboardApp from './dashboard/DashboardApp.jsx';
 import TeamLeaderApp from './dashboard/teamLeader/TeamLeaderApp.jsx';
 import EmployeeApp from './dashboard/employee/EmployeeApp.jsx';
+import ClientApp from './dashboard/client/ClientApp.jsx';
 import IndividualApp from './dashboard/individual/IndividualApp.jsx';
 import AcceptInvitationPage from './pages/AcceptInvitationPage.jsx';
+import ClientInvitationPage from './pages/ClientInvitationPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import AuthCallbackPage from './pages/AuthCallbackPage.jsx';
 import ChooseAccountPage from './pages/ChooseAccountPage.jsx';
@@ -17,7 +19,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import StudioPage from './pages/StudioPage.jsx';
 import ParticleField from './particles/ParticleField.jsx';
 import { homeFor } from './auth/homeFor.js';
-import { isAuthPath, isDashboardPath, isEmployeePath, isHomePath, isIndividualPath, isTeamLeaderPath, RouterProvider, useRouter } from './router/router.jsx';
+import { isAuthPath, isClientPath, isDashboardPath, isEmployeePath, isHomePath, isIndividualPath, isTeamLeaderPath, RouterProvider, useRouter } from './router/router.jsx';
 import HeroBackground from './sections/HeroBackground.jsx';
 import AuthBackdrop from './sections/AuthBackdrop.jsx';
 import styles from './App.module.css';
@@ -32,6 +34,8 @@ import styles from './App.module.css';
  *   /forgot-password Asks for the email and sends a reset link (ForgotPasswordPage)
  *   /reset-password  Where the emailed link leads: new password + confirm (ResetPasswordPage), needs ?token=...
  *   /accept-invitation  Where an employee's invitation link leads: choose a password and join (AcceptInvitationPage), needs ?token=...
+ *   /client-invitation  Where a client's invitation link leads: choose a password (ClientInvitationPage), needs ?token=...
+ *   /client/...        the client portal (ClientApp)
  *   /app     the studio        (StudioPage: write a story with AI)
  *   /organization/...  the organization dashboard (DashboardApp)
  *   /team-leader/...   the Team Leader dashboard (TeamLeaderApp)
@@ -85,6 +89,14 @@ function Shell() {
     );
   }
 
+  if (isClientPath(path)) {
+    return (
+      <div className="cm-scope cinemor-app">
+        <ClientApp />
+      </div>
+    );
+  }
+
   if (isTeamLeaderPath(path)) {
     return (
       <div className="cm-scope cinemor-app">
@@ -109,6 +121,7 @@ function Shell() {
   else if (path === '/forgot-password') page = <ForgotPasswordPage />;
   else if (path === '/reset-password') page = <ResetPasswordPage />;
   else if (path === '/accept-invitation') page = <AcceptInvitationPage />;
+  else if (path === '/client-invitation') page = <ClientInvitationPage />;
   else if (path === '/app') page = <StudioPage />;
   else page = <HomePage stageRef={stageRef} onCreate={handleCreate} />;
 

@@ -7,10 +7,10 @@ import { ThemeProvider } from './ThemeContext.jsx';
 import { WorkspaceProvider } from './WorkspaceContext.jsx';
 import './theme.css';
 import { ToastProvider } from './ui/Toast.jsx';
+import ActivityPage from './pages/ActivityPage.jsx';
 import ClientsPage from './pages/ClientsPage.jsx';
 import EmployeesPage from './pages/EmployeesPage.jsx';
 import InvitationsPage from './pages/InvitationsPage.jsx';
-import ActivityPage from './pages/ActivityPage.jsx';
 import JobRolesPage from './pages/JobRolesPage.jsx';
 import OverviewPage from './pages/OverviewPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
@@ -30,7 +30,7 @@ const PAGES = {
   '/organization/clients': ClientsPage,
   '/organization/invitations': InvitationsPage,
   '/organization/tools': ToolsPage,
-  '/organization/activity': ActivityPage,  // Overview -> Recent activity -> View all
+  '/organization/activity': ActivityPage, // Overview -> Recent activity -> View all
   '/organization/settings': SettingsPage, // opened from the admin menu in the top bar (it is not in the sidebar)
 };
 
@@ -57,7 +57,7 @@ export default function DashboardApp() {
 
   return (
     <ThemeProvider>
-      <WorkspaceProvider>
+      <WorkspaceProvider personName={user.displayName || ''}>
         <ToastProvider>
           <DashboardLayout>
             <Page />

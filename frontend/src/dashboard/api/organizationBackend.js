@@ -272,6 +272,17 @@ const clientBody = ({ name, email, phone }) => ({ name: name.trim(), email: emai
 export async function listClients() {
   return ((await request(org('/clients'))) || []).map(clientView);
 }
+/* -------------------------------------------------------------------------------- the client portal */
+// GET /client-portal: { [clientId]: { status: 'not_invited' | 'invited' | 'joined', invitedAt, expiresAt, joinedAt, loginEmail } }
+export async function listClientPortal() {
+  const rows = (await request(org('/client-portal'))) || [];
+  return Object.fromEntries(rows.map((r) => [r.client_id, { status: r.status, invitedAt: r.invited_at || null, expiresAt: r.expires_at || null, joinedAt: r.joined_at || null, loginEmail: r.login_email || '' }]));
+}
+/** Send (or send again) the client's invitation to the portal. */
+export const inviteClientToPortal = (clientId) => request(org(`/clients/${Number(clientId)}/portal-invite`), { method: 'POST' });
+export const cancelClientInvitation = (clientId) => request(org(`/clients/${Number(clientId)}/portal-invite`), { method: 'DELETE' });
+export const removeClientAccess = (clientId) => request(org(`/clients/${Number(clientId)}/portal-access`), { method: 'DELETE' });
+
 export async function createClient(values) {
   return clientView(await request(org('/clients'), { method: 'POST', body: clientBody(values) }));
 }

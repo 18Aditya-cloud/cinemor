@@ -94,11 +94,14 @@ def _join(words: list[str]) -> str:
 def _person(user: User | None) -> dict | None:
     if user is None:
         return None
-    return {"user_id": user.id, "email": user.email, "name": user.email.split("@")[0]}
+    return {"user_id": user.id, "email": user.email, "name": _name(user)}
 
 
 def _name(user: User | None) -> str:
-    return user.email.split("@")[0] if user else "Someone"
+    """The name the person chose in Settings, or the first part of their email."""
+    if user is None:
+        return "Someone"
+    return (getattr(user, "display_name", None) or "").strip() or user.email.split("@")[0]
 
 
 class ProjectAccess:

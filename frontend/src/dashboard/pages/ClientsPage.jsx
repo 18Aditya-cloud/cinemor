@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import TextField from '../../components/auth/TextField.jsx';
-import { createClient, deleteClient, listClients, updateClient } from '../api/organizationApi.js';
+import { cancelClientInvitation, createClient, deleteClient, inviteClientToPortal, listClientPortal, listClients, removeClientAccess, updateClient } from '../api/organizationApi.js';
 import ConfirmModal from '../ui/ConfirmModal.jsx';
 import useModalForm from '../hooks/useModalForm.js';
 import useResource from '../hooks/useResource.js';
 import useOpenFromQuery from '../hooks/useOpenFromQuery.js';
 import Button from '../ui/Button.jsx';
 import DataTable from '../ui/DataTable.jsx';
-import { IconBuilding, IconMail, IconPencil, IconPhone, IconPlus, IconTrash } from '../ui/DashIcons.jsx';
+import { IconBuilding, IconClose, IconMail, IconPencil, IconPhone, IconPlus, IconSend, IconTrash } from '../ui/DashIcons.jsx';
+import timeAgo from '../timeAgo.js';
 import EmptyState from '../ui/EmptyState.jsx';
 import Modal, { ModalFooter } from '../ui/Modal.jsx';
 import Notice from '../ui/Notice.jsx';
@@ -26,8 +27,24 @@ export default function ClientsPage() {
   const { data, loading, error, reload } = useResource(listClients, []);
   const [modal, setModal] = useState(null); // null | { client?: the client being updated }
   const [deleting, setDeleting] = useState(null);
+  const portal = useResource(listClientPortal, []);
+  const [sending, setSending] = useState(null); // the client whose invitation is being sent
+  const [portalAsk, setPortalAsk] = useState(null); // { client, action: 'cancel' | 'remove' }
   useOpenFromQuery(() => setModal({}));
   const clients = data ?? [];
+  const portalOf = (row) => portal.data?.[row.id] || { status: 'not_invited' };
+
+  const invite = async (row, again = false) => {
+    setSending(row.id);
+    try {
+      await inviteClientToPortal(row.id);
+      toast(again ? `A new invitation was sent to ${row.email}` : `Invitation sent to ${row.email}`);
+      await portal.reload();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    setSending(null);
+  };
 
   const columns = [
     { key: 'no', header: 'No.', render: (_row, index) => index + 1 },
@@ -56,6 +73,41 @@ export default function ClientsPage() {
     { key: 'ongoing', header: 'Ongoing Projects', render: (row) => <Pill tone="amber">{row.ongoingProjects ?? 0}</Pill> },
     { key: 'delivered', header: 'Successful Delivered', render: (row) => <Pill tone="green">{row.deliveredProjects ?? 0}</Pill> },
     {
+      key: 'portal',
+      header: 'Client Portal',
+      render: (row) => {
+        const p = portalOf(row);
+        return (
+          <div className={styles.portalCell}>
+            {p.status === 'joined' ? (
+              <>
+                <Pill tone="green">Joined</Pill>
+                <Button variant="secondary" icon={IconClose} onClick={() => setPortalAsk({ client: row, action: 'remove' })} aria-label={`Remove the portal access of ${row.name}`}>
+                  Remove access
+                </Button>
+              </>
+            ) : p.status === 'invited' ? (
+              <>
+                <span title={p.invitedAt ? `Sent ${timeAgo(p.invitedAt)}` : undefined}>
+                  <Pill tone="amber">Invited</Pill>
+                </span>
+                <Button variant="secondary" icon={IconSend} loading={sending === row.id} onClick={() => invite(row, true)} aria-label={`Send the invitation to ${row.name} again`}>
+                  Resend
+                </Button>
+                <Button variant="secondary" icon={IconClose} iconOnly onClick={() => setPortalAsk({ client: row, action: 'cancel' })} aria-label={`Cancel the invitation of ${row.name}`}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" icon={IconMail} loading={sending === row.id} onClick={() => invite(row)} aria-label={`Invite ${row.name} to the client portal`}>
+                Invite
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'update',
       header: 'Actions',
       render: (row) => (
@@ -75,10 +127,16 @@ export default function ClientsPage() {
     <div className={styles.page}>
       <PageHeader
         title="Clients"
-        subtitle="Manage client relationships and track project delivery across your organization."
+        subtitle="Manage client relationships, track project delivery, and invite clients to follow their projects in the client portal."
         actions={
           <>
-            <RefreshButton onClick={reload} loading={loading} />
+            <RefreshButton
+              onClick={() => {
+                reload();
+                portal.reload();
+              }}
+              loading={loading}
+            />
             <Button icon={IconPlus} onClick={() => setModal({})}>
               Create Client
             </Button>
@@ -102,6 +160,25 @@ export default function ClientsPage() {
         <DataTable caption="Clients" columns={columns} rows={clients} rowKey={(row) => row.id} />
       )}
 
+      <ConfirmModal
+        open={Boolean(portalAsk)}
+        title={portalAsk?.action === 'remove' ? 'Remove portal access?' : 'Cancel the invitation?'}
+        text={
+          portalAsk?.action === 'remove'
+            ? `${portalAsk.client.name} will no longer see this organization's projects in the client portal. You can invite them again later.`
+            : portalAsk
+              ? `The link sent to ${portalAsk.client.email} will stop working.`
+              : ''
+        }
+        confirmLabel={portalAsk?.action === 'remove' ? 'Remove Access' : 'Cancel Invitation'}
+        onClose={() => setPortalAsk(null)}
+        onConfirm={async () => {
+          if (portalAsk.action === 'remove') await removeClientAccess(portalAsk.client.id);
+          else await cancelClientInvitation(portalAsk.client.id);
+          toast(portalAsk.action === 'remove' ? 'Portal access removed' : 'Invitation cancelled');
+          await portal.reload();
+        }}
+      />
       <ConfirmModal
         open={Boolean(deleting)}
         title="Delete client?"

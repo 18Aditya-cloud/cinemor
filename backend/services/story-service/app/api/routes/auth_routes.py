@@ -836,6 +836,7 @@ def get_current_user_profile(
     safe_user = {
         "id": current_user.id,
         "email": current_user.email,
+        "display_name": current_user.display_name,
         "is_active": current_user.is_active,
         "is_email_verified": current_user.is_email_verified,
     }

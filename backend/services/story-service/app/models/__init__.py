@@ -57,6 +57,7 @@ from app.models.employee_workflow import (
     ProjectWorkflowStage,
 )
 from app.models.organization_activity import OrganizationActivity
+from app.models.client_portal import ClientAccount, ClientComment, ClientInvitation, ClientStoryDecision
 
 __all__ = [
     "User",
@@ -102,4 +103,8 @@ __all__ = [
     "SceneVideoClip",
     "VideoGenerationJob",
     "OrganizationActivity",
+    "ClientInvitation",
+    "ClientAccount",
+    "ClientComment",
+    "ClientStoryDecision",
 ]

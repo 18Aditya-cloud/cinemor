@@ -41,6 +41,7 @@ export const NAV = [
       { to: '/organization/tools', label: 'Tools', icon: IconWrench },
     ],
   },
+  { section: 'Account', items: [{ to: '/organization/settings', label: 'Settings', icon: IconGear }] },
 ];
 
 /**
@@ -70,10 +71,10 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
   return (
     <aside ref={asideRef} className={cx(styles.sidebar, collapsed && styles.collapsed, drawerOpen && styles.drawerOpen)} aria-label="Organization menu">
       <div className={styles.brand}>
-        <Link to={home} className={styles.logo} aria-label="cinemor.ai, dashboard home">
+        <Link to={home} className={styles.logo} aria-label="Cinemor AI, dashboard home">
           <img className={styles.logoImg} src={logoUrl} width={30} height={30} alt="" />
           <span className={styles.wordmark}>
-            cinemor<em>.ai</em>
+            cinemor <em>ai</em>
           </span>
         </Link>
       </div>

@@ -179,6 +179,33 @@ videos): keep your own `storage/` folders when you copy this backend over yours.
   through the work API, so the person's role and the stage are checked (an approved stage cannot be changed).
   Stored files of what is deleted are removed too. No database change.
 
+## Client portal (new)
+
+- **Invite** (organization admin, Clients page, new "Client Portal" column): Invite sends an email with a link
+  (7 days). The row then shows Invited (Resend, Cancel); once the client has joined, Joined (Remove access).
+- **Join** (`/client-invitation?token=...`): a new client chooses a password and lands in the portal. A client who
+  already has a Cinemor client login (another studio invited them) only confirms, and the projects are added to it.
+  An email that already belongs to a studio account (admin, employee, creator) cannot be a client login.
+- **The portal** (`/client/...`, client logins only): Overview (counts, Ready for you, your projects, latest updates,
+  your Team Leader), My Projects, one project (story tabs, the film to watch with Approve film / Ask for changes,
+  where each story stands, the approved story text, storyboard with sketches, characters and places, messages with
+  the Team Leader), Downloads (the films), Messages, Settings. Only work the studio has approved is shown; the
+  files are read only.
+- **Team Leader**: the project page has a Client panel (on the portal or not, the client's film decisions, the
+  messages, a box to reply). The Team Leader gets a notification when the client writes or decides.
+- Backend: new files `app/models/client_portal.py`, `app/services/client_portal_service.py`,
+  `app/api/routes/client_portal_routes.py` (added in `app/main.py`); `users.account_type` gets the value `client`
+  and `users.display_name` is new. Database: `alembic upgrade d7e1f3a5c9b2` (after `c5e9a3f7d2b1`), or
+  `sql/client_portal.sql`.
+
+## Settings on every dashboard
+
+- Organization, Team Leader (`/team-leader/settings`), Employee (`/employee/settings`), Individual and Client
+  (`/client/settings`): Full Name (shown to others instead of the email's first part) and Change Password (needs the
+  current one; "Forgot it? Email me a reset link" sends the usual reset email). Changing the password ends every
+  session, so you log in again. Backend: `PATCH /api/auth/me`, `PATCH /api/auth/me/password`.
+- The sidebar brand reads "cinemor ai" (no dot) everywhere.
+
 ## Smaller changes
 
 - Admin, Create / Edit Project: the start date can be today or later (an unchanged earlier date of an existing project

@@ -15,7 +15,8 @@ import SketchStudioPage from '../individual/SketchStudioPage.jsx';
 import StoryboardPage from '../individual/StoryboardPage.jsx';
 import StoryEditorPage from '../individual/StoryEditorPage.jsx';
 import StoryPage from '../individual/StoryPage.jsx';
-import { IconCheckCircle, IconOverview, IconProjects, IconUsers, IconWrench } from '../ui/DashIcons.jsx';
+import { IconCheckCircle, IconGear, IconOverview, IconProjects, IconUsers, IconWrench } from '../ui/DashIcons.jsx';
+import { AccountSettingsPage } from '../pages/SettingsPage.jsx';
 import { ToastProvider } from '../ui/Toast.jsx';
 import { workBase } from './employeeApi.js';
 import EmployeeOverviewPage from './EmployeeOverviewPage.jsx';
@@ -35,6 +36,7 @@ const NAV = [
       { to: '/employee/tools', label: 'Tools', icon: IconWrench },
     ],
   },
+  { section: 'Account', items: [{ to: '/employee/settings', label: 'Settings', icon: IconGear }] },
 ];
 const ROLE = { roleTitle: 'Employee', roleLabel: 'Employee', roleSentence: 'Employee' };
 const TL_ROLE = { roleTitle: 'Team Leader', roleLabel: 'Team Leader', roleSentence: 'Team Leader' };
@@ -45,6 +47,7 @@ function pageFor(path) {
   if (path === '/employee/projects') return { page: 'projects' };
   if (path === '/employee/reviews') return { page: 'reviews' };
   if (path === '/employee/tools') return { page: 'tools' };
+  if (path === '/employee/settings') return { page: 'settings' };
   const m = path.match(/^\/employee\/projects\/(\d+)(?:\/(.*))?$/);
   if (!m) return null;
   const id = Number(m[1]);
@@ -108,6 +111,7 @@ export default function EmployeeApp() {
   else if (route.page === 'project') page = <EmployeeProjectPage key={route.id} projectId={route.id} />;
   else if (route.page === 'reviews') page = <EmployeeReviewsPage />;
   else if (route.page === 'tools') page = <EmployeeToolsPage />;
+  else if (route.page === 'settings') page = <AccountSettingsPage />;
   else if (route.page === 'overview') page = <EmployeeOverviewPage email={user.email} />;
   else {
     let module;
@@ -131,9 +135,9 @@ export default function EmployeeApp() {
 
   return (
     <ThemeProvider>
-      <WorkspaceProvider role={user.teamLeader ? TL_ROLE : ROLE} personName={user.email.split('@')[0]}>
+      <WorkspaceProvider role={user.teamLeader ? TL_ROLE : ROLE} personName={user.displayName || user.email.split('@')[0]}>
         <ToastProvider>
-          <DashboardLayout nav={nav} home="/employee" settingsTo={null}>
+          <DashboardLayout nav={nav} home="/employee" settingsTo="/employee/settings">
             {page}
           </DashboardLayout>
         </ToastProvider>

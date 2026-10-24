@@ -117,7 +117,7 @@ export default function IndividualApp() {
 
   return (
     <ThemeProvider>
-      <WorkspaceProvider role={ROLE} personName={user.email.split('@')[0]}>
+      <WorkspaceProvider role={ROLE} personName={user.displayName || user.email.split('@')[0]}>
         <ToastProvider>
           <DashboardLayout nav={NAV} home="/dashboard" settingsTo="/dashboard/settings">
             {page}

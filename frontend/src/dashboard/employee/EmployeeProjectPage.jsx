@@ -13,6 +13,7 @@ import RefreshButton from '../ui/RefreshButton.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import pages from '../pages/pages.module.css';
 import { deleteProjectStory, getMyProject, itemLabel, withdrawSubmission } from './employeeApi.js';
+import ClientPanel from './ClientPanel.jsx';
 import { NotificationBell, RolePills } from './EmployeeParts.jsx';
 import { AnswerModal, ReopenModal, SubmitModal } from './ReviewModals.jsx';
 import { modulePath, STAGES, stageMeta, STATE, SUBMISSION } from './stages.js';
@@ -436,6 +437,7 @@ export default function EmployeeProjectPage({ projectId }) {
 
         {/* ------------------------------------------------------------------ the side: who does what, and reviews */}
         <aside className={e.projectRail}>
+          {project.isTeamLeader && <ClientPanel project={project} />}
           <section className={cx(e.card, e.railCard)} aria-labelledby="emp-team">
             <h2 id="emp-team" className={e.cardTitle}>
               Who works on each stage

@@ -40,8 +40,8 @@ const setSession = (token, user = me) => {
 
 /**
  * GET /api/auth/me  ->  the user object every page uses:
- *   { id, email, accountType: 'organization' | 'employee' | 'individual' | null, employeeId, teamLeader, reviewer,
- *     organizationId, organizationName, needsAccountType }
+ *   { id, email, accountType: 'organization' | 'employee' | 'individual' | 'client' | null, employeeId, teamLeader,
+ *     reviewer, organizationId, organizationName, displayName, needsAccountType }
  * accountType comes from the membership role first: the backend stores account_type "organization" for the employees
  * too (they joined an organization), so role "organization_admin" = the organization's own account, role "employee" =
  * an employee. A Google user who has not chosen Individual / Organization yet has account_type null.
@@ -60,6 +60,8 @@ export function toUser(data) {
     reviewer: Boolean(data.is_reviewer),
     organizationId: data.organization_id ?? null,
     organizationName: data.organization_name || '',
+    // the name the person chose in Settings ('' until then: the email's first part is shown)
+    displayName: data.user.display_name || '',
     needsAccountType: !accountType,
   };
 }
@@ -490,23 +492,48 @@ export async function resetPassword({ token, password }) {
   return send('/api/auth/reset-password', { method: 'POST', body: { token, new_password: password, confirm_password: password } });
 }
 
-/**
- * Can the signed-in person change their password from Settings? The backend only has this for an organization's
- * administrator (PATCH /api/organizations/{id}/profile/password); others can use "Forgot password?" for now.
- */
-export const canChangePassword = () => !isBackendConnected || me?.accountType === 'organization';
+/** Settings, "Change Password": every signed-in account can change its own password (the current one is needed). */
+export const canChangePassword = () => true;
 
-/** Settings, "Change Password": PATCH /api/organizations/{id}/profile/password { new_password, confirm_password } */
-export async function changeAccountPassword({ newPassword }) {
+/**
+ * Settings, "Change Password": PATCH /api/auth/me/password { current_password, new_password, confirm_password }.
+ * The backend ends every session of the account (this one too), so the page signs out afterwards.
+ */
+export async function changeAccountPassword({ currentPassword, newPassword }) {
   if (!isBackendConnected) {
     await wait(900);
     return {};
   }
-  if (!canChangePassword() || !me?.organizationId) {
-    throw new Error('Changing the password here is not available for this account yet. Use "Forgot password?" on the Log in page instead.');
-  }
-  return request(`/api/organizations/${me.organizationId}/profile/password`, {
+  return request('/api/auth/me/password', {
     method: 'PATCH',
-    body: { new_password: newPassword, confirm_password: newPassword },
+    body: { current_password: currentPassword, new_password: newPassword, confirm_password: newPassword },
   });
+}
+
+/** Settings, "Your name": PATCH /api/auth/me { display_name } ('' goes back to the email's first part). */
+export async function updateDisplayName(name) {
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!isBackendConnected) {
+    await wait(500);
+    return { displayName: clean };
+  }
+  const data = await request('/api/auth/me', { method: 'PATCH', body: { display_name: clean } });
+  if (me) me = { ...me, displayName: data.display_name || '' };
+  return { displayName: data.display_name || '' };
+}
+
+/* ---------------------------------------------------------------------------- the client portal invitation */
+/** GET /api/auth/client-invitations/{token}: { email, clientName, organizationName, hasAccount } */
+export async function getClientInvitation(token) {
+  const x = await request(`/api/auth/client-invitations/${encodeURIComponent(token)}`, { auth: false });
+  return { email: x.email, clientName: x.client_name, organizationName: x.organization_name, hasAccount: Boolean(x.has_account) };
+}
+/**
+ * POST /api/auth/client-invitations/accept: a new client chooses a password and is signed in ({ user }); a client who
+ * already has a login is linked to this studio's projects ({ linked: true }) and logs in as usual.
+ */
+export async function acceptClientInvitation({ token, password, confirmPassword }) {
+  const data = await request('/api/auth/client-invitations/accept', { method: 'POST', auth: false, body: { token, password: password || null, confirm_password: confirmPassword || null } });
+  if (data.linked) return { linked: true };
+  return startSession(data.access_token);
 }
