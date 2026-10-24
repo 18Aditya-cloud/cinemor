@@ -54,14 +54,13 @@ from app.main import app  # noqa: E402
 # refresh-token cookie.
 #
 
+from app.core.config import settings as _settings  # noqa: E402
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    # Origins come from the CORS_ALLOW_ORIGINS env var in production.
+    # Never use "*" together with allow_credentials=True.
+    allow_origins=_settings.cors_origins,
     allow_credentials=True,
     allow_methods=[
         "GET",

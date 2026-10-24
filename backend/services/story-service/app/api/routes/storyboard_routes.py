@@ -3,7 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import LLMProviderError
+from app.api.dependencies.auth import CurrentUser
 from app.database.session import get_db
+from app.core.rate_limit import rate_limit
 from app.schemas.storyboard_request import StoryboardGenerateRequest
 from app.services.storyboard_service import StoryboardService
 
@@ -14,9 +16,10 @@ router = APIRouter(
 )
 
 
-@router.post("/generate", status_code=status.HTTP_200_OK)
+@router.post("/generate", status_code=status.HTTP_200_OK, dependencies=[Depends(rate_limit(limit=20, window_seconds=60))])
 async def generate_storyboard(
     request: StoryboardGenerateRequest,
+    current_user: CurrentUser,
     db: Session = Depends(get_db),
 ) -> dict:
     service = StoryboardService(db)

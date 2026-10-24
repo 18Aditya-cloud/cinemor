@@ -1039,12 +1039,22 @@ async def upload_project_story(
         )
 
     try:
-        file_bytes = await file.read()
+        _UPLOAD_LIMIT = 10 * 1024 * 1024  # 10 MB
+        file_bytes = await file.read(_UPLOAD_LIMIT + 1)
+
+        if len(file_bytes) > _UPLOAD_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="The document must not exceed 10 MB.",
+            )
 
         content = StoryDocumentService.extract_text(
             filename=file.filename,
             file_bytes=file_bytes,
         )
+
+    except HTTPException:
+        raise
 
     except ValueError as exc:
         raise HTTPException(
@@ -2003,10 +2013,13 @@ def validate_character_image_context(
     project_id: int,
     story_id: int,
 ):
-    project = IndividualProjectService(db).get_project(
-        individual_user_id=current_user.id,
-        project_id=project_id,
-    )
+    try:
+        project = IndividualProjectService(db).get_project(
+            individual_user_id=current_user.id,
+            project_id=project_id,
+        )
+    except ValueError:
+        project = None
     if project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2214,10 +2227,13 @@ def validate_location_image_context(
     project_id: int,
     story_id: int,
 ):
-    project = IndividualProjectService(db).get_project(
-        individual_user_id=current_user.id,
-        project_id=project_id,
-    )
+    try:
+        project = IndividualProjectService(db).get_project(
+            individual_user_id=current_user.id,
+            project_id=project_id,
+        )
+    except ValueError:
+        project = None
 
     if project is None:
         raise HTTPException(
@@ -2904,16 +2920,6 @@ def preview_scene_sketch(
         .first()
     )
 
-    print(
-        "SKETCH DEBUG:",
-        {
-            "sketch_id": sketch_id,
-            "scene_id": scene_id,
-            "found": sketch is not None,
-            "status": sketch.status if sketch else None,
-            "storage_key": sketch.storage_key if sketch else None,
-        },
-    )
     if sketch is None or not sketch.storage_key:
         raise HTTPException(status_code=404, detail="Generated sketch not found.")
 
@@ -3225,6 +3231,14 @@ def assemble_story_video(
         VideoAssemblyError,
     )
 
+    # Ownership: the story must belong to this user's project.
+    validate_location_image_context(
+        db=db,
+        current_user=current_user,
+        project_id=project_id,
+        story_id=story_id,
+    )
+
     job = (
         db.query(VideoGenerationJob)
         .filter(
@@ -3316,7 +3330,6 @@ def assemble_story_video(
         "job_id": job_id,
         "scene_ids": scene_ids,
         "clip_count": len(clip_paths),
-        "output_path": str(output_path),
         "download_endpoint": (
             f"/api/individual/projects/{project_id}/stories/{story_id}"
             f"/video-generation/{job_id}/download"

@@ -9,6 +9,7 @@ from app.api.dependencies.auth import (
 )
 from app.core.config import settings
 from app.database.session import get_db
+from app.core.rate_limit import rate_limit
 from app.schemas.auth import (
     AcceptEmployeeInvitationRequest,
     AccountTypeRequest,
@@ -23,6 +24,7 @@ from app.schemas.auth import (
     SupabaseOAuthRequest,
 )
 from app.services.auth_service import AuthService
+from app.api.safe import safe_auth_result, safe_user, safe_organization
 from app.repositories.auth_repository import AuthRepository
 from app.models.employee import Employee
 from app.services.email_service import send_invitation_email
@@ -92,6 +94,7 @@ def _clear_refresh_cookie(
 
 @router.post(
     "/register/individual",
+    dependencies=[Depends(rate_limit(limit=5, window_seconds=60))],
     status_code=status.HTTP_201_CREATED,
 )
 def register_individual(
@@ -110,11 +113,16 @@ def register_individual(
 
     service = AuthService(db)
 
-    return service.register_individual(
+    user = service.register_individual(
         email=request.email,
         password=request.password,
         confirm_password=request.confirm_password,
     )
+
+    return {
+        "message": "Account created successfully.",
+        "user": safe_user(user),
+    }
 
 
 # ============================================================
@@ -123,6 +131,7 @@ def register_individual(
 
 @router.post(
     "/register/organization",
+    dependencies=[Depends(rate_limit(limit=5, window_seconds=60))],
     status_code=status.HTTP_201_CREATED,
 )
 def register_organization(
@@ -149,12 +158,13 @@ def register_organization(
         confirm_password=request.confirm_password,
     )
 
-    return {
-        "message": "Organization account created successfully.",
-        "user": user,
-        "organization": organization,
-        "membership": membership,
-    }
+    return safe_auth_result(
+        {
+            "user": user,
+            "organization": organization,
+            "membership": membership,
+        }
+    ) | {"message": "Organization account created successfully."}
 
 
 # ============================================================
@@ -163,6 +173,7 @@ def register_organization(
 
 @router.post(
     "/login",
+    dependencies=[Depends(rate_limit(limit=10, window_seconds=60))],
 )
 def login(
     request: LoginRequest,
@@ -203,7 +214,7 @@ def login(
         refresh_token,
     )
 
-    return result
+    return safe_auth_result(result)
 
 
 # ============================================================
@@ -212,6 +223,7 @@ def login(
 
 @router.post(
     "/oauth/supabase",
+    dependencies=[Depends(rate_limit(limit=10, window_seconds=60))],
 )
 def login_with_supabase(
     request: SupabaseOAuthRequest,
@@ -259,7 +271,7 @@ def login_with_supabase(
         refresh_token,
     )
 
-    return result
+    return safe_auth_result(result)
 
 
 # ============================================================
@@ -297,15 +309,13 @@ def set_account_type(
         account_type=request.account_type,
     )
 
-    return {
+    return safe_auth_result(result) | {
         "message": "Account type selected successfully.",
-        "user": result["user"],
-        "organization": result["organization"],
-        "membership": result["membership"],
     }
 
 @router.post(
     "/forgot-password",
+    dependencies=[Depends(rate_limit(limit=5, window_seconds=60))],
 )
 def forgot_password(
     request: ForgotPasswordRequest,
@@ -320,6 +330,7 @@ def forgot_password(
 
 @router.post(
     "/reset-password",
+    dependencies=[Depends(rate_limit(limit=10, window_seconds=60))],
 )
 def reset_password(
     request: ResetPasswordRequest,
@@ -530,7 +541,8 @@ def invite_employee(
         ),
     )
     invitation_link = (
-        f"http://localhost:5173/accept-invitation?token={raw_token}"
+        f"{settings.FRONTEND_URL.rstrip('/')}"
+        f"/accept-invitation?token={raw_token}"
     )
 
     send_invitation_email(
@@ -538,16 +550,19 @@ def invite_employee(
         invitation_link=invitation_link,
     )
 
-    # ========================================================
-    # Temporary Testing Response
-    # ========================================================
-
+    # The raw token is delivered only by email; it is never returned here.
     return {
         "message": (
             "Employee invitation created successfully."
         ),
-        "invitation": invitation,
-        "invitation_token": raw_token,
+        "invitation": {
+            "id": invitation.id,
+            "organization_id": invitation.organization_id,
+            "email": invitation.email,
+            "job_role_id": invitation.job_role_id,
+            "system_role": invitation.system_role,
+            "expires_at": invitation.expires_at,
+        },
     }
 
 # ============================================================
@@ -556,6 +571,7 @@ def invite_employee(
 
 @router.post(
     "/invitations/accept",
+    dependencies=[Depends(rate_limit(limit=10, window_seconds=60))],
     status_code=status.HTTP_201_CREATED,
 )
 def accept_employee_invitation(
@@ -607,7 +623,7 @@ def accept_employee_invitation(
         refresh_token,
     )
 
-    return result
+    return safe_auth_result(result)
 
 # ============================================================
 # Refresh Access Token
@@ -658,7 +674,7 @@ def refresh_access_token(
         new_refresh_token,
     )
 
-    return result
+    return safe_auth_result(result)
 
 
 # ============================================================

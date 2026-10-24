@@ -5,7 +5,9 @@ from app.core.exceptions import (
     LLMProviderError,
     StoryGenerationError,
 )
+from app.api.dependencies.auth import CurrentUser
 from app.database.session import get_db
+from app.core.rate_limit import rate_limit
 from app.schemas.story_request import StoryRequest
 from app.schemas.story_response import StoryResponse
 from app.services.story_service import StoryService
@@ -19,11 +21,13 @@ router = APIRouter(
 
 @router.post(
     "/generate",
+    dependencies=[Depends(rate_limit(limit=20, window_seconds=60))],
     response_model=StoryResponse,
     status_code=status.HTTP_200_OK,
 )
 async def generate_story(
     request: StoryRequest,
+    current_user: CurrentUser,
     db: Session = Depends(get_db),
 ) -> StoryResponse:
     """

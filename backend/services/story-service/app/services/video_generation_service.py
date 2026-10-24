@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models import SceneVideoClip
 
+from app.core.config import settings
 from app.models import Scene, StoryBoard, VideoGenerationJob
 
 from app.models import SceneSketch
@@ -1413,6 +1414,33 @@ Do not render captions, subtitles, watermarks, or UI elements.
         """Create and persist a queued video-generation job."""
 
 
+
+        # Only models on the configured allowlist may be requested, so a
+        # caller cannot pick an arbitrary (expensive) OpenRouter model.
+        allowed_video_models = set(settings.OPENROUTER_VIDEO_MODELS)
+        if model_name not in allowed_video_models:
+            raise ValueError(
+                "Unsupported video model. Choose one of: "
+                + ", ".join(sorted(allowed_video_models))
+            )
+
+        # Refuse a new job while one is already running for this story, so a
+        # single story cannot spin up unbounded concurrent generation work.
+        active = (
+            self.db.query(VideoGenerationJob)
+            .filter(
+                VideoGenerationJob.story_id == story_id,
+                VideoGenerationJob.status.in_(
+                    ["queued", "planning", "generating", "assembling"]
+                ),
+            )
+            .first()
+        )
+        if active is not None:
+            raise ValueError(
+                "A video generation job is already running for this story. "
+                "Wait for it to finish before starting another."
+            )
 
         if generation_mode not in self.VALID_MODES:
 

@@ -8,7 +8,7 @@ alembic
 httpx
 
 # Authentication & Security
-PyJWT
+PyJWT[crypto]
 pwdlib[argon2]
 email-validator
 
@@ -21,4 +21,4 @@ python-multipart
 
 # Video (scene clips, last-frame extraction and final assembly)
 moviepy
-Pillow
+Pillow>=13.0.0

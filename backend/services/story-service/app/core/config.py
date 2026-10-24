@@ -23,10 +23,6 @@ STORY_SERVICE_DIR = APP_DIR.parent
 
 ENV_FILE = STORY_SERVICE_DIR / ".env"
 
-print(f"[CONFIG] CORE_DIR: {CORE_DIR}")
-print(f"[CONFIG] STORY_SERVICE_DIR: {STORY_SERVICE_DIR}")
-print(f"[CONFIG] ENV_FILE: {ENV_FILE}")
-print(f"[CONFIG] ENV_FILE EXISTS: {ENV_FILE.exists()}")
 # ============================================================
 # Settings
 # ============================================================
@@ -44,7 +40,7 @@ class Settings(BaseSettings):
 
     APP_VERSION: str = "1.0.0"
 
-    DEBUG: bool = True
+    DEBUG: bool = False
 
 
     # ---------------------------------------------------------
@@ -126,7 +122,7 @@ class Settings(BaseSettings):
         "cinemor_refresh_token"
     )
 
-    REFRESH_COOKIE_SECURE: bool = False
+    REFRESH_COOKIE_SECURE: bool = True
 
     REFRESH_COOKIE_HTTP_ONLY: bool = True
 
@@ -152,6 +148,21 @@ class Settings(BaseSettings):
     EMAIL_FROM: str
 
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # Comma-separated list of allowed CORS origins for production, e.g.
+    # "https://app.cinemor.com,https://cinemor.com". Falls back to local dev.
+    CORS_ALLOW_ORIGINS: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:3000,http://127.0.0.1:3000"
+    )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.CORS_ALLOW_ORIGINS.split(",")
+            if origin.strip()
+        ]
 
 
     # ---------------------------------------------------------

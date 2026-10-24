@@ -11,6 +11,7 @@ from app.repositories.organization_dashboard_repository import (
 )
 from app.core.security import (
     hash_password,
+    verify_password,
     verify_password_with_dummy_hash,
 )
 
@@ -298,6 +299,7 @@ class OrganizationDashboardService:
         *,
         user_id: int,
         organization_id: int,
+        current_password: str,
         new_password: str,
         confirm_password: str,
     ):
@@ -305,6 +307,13 @@ class OrganizationDashboardService:
             user_id=user_id,
             organization_id=organization_id,
         )
+
+        # The current password must be proven before it can be changed.
+        _actor = self.auth_repository.get_user_by_id(user_id)
+        if _actor is None or not verify_password(
+            current_password, _actor.password_hash
+        ):
+            raise PermissionError("Current password is incorrect.")
 
         if new_password != confirm_password:
             raise ValueError(

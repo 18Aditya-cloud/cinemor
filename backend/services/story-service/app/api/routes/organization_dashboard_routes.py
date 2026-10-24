@@ -37,6 +37,7 @@ from app.services.organization_dashboard_service import (
     OrganizationDashboardService,
 )
 from app.services.project_service import ProjectService
+from app.api.safe import safe_employee_rows
 from app.services import employee_removal_service
 
 from app.schemas.organization_tool import (
@@ -213,6 +214,7 @@ def change_organization_admin_password(
         return service.change_organization_admin_password(
             user_id=current_user.id,
             organization_id=organization_id,
+            current_password=request.current_password,
             new_password=request.new_password,
             confirm_password=request.confirm_password,
         )
@@ -286,11 +288,13 @@ def search_employees(
     service = OrganizationDashboardService(db)
 
     try:
-        return service.search_employees(
-            user_id=current_user.id,
-            organization_id=organization_id,
-            search=search,
-            job_role_id=job_role_id,
+        return safe_employee_rows(
+            service.search_employees(
+                user_id=current_user.id,
+                organization_id=organization_id,
+                search=search,
+                job_role_id=job_role_id,
+            )
         )
 
     except (ValueError, PermissionError) as exc:
@@ -323,10 +327,12 @@ def get_team_leaders(
     service = OrganizationDashboardService(db)
 
     try:
-        return service.get_team_leaders(
-            user_id=current_user.id,
-            organization_id=organization_id,
-            search=search,
+        return safe_employee_rows(
+            service.get_team_leaders(
+                user_id=current_user.id,
+                organization_id=organization_id,
+                search=search,
+            )
         )
 
     except (ValueError, PermissionError) as exc:
@@ -359,10 +365,12 @@ def get_reviewers(
     service = OrganizationDashboardService(db)
 
     try:
-        return service.get_reviewers(
-            user_id=current_user.id,
-            organization_id=organization_id,
-            search=search,
+        return safe_employee_rows(
+            service.get_reviewers(
+                user_id=current_user.id,
+                organization_id=organization_id,
+                search=search,
+            )
         )
 
     except (ValueError, PermissionError) as exc:

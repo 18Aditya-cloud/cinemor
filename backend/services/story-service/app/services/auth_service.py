@@ -1,5 +1,6 @@
 from __future__ import annotations
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 import json
@@ -190,23 +191,20 @@ class AuthService:
             f"/reset-password?token={raw_token}"
         )
 
+        # Persist the token first, then attempt delivery. A delivery failure
+        # must NOT change the response or status code, otherwise the endpoint
+        # would reveal whether the email belongs to a real account.
+        self.db.commit()
+
         try:
             send_password_reset_email(
                 to_email=normalized_email,
                 reset_link=reset_link,
             )
-
-            self.db.commit()
-
         except Exception:
-            self.db.rollback()
-
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=(
-                    "Unable to send password reset email. "
-                    "Please try again later."
-                ),
+            # Swallow and log server-side; never surface to the caller.
+            logging.getLogger(__name__).exception(
+                "Password reset email delivery failed."
             )
 
         return {
@@ -286,6 +284,12 @@ class AuthService:
             self.repository.mark_password_reset_token_used(
                 reset_token=reset_token,
                 used_at=now,
+            )
+
+            # A reset invalidates every existing session, so a thief who
+            # still holds an old refresh token is logged out.
+            self.repository.revoke_all_user_refresh_sessions(
+                user_id=user.id,
             )
 
             self.db.commit()
@@ -584,9 +588,12 @@ class AuthService:
 
         try:
             if user is None:
+                # OAuth users have no password. Store a hash of a random,
+                # unknowable secret so that no shared/guessable value (such as
+                # the dummy-hash plaintext) can be used to log in as them.
                 user = self.repository.create_user(
                     email=email,
-                    password_hash=settings.DUMMY_PASSWORD_HASH,
+                    password_hash=hash_password(secrets.token_urlsafe(32)),
                 )
             elif not user.is_active:
                 raise HTTPException(
@@ -1160,6 +1167,7 @@ class AuthService:
             password,
             confirm_password,
         )
+        self._validate_password(password)
 
         token_hash = hash_refresh_token(token)
 
