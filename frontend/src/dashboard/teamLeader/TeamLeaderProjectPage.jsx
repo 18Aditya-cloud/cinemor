@@ -92,7 +92,7 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
       toast(`Project is now ${lifecycleOf(to).label.toLowerCase()}`);
       await reload();
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
     setMoving(null);
   };

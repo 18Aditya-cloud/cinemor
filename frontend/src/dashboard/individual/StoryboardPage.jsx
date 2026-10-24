@@ -191,7 +191,7 @@ function Board({ projectId, storyId, onSaved }) {
     try {
       download(await exportStoryboard(projectId, storyId), fileNameFor(record.board.story_metadata.title || story.title));
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
   };
 

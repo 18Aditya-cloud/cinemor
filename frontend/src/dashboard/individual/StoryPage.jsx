@@ -426,12 +426,23 @@ function Studio({ project, models, lastSettings, storyId }) {
       setStory(await restoreStoryVersion(project.id, story.id, no));
       toast(`Version ${no} restored`);
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
   };
 
-  const messages = story?.chat || [];
   const latestNo = story?.versions.length || 0;
+  // The current version is always shown in full. A version saved outside the chat (the Story Editor, a restore, or any
+  // change when the chat was rebuilt on another device, e.g. a reviewer's) has only a line in the chat; its text is
+  // added under that line, so opening a story shows its newest version and the older ones stay above in the chat.
+  const chat = story?.chat || [];
+  const messages =
+    !latestNo || chat.some((m) => m.role === 'ai' && m.version === latestNo)
+      ? chat
+      : (() => {
+          const current = { id: 'current-version', role: 'ai', version: latestNo, at: story.versions[latestNo - 1]?.at };
+          const line = chat.findIndex((m) => m.role === 'event' && m.version === latestNo);
+          return line === -1 ? [...chat, current] : [...chat.slice(0, line + 1), current, ...chat.slice(line + 1)];
+        })();
   const talking = messages.length > 0 || Boolean(pending);
 
   return (
@@ -753,7 +764,7 @@ const ANSWER_LINES = {
   ai_generated: (first) => (first ? 'Here is your story.' : 'Here is the story, written again from the brief.'),
   ai_edit: () => 'Here is the story with your changes.',
   user_uploaded: () => 'Here is the story you imported. Ask for any changes.',
-  user_edit: () => 'Here is the story as you edited it.',
+  user_edit: () => 'Here is the story as it was edited in the Story Editor.',
   rollback: () => 'Here is the version you restored.',
 };
 

@@ -65,6 +65,7 @@ from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.story import Story
 from app.models.user import User
+from app.services.stage_content import EMPTY_MESSAGES, stage_content
 
 
 class WorkflowError(Exception):
@@ -749,9 +750,38 @@ class EmployeeWorkflowService:
         if stage not in STAGES_BY_KEY:
             raise WorkflowError(f"Unknown stage. Use one of: {', '.join(STAGE_KEYS)}.", 404)
 
-    def submit(self, project_id: int, stage: str, user: User, reviewer_user_id: int, note: str | None, story_id: int | None) -> dict:
-        self._check_stage(stage)
-        project, access = self.require_view(project_id, user)
+    def _content_problem(self, project_id: int, story: Story, stage: str) -> tuple[str | None, str]:
+        """
+        Why this stage of this story cannot be sent for review because of its work (None when it can), and the
+        fingerprint of that work: it must have some work in it, and after a reviewer asked for changes it must
+        have changed since.
+        """
+        has_content, fingerprint = stage_content(self.db, story, stage)
+        if not has_content:
+            return EMPTY_MESSAGES.get(stage, "There is nothing to send yet."), fingerprint
+        last = (
+            self.db.query(ProjectStageSubmission)
+            .filter(
+                ProjectStageSubmission.project_id == project_id,
+                ProjectStageSubmission.story_id == story.id,
+                ProjectStageSubmission.stage == stage,
+                ProjectStageSubmission.status.notin_([SUBMISSION_WITHDRAWN, SUBMISSION_CANCELLED]),
+            )
+            .order_by(ProjectStageSubmission.id.desc())
+            .first()
+        )
+        if (
+            last is not None
+            and last.status == SUBMISSION_CHANGES_REQUESTED
+            and last.content_fingerprint
+            and last.content_fingerprint == fingerprint
+        ):
+            who = _name(last.reviewed_by) if last.reviewed_by is not None else "the reviewer"
+            return f"Nothing has changed since {who} asked for changes. Make the changes first, then send it again.", fingerprint
+        return None, fingerprint
+
+    def _submittable(self, project: Project, access: ProjectAccess, stage: str, user: User, story_id: int | None) -> tuple[Story, str]:
+        """The story whose stage this person can send for review now, and its work's fingerprint (or WorkflowError)."""
         label = _label(stage)
         if stage not in access.work_stages:
             raise WorkflowError(f"Your role on this project does not include the {label}.", 403)
@@ -773,6 +803,26 @@ class EmployeeWorkflowService:
             raise WorkflowError(f"The {label} of “{story.title}” is already waiting for review.", 409)
         if state == STATUS_APPROVED:
             raise WorkflowError(f"The {label} of “{story.title}” is already approved.", 409)
+        problem, fingerprint = self._content_problem(project.id, story, stage)
+        if problem:
+            raise WorkflowError(problem, 409)
+        return story, fingerprint
+
+    def submit_check(self, project_id: int, stage: str, user: User, story_id: int | None) -> dict:
+        """Can this person send this stage of this story for review now? (The Submit window asks before it opens.)"""
+        self._check_stage(stage)
+        project, access = self.require_view(project_id, user)
+        try:
+            self._submittable(project, access, stage, user, story_id)
+        except WorkflowError as exc:
+            return {"can_submit": False, "reason": exc.message}
+        return {"can_submit": True, "reason": None}
+
+    def submit(self, project_id: int, stage: str, user: User, reviewer_user_id: int, note: str | None, story_id: int | None) -> dict:
+        self._check_stage(stage)
+        project, access = self.require_view(project_id, user)
+        label = _label(stage)
+        story, fingerprint = self._submittable(project, access, stage, user, story_id)
 
         if reviewer_user_id == user.id:
             raise WorkflowError("Choose another reviewer: nobody reviews their own work.", 422)
@@ -797,6 +847,7 @@ class EmployeeWorkflowService:
             submitted_by_user_id=user.id,
             reviewer_user_id=reviewer_user_id,
             note=(note or "").strip()[:2000] or None,
+            content_fingerprint=fingerprint,
             status=SUBMISSION_PENDING,
         )
         self.db.add(sub)

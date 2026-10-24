@@ -120,6 +120,13 @@ def list_stage_reviewers(project_id: int, stage: str, current_user: CurrentUser,
     except WorkflowError as exc:
         raise _fail(exc) from exc
 
+@router.get("/projects/{project_id}/stages/{stage}/submit-check")
+def check_submit(project_id: int, stage: str, current_user: CurrentUser, story_id: int | None = None, db: Session = Depends(get_db)):
+    """Can this stage of this story be sent for review now? {can_submit, reason} (empty work, nothing changed...)."""
+    try:
+        return EmployeeWorkflowService(db).submit_check(project_id, stage, current_user, story_id)
+    except WorkflowError as exc:
+        raise _fail(exc) from exc
 
 @router.post("/projects/{project_id}/stages/{stage}/submit", status_code=201)
 def submit_stage(project_id: int, stage: str, request: StageSubmitRequest, current_user: CurrentUser, db: Session = Depends(get_db)):

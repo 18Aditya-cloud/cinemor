@@ -105,6 +105,13 @@ export const listMyProjects = async () => (await request(`${E}/projects`)).map(p
 export const getMyProject = async (id) => project(await request(`${E}/projects/${Number(id)}`));
 export const listStageReviewers = async (projectId, stageKey) => (await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/reviewers`)).map((r) => ({ ...person(r), roles: r.roles || [] }));
 
+/** Can this story's stage be sent for review now? { canSubmit, reason } (nothing made yet, nothing changed since changes were asked...) */
+export const checkSubmit = async (projectId, stageKey, storyId) => {
+  const query = storyId ? `?story_id=${Number(storyId)}` : '';
+  const x = await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/submit-check${query}`);
+  return { canSubmit: Boolean(x.can_submit), reason: x.reason || '' };
+};
+
 export const submitStage = async (projectId, stageKey, { reviewerUserId, note, storyId }) =>
   toSubmission(
     await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/submit`, {

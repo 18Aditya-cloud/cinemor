@@ -160,6 +160,9 @@ class ProjectStageSubmission(Base):
     )
 
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # a hash of the stage's work when it was sent (app/services/stage_content.py): after a reviewer asks for
+    # changes, the same work cannot be sent again unchanged
+    content_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # pending | approved | changes_requested | withdrawn | cancelled
     status: Mapped[str] = mapped_column(

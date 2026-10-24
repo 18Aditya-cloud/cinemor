@@ -83,7 +83,7 @@ export default function JobRolesPage() {
     queues.current[role.id] = previous
       .then(() => updateRolePermissions(role.id, { features: role.features, tools: role.tools }))
       .catch((err) => {
-        toast(err.message || 'Could not save that change.');
+        toast(err.message || 'Could not save that change.', 'error');
         reload(); // show what the server really has
       })
       .finally(() => setSaving((n) => n - 1));

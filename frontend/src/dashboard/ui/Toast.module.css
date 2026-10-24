@@ -21,6 +21,17 @@
   box-shadow: var(--d-popover-shadow);
   animation: toastIn 0.45s var(--cm-ease) both;
 }
+
+/* a refusal or a failure */
+.error {
+  border-color: var(--d-danger-bd);
+  background: linear-gradient(var(--d-danger-bg), var(--d-danger-bg)), var(--d-popover-bg);
+  color: var(--d-danger-fg);
+}
+.error svg {
+  flex: none;
+}
+
 @keyframes toastIn {
   from {
     opacity: 0;

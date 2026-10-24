@@ -42,7 +42,7 @@ export default function InvitationsPage() {
       toast(message);
       await reload();
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     } finally {
       setBusyId(null);
     }

@@ -233,7 +233,7 @@ function Studio({ projectId, storyId, story }) {
         setClips(c);
         if (j && !RUNNING.has(j.status)) {
           if (j.status === 'completed') toast('Your film is ready');
-          else toast(j.error || 'Some scenes could not be made');
+          else toast(j.error || 'Some scenes could not be made', 'error');
         }
       } catch {
         /* try again next time */
@@ -317,7 +317,7 @@ function Studio({ projectId, storyId, story }) {
     try {
       setPlaying({ sceneNo: sc.no, title: sc.title, url: await clipUrl(projectId, storyId, clip.id) });
     } catch (e) {
-      toast(e.message);
+      toast(e.message, 'error');
     }
   };
 
@@ -325,7 +325,7 @@ function Studio({ projectId, storyId, story }) {
     try {
       download(await downloadFilm(projectId, storyId, nowJob.id), `${(story?.title || 'film').replace(/[\\/:*?"<>|]+/g, '').trim() || 'film'} - film.mp4`);
     } catch (e) {
-      toast(e.message);
+      toast(e.message, 'error');
     }
   };
 

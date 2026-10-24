@@ -133,7 +133,7 @@ export default function EmployeeProjectPage({ projectId }) {
       toast('Taken back from review');
       await reload();
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
     setTaking(null);
   };

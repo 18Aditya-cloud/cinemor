@@ -44,7 +44,7 @@ export default function StageBar({ projectId, stageKey, storyId = null }) {
       toast('Taken back from review');
       await reload();
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
     setBusy(false);
   };

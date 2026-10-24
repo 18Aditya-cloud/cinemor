@@ -772,6 +772,20 @@
   font-size: 0.82rem;
   line-height: 1.5;
 }
+
+/* the Submit window: why this cannot be sent now (nothing made yet, nothing changed since changes were asked) */
+.blocked {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--d-danger-bd);
+  border-radius: 12px;
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .formError {
   margin-bottom: 12px;
   color: var(--d-danger-fg-strong);

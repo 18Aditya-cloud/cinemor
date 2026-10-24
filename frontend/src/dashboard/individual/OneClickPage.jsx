@@ -216,7 +216,7 @@ function Generator({ project, models, initialDraft }) {
         toast(images.length === 1 ? 'Reference image saved' : 'Reference images saved');
         return true;
       } catch (err) {
-        toast(err.message);
+        toast(err.message, 'error');
         return false;
       }
     }
@@ -233,7 +233,7 @@ function Generator({ project, models, initialDraft }) {
       return true;
     } catch (err) {
       setRun(null);
-      toast(err.message || 'The draft could not be changed. Please try again.');
+      toast(err.message || 'The draft could not be changed. Please try again.', 'error');
       return false;
     }
   };

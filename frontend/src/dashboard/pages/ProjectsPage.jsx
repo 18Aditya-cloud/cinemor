@@ -99,7 +99,7 @@ export default function ProjectsPage() {
       await advanceProjectDemo(id);
       await reload();
     } catch (err) {
-      toast(err.message || 'Could not update the project.');
+      toast(err.message || 'Could not update the project.', 'error');
     }
     setAdvancingId(null);
   };

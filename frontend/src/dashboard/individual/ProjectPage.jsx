@@ -78,7 +78,7 @@ export default function ProjectPage({ projectId }) {
     try {
       await setProjectBuildMode(project.id, next);
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
     if (next === 'oneclick') navigate(generatePath(project.id));
   };
@@ -92,7 +92,7 @@ export default function ProjectPage({ projectId }) {
       toast(`Project marked ${PROJECT_STATUSES[status].label}`);
       await reload();
     } catch (err) {
-      toast(err.message);
+      toast(err.message, 'error');
     }
     setChanging(null);
   };

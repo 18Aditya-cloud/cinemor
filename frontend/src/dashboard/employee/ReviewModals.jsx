@@ -5,7 +5,7 @@ import Button from '../ui/Button.jsx';
 import { IconCheckCircle, IconClose, IconRefresh, IconSend } from '../ui/DashIcons.jsx';
 import Modal, { ModalFooter } from '../ui/Modal.jsx';
 import { useToast } from '../ui/Toast.jsx';
-import { approveSubmission, itemLabel, listStageReviewers, reopenStage, requestChanges, submitStage } from './employeeApi.js';
+import { approveSubmission, itemLabel, listStageReviewers, reopenStage, requestChanges, submitStage, checkSubmit } from './employeeApi.js';
 import { STAGES } from './stages.js';
 import e from './Employee.module.css';
 
@@ -20,6 +20,7 @@ export function SubmitModal({ open, project, stage, story, onClose, onDone }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [blocked, setBlocked] = useState(''); // why it cannot be sent now (nothing made yet, nothing changed...)
 
   useEffect(() => {
     if (!open || !project || !stage) return;
@@ -27,16 +28,22 @@ export function SubmitModal({ open, project, stage, story, onClose, onDone }) {
     setReviewer('');
     setNote('');
     setError('');
+    setBlocked('');
     listStageReviewers(project.id, stage.key)
       .then((list) => {
         setReviewers(list);
         if (list.length === 1) setReviewer(String(list[0].userId));
       })
       .catch((err) => setError(err.message));
+    checkSubmit(project.id, stage.key, story?.id)
+      .then((x) => setBlocked(x.canSubmit ? '' : x.reason))
+      .catch(() => {}); // the backend checks again on Submit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project, stage]);
 
   const send = async (event) => {
     event.preventDefault();
+    if (blocked) return setError(blocked);
     if (!reviewer) return setError('Choose who should review it.');
     if (!story?.id) return setError('Write or import the story first.');
     setBusy(true);
@@ -62,6 +69,11 @@ export function SubmitModal({ open, project, stage, story, onClose, onDone }) {
       subtitle={story ? `“${story.title}”. Only reviewers of this stage on the project are listed.` : 'Only reviewers of this stage on the project are listed.'}
     >
       <form onSubmit={send}>
+        {blocked && (
+          <p className={e.blocked} role="alert">
+            {blocked}
+          </p>
+        )}
         <p className={e.fieldLabel} id="submit-reviewer-label">
           Reviewer
         </p>
@@ -95,7 +107,7 @@ export function SubmitModal({ open, project, stage, story, onClose, onDone }) {
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button type="submit" icon={IconSend} loading={busy} disabled={!reviewers?.length}>
+          <Button type="submit" icon={IconSend} loading={busy} disabled={!reviewers?.length || Boolean(blocked)}>
             Submit for review
           </Button>
         </ModalFooter>
