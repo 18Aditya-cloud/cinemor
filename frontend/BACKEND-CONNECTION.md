@@ -1,3 +1,7 @@
+> **Security update (Oct 2026):** see `SECURITY-FIXES.md` in the project root for what changed (email
+> verification, fixes for the problems listed below, and the deploy checklist). Most items in "Problems" below
+> are now fixed.
+
 # Connecting the frontend to the Cinemor backend
 
 This frontend talks to the backend in `cinemor-main/backend` (FastAPI, "story-service").
@@ -53,7 +57,7 @@ Generate the keys (works on Windows too, no openssl needed):
 
 ```bash
 python -c "from cryptography.hazmat.primitives.asymmetric import rsa; from cryptography.hazmat.primitives import serialization as s; import base64; k=rsa.generate_private_key(public_exponent=65537,key_size=2048); print('JWT_PRIVATE_KEY_B64='+base64.b64encode(k.private_bytes(s.Encoding.PEM,s.PrivateFormat.PKCS8,s.NoEncryption())).decode()); print('JWT_PUBLIC_KEY_B64='+base64.b64encode(k.public_key().public_bytes(s.Encoding.PEM,s.PublicFormat.SubjectPublicKeyInfo)).decode())"
-python -c "from pwdlib import PasswordHash; print('DUMMY_PASSWORD_HASH=' + PasswordHash.recommended().hash('cinemor-dummy-password'))"
+python -c "import secrets; from pwdlib import PasswordHash; print('DUMMY_PASSWORD_HASH=' + PasswordHash.recommended().hash(secrets.token_urlsafe(32)))"
 ```
 
 Create the tables, then start the server:

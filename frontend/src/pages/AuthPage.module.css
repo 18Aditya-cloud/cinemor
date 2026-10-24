@@ -311,6 +311,14 @@
   gap: 12px;
   color: #fff;
 }
+/* the same look when it is a <button> (VerifyEmailNotice "Back") */
+button.backLink {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
 .actions {
   display: grid;
   gap: 12px;

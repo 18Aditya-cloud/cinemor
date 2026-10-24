@@ -31,6 +31,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from app.core.image_safety import open_trusted_format
+
 
 
 from app.clients.openrouter_video_client import (
@@ -608,7 +610,7 @@ Do not render captions, subtitles, watermarks, or UI elements.
 
         """Convert a local image into a PNG data URL."""
 
-        with Image.open(image_path) as image:
+        with open_trusted_format(image_path) as image:
 
             image = image.convert("RGB")
 

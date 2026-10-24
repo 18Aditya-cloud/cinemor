@@ -27,6 +27,9 @@ from app.models.organization_job_role_feature import (
 from app.models.password_reset_token import (
     PasswordResetToken,
 )
+from app.models.email_verification_token import (
+    EmailVerificationToken,
+)
 from app.models.individual_client import IndividualClient
 from app.models.individual_project import IndividualProject
 from app.models.story_version import StoryVersion
@@ -78,6 +81,7 @@ __all__ = [
     "OrganizationJobRoleTool",
     "OrganizationJobRoleFeature",
     "PasswordResetToken",
+    "EmailVerificationToken",
     "EmployeeReviewerJobRole",
     "IndividualClient",
     "IndividualProject",

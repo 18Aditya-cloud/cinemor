@@ -1,7 +1,7 @@
 
 from io import BytesIO
 
-from PIL import Image
+from app.core.image_safety import inspect_image
 from sqlalchemy.orm import Session
 
 from app.clients.openrouter_image_client import (
@@ -98,30 +98,13 @@ Generate the image only, with no explanatory response.
 
     @staticmethod
     def _validate_image(image_bytes: bytes) -> tuple[str, str]:
+        """Only single-frame PNG / JPEG / WEBP pass; no other decoder runs (app/core/image_safety.py)."""
         try:
-            with Image.open(BytesIO(image_bytes)) as image:
-                image.verify()
-
-            with Image.open(BytesIO(image_bytes)) as image:
-                image_format = image.format
-
-        except Exception as exc:
+            return inspect_image(image_bytes)
+        except ValueError as exc:
             raise ValueError(
                 "The provider did not return a valid image file."
             ) from exc
-
-        formats = {
-            "PNG": ("image/png", ".png"),
-            "JPEG": ("image/jpeg", ".jpg"),
-            "WEBP": ("image/webp", ".webp"),
-        }
-
-        if image_format not in formats:
-            raise ValueError(
-                f"Unsupported generated image format: {image_format}"
-            )
-
-        return formats[image_format]
 
     async def generate(
         self,

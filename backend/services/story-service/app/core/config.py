@@ -137,15 +137,23 @@ class Settings(BaseSettings):
 
     ORGANIZATION_CODE_LENGTH: int = 12
 
-    RESEND_API_KEY: str
+    # Which service sends email: "smtp" (e.g. Gmail with an App Password,
+    # fine for internal testing) or "resend" (recommended for production).
+    EMAIL_PROVIDER: str = "smtp"
 
+    # Sender shown to recipients. Must be an address the provider allows.
     EMAIL_FROM: str = "onboarding@resend.dev"
 
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USERNAME: str
-    SMTP_PASSWORD: str
-    EMAIL_FROM: str
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+
+    RESEND_API_KEY: str = ""
+    RESEND_API_URL: str = "https://api.resend.com/emails"
+
+    # How long an email-verification link stays valid.
+    EMAIL_VERIFICATION_EXPIRE_HOURS: int = 24
 
     FRONTEND_URL: str = "http://localhost:5173"
 
@@ -155,6 +163,11 @@ class Settings(BaseSettings):
         "http://localhost:5173,http://127.0.0.1:5173,"
         "http://localhost:3000,http://127.0.0.1:3000"
     )
+
+    # Number of reverse proxies in front of the app (Render alone: 1;
+    # Cloudflare + Render: 2; none / local: 0). Used to read the real client
+    # IP for rate limiting from the right end of X-Forwarded-For.
+    TRUSTED_PROXY_HOPS: int = 0
 
     @property
     def cors_origins(self) -> list[str]:

@@ -21,13 +21,15 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     LoginRequest,
     OrganizationRegisterRequest,
+    ResendVerificationRequest,
     SupabaseOAuthRequest,
+    VerifyEmailRequest,
 )
 from app.services.auth_service import AuthService
-from app.api.safe import safe_auth_result, safe_user, safe_organization
+from app.api.safe import safe_auth_result
 from app.repositories.auth_repository import AuthRepository
 from app.models.employee import Employee
-from app.services.email_service import send_invitation_email
+from app.services.email_service import EmailDeliveryError, send_invitation_email
 from app.constants.cinemor_features import CINEMOR_FEATURES
 
 router = APIRouter(
@@ -113,16 +115,15 @@ def register_individual(
 
     service = AuthService(db)
 
-    user = service.register_individual(
+    # Always the same answer (whether or not the email already had an
+    # account); the account works only after the emailed link is opened.
+    result = service.register_individual(
         email=request.email,
         password=request.password,
         confirm_password=request.confirm_password,
     )
 
-    return {
-        "message": "Account created successfully.",
-        "user": safe_user(user),
-    }
+    return {**result, "verification_required": True}
 
 
 # ============================================================
@@ -152,19 +153,43 @@ def register_organization(
 
     service = AuthService(db)
 
-    user, organization, membership = service.register_organization(
+    result = service.register_organization(
         email=request.email,
         password=request.password,
         confirm_password=request.confirm_password,
     )
 
-    return safe_auth_result(
-        {
-            "user": user,
-            "organization": organization,
-            "membership": membership,
-        }
-    ) | {"message": "Organization account created successfully."}
+    return {**result, "verification_required": True}
+
+
+# ============================================================
+# Email Verification
+# ============================================================
+
+@router.post(
+    "/verify-email",
+    dependencies=[Depends(rate_limit(limit=20, window_seconds=60))],
+)
+def verify_email(
+    request: VerifyEmailRequest,
+    db: Session = Depends(get_db),
+):
+    """Confirm an email address with the one-time link sent at sign-up."""
+
+    return AuthService(db).verify_email(token=request.token)
+
+
+@router.post(
+    "/resend-verification",
+    dependencies=[Depends(rate_limit(limit=3, window_seconds=60))],
+)
+def resend_verification(
+    request: ResendVerificationRequest,
+    db: Session = Depends(get_db),
+):
+    """Send a fresh confirmation link. Always answers the same way."""
+
+    return AuthService(db).resend_verification(email=request.email)
 
 
 # ============================================================
@@ -545,10 +570,25 @@ def invite_employee(
         f"/accept-invitation?token={raw_token}"
     )
 
-    send_invitation_email(
-        to_email=request.email,
-        invitation_link=invitation_link,
-    )
+    try:
+        send_invitation_email(
+            to_email=request.email,
+            invitation_link=invitation_link,
+        )
+    except EmailDeliveryError as exc:
+        # Withdraw the invitation, so the admin can simply try again
+        # (otherwise the email would stay "pending" for days).
+        from app.core.security import utc_now
+
+        invitation.revoked_at = utc_now()
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "We couldn't send the invitation email. "
+                "Please try again in a moment."
+            ),
+        ) from exc
 
     # The raw token is delivered only by email; it is never returned here.
     return {

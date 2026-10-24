@@ -26,6 +26,7 @@ from app.models.project import Project, ProjectStatus
 from app.models.project_member import ProjectMember
 from app.models.refresh_session import RefreshSession
 from app.models.user import User
+from app.models.email_verification_token import EmailVerificationToken
 from app.models.password_reset_token import (
     PasswordResetToken,
 )
@@ -105,6 +106,81 @@ class AuthRepository:
         self.db.flush()
 
         return reset_token
+
+    # ========================================================
+    # Email verification
+    # ========================================================
+
+    def create_email_verification_token(
+        self,
+        *,
+        user_id: int,
+        token_hash: str,
+        expires_at,
+    ) -> EmailVerificationToken:
+        token = EmailVerificationToken(
+            user_id=user_id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        )
+        self.db.add(token)
+        self.db.flush()
+        return token
+
+    def get_email_verification_token_for_update(
+        self,
+        *,
+        token_hash: str,
+    ) -> EmailVerificationToken | None:
+        return self.db.scalar(
+            select(EmailVerificationToken)
+            .where(EmailVerificationToken.token_hash == token_hash)
+            .with_for_update()
+        )
+
+    def get_latest_email_verification_token(
+        self,
+        *,
+        user_id: int,
+    ) -> EmailVerificationToken | None:
+        return self.db.scalar(
+            select(EmailVerificationToken)
+            .where(EmailVerificationToken.user_id == user_id)
+            .order_by(EmailVerificationToken.id.desc())
+            .limit(1)
+        )
+
+    def retire_email_verification_tokens(
+        self,
+        *,
+        user_id: int,
+        at,
+    ) -> None:
+        """Mark every still-open verification link of this user as used."""
+        tokens = self.db.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user_id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        ).all()
+        for token in tokens:
+            token.used_at = at
+        self.db.flush()
+
+    def deactivate_user_memberships(
+        self,
+        *,
+        user_id: int,
+    ) -> None:
+        memberships = self.db.scalars(
+            select(OrganizationMembership).where(
+                OrganizationMembership.user_id == user_id,
+                OrganizationMembership.is_active.is_(True),
+            )
+        ).all()
+        for membership in memberships:
+            membership.is_active = False
+        self.db.flush()
 
     def get_user_by_email(
         self,

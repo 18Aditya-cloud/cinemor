@@ -16,6 +16,7 @@ import ChooseAccountPage from './pages/ChooseAccountPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
+import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 import StudioPage from './pages/StudioPage.jsx';
 import ParticleField from './particles/ParticleField.jsx';
 import { homeFor } from './auth/homeFor.js';
@@ -33,6 +34,7 @@ import styles from './App.module.css';
  *   /auth/callback   Where Supabase sends the browser back after Google sign-in (AuthCallbackPage)
  *   /forgot-password Asks for the email and sends a reset link (ForgotPasswordPage)
  *   /reset-password  Where the emailed link leads: new password + confirm (ResetPasswordPage), needs ?token=...
+ *   /verify-email    Where the sign-up confirmation link leads: confirms the email (VerifyEmailPage), needs ?token=...
  *   /accept-invitation  Where an employee's invitation link leads: choose a password and join (AcceptInvitationPage), needs ?token=...
  *   /client-invitation  Where a client's invitation link leads: choose a password (ClientInvitationPage), needs ?token=...
  *   /client/...        the client portal (ClientApp)
@@ -120,6 +122,7 @@ function Shell() {
   else if (path === '/auth/callback') page = <AuthCallbackPage />;
   else if (path === '/forgot-password') page = <ForgotPasswordPage />;
   else if (path === '/reset-password') page = <ResetPasswordPage />;
+  else if (path === '/verify-email') page = <VerifyEmailPage />;
   else if (path === '/accept-invitation') page = <AcceptInvitationPage />;
   else if (path === '/client-invitation') page = <ClientInvitationPage />;
   else if (path === '/app') page = <StudioPage />;

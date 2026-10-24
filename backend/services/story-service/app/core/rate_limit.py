@@ -17,11 +17,29 @@ import time
 
 from fastapi import HTTPException, Request, status
 
+from app.core.config import settings
+
 _lock = threading.Lock()
 _hits: dict[tuple[str, str], list[float]] = {}
 
 
 def _client_ip(request: Request) -> str:
+    """
+    The caller's IP for rate limiting.
+
+    Behind a proxy (Render, Railway, Nginx, Cloudflare...) set TRUSTED_PROXY_HOPS
+    to the number of proxies in front of the app. Each proxy APPENDS the address
+    it saw to X-Forwarded-For, so the trustworthy entry is counted from the
+    RIGHT; anything further left was written by the client and can be faked.
+    (Do not rely on uvicorn --forwarded-allow-ips="*": that trusts the left-most,
+    client-controlled entry.)
+    """
+    hops = settings.TRUSTED_PROXY_HOPS
+    if hops > 0:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        parts = [part.strip() for part in forwarded.split(",") if part.strip()]
+        if len(parts) >= hops:
+            return parts[-hops]
     return request.client.host if request.client else "unknown"
 
 

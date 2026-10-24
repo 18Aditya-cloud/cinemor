@@ -70,6 +70,8 @@ export function toUser(data) {
 function messageFrom(data, status) {
   const detail = data?.detail ?? data?.message ?? data?.error;
   if (typeof detail === 'string' && detail) return detail;
+  // structured errors: { detail: { code: 'email_not_verified', message: '...' } }
+  if (detail && typeof detail === 'object' && !Array.isArray(detail) && typeof detail.message === 'string') return detail.message;
   if (Array.isArray(detail) && detail.length) {
     const lines = detail.map((item) => {
       const raw = String(item?.msg || '');
@@ -223,7 +225,9 @@ export async function login({ email, password }) {
 
 /**
  * POST /api/auth/register/individual | /api/auth/register/organization  { email, password, confirm_password }
- * The backend creates the account (409 if the email is taken) but does not sign in, so this logs in straight after.
+ * The backend never signs in here: it emails a confirmation link, and the account works only after that link is
+ * opened (/verify-email). It answers the same way whether or not the email already had an account, so this resolves
+ * { verificationRequired: true, email } and the page shows "Check your inbox".
  */
 export async function signup({ accountType, email, password }) {
   if (!isBackendConnected) {
@@ -232,8 +236,34 @@ export async function signup({ accountType, email, password }) {
     return { user: { email, accountType }, demo: true };
   }
   const type = accountType === 'organization' ? 'organization' : 'individual';
-  await send(`/api/auth/register/${type}`, { method: 'POST', body: { email, password, confirm_password: password } });
-  return login({ email, password });
+  const data = await send(`/api/auth/register/${type}`, { method: 'POST', body: { email, password, confirm_password: password } });
+  return { verificationRequired: true, email: data?.email || String(email).trim().toLowerCase() };
+}
+
+/** True when the backend refused because the account's email is not confirmed yet (login, or any API call). */
+export const isEmailNotVerified = (error) => error?.status === 403 && error?.detail?.code === 'email_not_verified';
+
+/**
+ * POST /api/auth/verify-email { token }: the link from the sign-up email.
+ * Resolves { message, email, already_verified }. 400 = invalid, replaced or expired link.
+ * Demo mode: the token "demo" is a good link.
+ */
+export async function verifyEmail(token) {
+  if (!isBackendConnected) {
+    await wait(800);
+    if (token !== 'demo') throw Object.assign(new Error('This link has expired. Ask for a new one.'), { status: 400 });
+    return { message: 'Email confirmed. You can log in now.', email: '', already_verified: false };
+  }
+  return send('/api/auth/verify-email', { method: 'POST', body: { token } });
+}
+
+/** POST /api/auth/resend-verification { email }: a fresh confirmation link. Always answers the same way. */
+export async function resendVerification({ email }) {
+  if (!isBackendConnected) {
+    await wait(700);
+    return {};
+  }
+  return send('/api/auth/resend-verification', { method: 'POST', body: { email } });
 }
 
 /** POST /api/auth/logout (ends this browser's session and clears the cookie) */

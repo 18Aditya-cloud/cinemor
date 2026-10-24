@@ -53,7 +53,8 @@ from app.models.story_board import StoryBoard
 from app.models.user import AccountType, User
 from app.models.video_generation_job import VideoGenerationJob
 from app.repositories.auth_repository import AuthRepository
-from app.services.email_service import _send_email
+from app.services.auth_service import AuthService
+from app.services.email_service import EmailDeliveryError, _send_email
 from app.services.employee_workflow_service import EmployeeWorkflowService
 
 INVITATION_DAYS = 7
@@ -140,7 +141,7 @@ class ClientPortalService:
         if self._joined(client.id) is not None:
             raise ClientPortalError(f"{client.name} already has access to the client portal.", 409)
         existing = AuthRepository(self.db).get_user_by_email(email)
-        if existing is not None and existing.account_type != AccountType.CLIENT:
+        if existing is not None and existing.is_email_verified and existing.account_type != AccountType.CLIENT:
             raise ClientPortalError(
                 f"{email} already has a Cinemor account of another kind (a creator, an organization or an employee). "
                 "Use another email for this client.",
@@ -165,6 +166,16 @@ class ClientPortalService:
         organization = self.db.get(Organization, organization_id)
         studio = (organization.name if organization else None) or "Your studio"
         link = f"{settings.FRONTEND_URL.rstrip('/')}/client-invitation?token={raw_token}"
+        try:
+            self._send_client_invitation(email, client, studio, link)
+        except EmailDeliveryError as exc:
+            invitation.revoked_at = utc_now()
+            self.db.commit()
+            raise ClientPortalError("We couldn't send the invitation email. Please try again in a moment.", 502) from exc
+        return {"client_id": client.id, "status": "invited", "invited_at": _iso(invitation.created_at), "expires_at": _iso(invitation.expires_at), "email": email}
+
+    @staticmethod
+    def _send_client_invitation(email: str, client, studio: str, link: str) -> None:
         _send_email(
             to_email=email,
             subject=f"{studio} invited you to follow your projects on Cinemor",
@@ -181,7 +192,6 @@ Open this link to choose your password (it works for {INVITATION_DAYS} days):
 If you did not expect this email, you can ignore it.
 """,
         )
-        return {"client_id": client.id, "status": "invited", "invited_at": _iso(invitation.created_at), "expires_at": _iso(invitation.expires_at), "email": email}
 
     def cancel_invitation(self, organization_id: int, client_id: int) -> None:
         client = self._org_client(organization_id, client_id)
@@ -226,7 +236,7 @@ If you did not expect this email, you can ignore it.
             "email": invitation.email,
             "client_name": client.name if client else "",
             "organization_name": (organization.name if organization else None) or "A studio",
-            "has_account": existing is not None and existing.account_type == AccountType.CLIENT,
+            "has_account": existing is not None and existing.is_email_verified and existing.account_type == AccountType.CLIENT,
         }
 
     def accept(self, token: str, password: str | None, confirm_password: str | None) -> dict:
@@ -234,7 +244,7 @@ If you did not expect this email, you can ignore it.
         repo = AuthRepository(self.db)
         existing = repo.get_user_by_email(invitation.email)
         now = utc_now()
-        if existing is not None:
+        if existing is not None and existing.is_email_verified:
             if existing.account_type != AccountType.CLIENT:
                 raise ClientPortalError("This email already has a Cinemor account of another kind. Ask the studio to use another email.", 409)
             # an existing client login: the studio's projects are added to it; the person logs in as usual
@@ -250,9 +260,18 @@ If you did not expect this email, you can ignore it.
             raise ClientPortalError("The password must not be longer than 128 characters.", 422)
         if password != (confirm_password or ""):
             raise ClientPortalError("The two passwords do not match.", 422)
+        auth = AuthService(self.db)
+        auth._validate_password(password)  # same strength rules as every other password
         client = self.db.get(Client, invitation.client_id)
-        user = repo.create_user(email=invitation.email, password_hash=hash_password(password))
+        if existing is None:
+            user = repo.create_user(email=invitation.email, password_hash=hash_password(password))
+        else:
+            # an earlier, unconfirmed sign-up with this email: the invitation link proves the inbox
+            user = existing
+            auth._reset_unconfirmed_user(user, password_hash=hash_password(password))
+            repo.deactivate_user_memberships(user_id=user.id)
         user.account_type = AccountType.CLIENT
+        user.is_email_verified = True  # the invitation link was delivered to this inbox
         user.display_name = (client.name if client else None) or None
         self.db.flush()
         self.db.add(ClientAccount(user_id=user.id, client_id=invitation.client_id))

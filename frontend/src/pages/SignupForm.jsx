@@ -14,6 +14,7 @@ import GoogleButton from '../components/auth/GoogleButton.jsx';
 import PasswordChecklist from '../components/auth/PasswordChecklist.jsx';
 import PasswordField from '../components/auth/PasswordField.jsx';
 import TextField from '../components/auth/TextField.jsx';
+import VerifyEmailNotice from '../components/auth/VerifyEmailNotice.jsx';
 import cx from '../utils/cx.js';
 import styles from './AuthPage.module.css';
 
@@ -26,6 +27,8 @@ const TYPE_ICONS = { individual: Person, organization: Building };
  *   2. Email, password (with the password guide) and confirm password, plus "Sign up with Google".
  * The chosen type is sent to the backend as accountType.
  * Unlike Log in, the password guide is REQUIRED here: every rule must be met.
+ * With a backend, the account works only after its email is confirmed: after submitting, this shows "Check your inbox"
+ * (the backend answers the same way whether or not the email was already registered, so nothing here says which).
  */
 export default function SignupForm({ onInvalid }) {
   const copy = AUTH.signup;
@@ -43,8 +46,8 @@ export default function SignupForm({ onInvalid }) {
   const [confirm, setConfirm] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false, confirm: false });
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [emailTaken, setEmailTaken] = useState(false);
-  const [status, setStatus] = useState('idle'); // idle | loading | google | success
+  const [status, setStatus] = useState('idle'); // idle | loading | google | success | sent
+  const [sentEmail, setSentEmail] = useState('');
   const [formError, setFormError] = useState('');
 
   const emailRef = useRef(null);
@@ -100,15 +103,7 @@ export default function SignupForm({ onInvalid }) {
     timer.current = setTimeout(() => alive.current && navigate(homeFor(created)), 1100);
   };
 
-  const emailError = emailTaken ? (
-    <>
-      An account with this email already exists. <Link to="/login">Log in instead</Link>
-    </>
-  ) : touched.email ? (
-    validateEmail(email)
-  ) : (
-    ''
-  );
+  const emailError = touched.email ? validateEmail(email) : '';
   const passwordError = touched.password && !check.allMet ? "Your password doesn't meet all the requirements yet." : '';
   const matches = confirm.length > 0 && confirm === password;
   const confirmError = touched.confirm ? (!confirm ? 'Confirm your password.' : confirm !== password ? "Passwords don't match." : '') : '';
@@ -137,16 +132,17 @@ export default function SignupForm({ onInvalid }) {
     setStatus('loading');
     try {
       const result = await signup({ accountType, email: email.trim(), password });
-      if (alive.current) finish(result?.user);
+      if (!alive.current) return;
+      if (result?.verificationRequired) {
+        setSentEmail(result.email || email.trim());
+        setStatus('sent');
+        return;
+      }
+      finish(result?.user);
     } catch (error) {
       if (!alive.current) return;
       setStatus('idle');
-      if (error.status === 409) {
-        setEmailTaken(true);
-        emailRef.current?.focus();
-      } else {
-        setFormError(error.message || GENERIC_ERROR);
-      }
+      setFormError(error.status === 429 ? 'Too many sign-up attempts. Please wait a minute and try again.' : error.message || GENERIC_ERROR);
       onInvalid?.();
     }
   };
@@ -167,6 +163,7 @@ export default function SignupForm({ onInvalid }) {
   };
 
   if (status === 'success') return <AuthSuccess title="Account created" text="Opening your workspace..." />;
+  if (status === 'sent') return <VerifyEmailNotice email={sentEmail} />;
 
   const slide = moved ? (direction === 'back' ? styles.stepBack : styles.stepForward) : undefined;
 
@@ -233,10 +230,7 @@ export default function SignupForm({ onInvalid }) {
           disabled={busy}
           error={emailError}
           success={touched.email && !emailError && Boolean(email)}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            setEmailTaken(false);
-          }}
+          onChange={(event) => setEmail(event.target.value)}
           onBlur={() => email.trim() && setTouched((t) => ({ ...t, email: true }))}
         />
 

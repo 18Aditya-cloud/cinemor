@@ -12,7 +12,7 @@ const BASE = String(import.meta.env?.BASE_URL || '/').replace(/\/+$/, '');
 const MEMORY = import.meta.env?.VITE_ROUTER_MODE === 'memory';
 
 // Every page except the home page. Anything not listed here shows the home page.
-export const APP_ROUTES = ['/login', '/signup', '/choose-account', '/auth/callback', '/forgot-password', '/reset-password', '/accept-invitation', '/client-invitation', '/app'];
+export const APP_ROUTES = ['/login', '/signup', '/choose-account', '/auth/callback', '/forgot-password', '/reset-password', '/verify-email', '/accept-invitation', '/client-invitation', '/app'];
 // The organization dashboard: /organization and every page under it (/organization/projects, ...)
 export const isDashboardPath = (path) => path === '/organization' || path.startsWith('/organization/');
 export const isTeamLeaderPath = (path) => path === '/team-leader' || path.startsWith('/team-leader/');

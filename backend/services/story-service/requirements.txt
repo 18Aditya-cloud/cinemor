@@ -20,5 +20,10 @@ python-docx
 python-multipart
 
 # Video (scene clips, last-frame extraction and final assembly)
-moviepy
-Pillow>=13.0.0
+# 2.x API (from moviepy import VideoFileClip). Never let pip fall back to 1.x.
+moviepy>=2.2.1,<3
+# Held below 12: moviepy 2.2.1 (latest) requires pillow<12. Untrusted images are
+# only ever decoded as PNG/JPEG/WEBP (app/core/image_safety.py), which keeps the
+# known Pillow 11.x decoder issues out of reach. Move to Pillow>=13 when moviepy
+# allows it (or when film assembly moves to plain ffmpeg).
+Pillow>=11.3.0,<12

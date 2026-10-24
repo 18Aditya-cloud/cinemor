@@ -113,6 +113,36 @@ export const AUTH = {
 };
 
 // Text on the "Forgot password" and "Reset password" pages.
+// Email confirmation after sign-up (strict: an account works only once its email is confirmed).
+export const VERIFY = {
+  // The link's lifetime is decided by the backend (EMAIL_VERIFICATION_EXPIRE_HOURS); this is only what the page says.
+  linkHours: 24,
+  // The backend sends at most one new link per minute; the button waits as long.
+  resendSeconds: 60,
+  inbox: {
+    title: 'Check your inbox',
+    spam: "Can't see it? Look in your spam folder.",
+    resend: 'Send a new link',
+    resent: 'If that email is waiting for confirmation, we sent a new link.',
+  },
+  unverified: {
+    title: 'Confirm your email first',
+    text: 'Your account is almost ready. Open the link we emailed you to confirm your address, then log in.',
+  },
+  page: {
+    checking: 'Confirming your email...',
+    doneTitle: 'Email confirmed',
+    doneText: 'Your account is ready. Log in to get started.',
+    alreadyTitle: 'Already confirmed',
+    alreadyText: 'This email was confirmed before. You can log in.',
+    invalidTitle: "This link can't be used",
+    invalidText: 'It may have expired, or a newer link was sent after it. Enter your email and we will send a fresh one.',
+    errorTitle: "We couldn't confirm your email",
+    errorText: "Something went wrong on our side, or you're offline. Try again in a moment.",
+    submit: 'Send a new link',
+  },
+};
+
 export const RECOVERY = {
   // The reset link's lifetime is decided by your backend; this number is only what the "Check your email" page says.
   linkMinutes: 30,

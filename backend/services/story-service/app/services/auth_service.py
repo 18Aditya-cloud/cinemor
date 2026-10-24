@@ -29,7 +29,9 @@ from app.models.user import AccountType
 from app.repositories.auth_repository import AuthRepository
 from app.constants.cinemor_features import CINEMOR_FEATURES
 from app.services.email_service import (
+    send_existing_account_email,
     send_password_reset_email,
+    send_verification_email,
 )
 
 
@@ -280,6 +282,19 @@ class AuthService:
             user.password_hash = hash_password(
                 new_password,
             )
+
+            # The reset link was delivered to this inbox, so opening it
+            # proves the email too. This is also how the real owner takes
+            # back an email someone else signed up with but never confirmed.
+            if not user.is_email_verified:
+                user.is_email_verified = True
+                self.repository.retire_email_verification_tokens(
+                    user_id=user.id,
+                    at=now,
+                )
+
+            user.failed_login_attempts = 0
+            user.locked_until = None
 
             self.repository.mark_password_reset_token_used(
                 reset_token=reset_token,
@@ -561,6 +576,27 @@ class AuthService:
                 detail="This endpoint only accepts Google OAuth accounts.",
             )
 
+        # Google must vouch for the address: Supabase sets email_confirmed_at
+        # when the provider reports a verified email, and Google's own claim
+        # is copied into user_metadata.email_verified.
+        user_metadata = supabase_user.get("user_metadata") or {}
+        google_says_verified = (
+            isinstance(user_metadata, dict)
+            and user_metadata.get("email_verified") is True
+        ) or any(
+            isinstance(identity, dict)
+            and identity.get("provider") == "google"
+            and isinstance(identity.get("identity_data"), dict)
+            and identity["identity_data"].get("email_verified") is True
+            for identity in identities
+        )
+
+        if not (supabase_user.get("email_confirmed_at") or google_says_verified):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Google has not verified this email address.",
+            )
+
         return email.strip().lower()
 
     def login_with_supabase(
@@ -600,6 +636,17 @@ class AuthService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Account is inactive.",
                 )
+            elif not user.is_email_verified:
+                # An unconfirmed password sign-up exists for this email, and
+                # Google has now proven who owns the inbox. Drop the unproven
+                # password so whoever typed it cannot use the account.
+                self._reset_unconfirmed_user(
+                    user,
+                    password_hash=hash_password(secrets.token_urlsafe(32)),
+                )
+
+            # Google verified the address.
+            user.is_email_verified = True
 
             role, organization_id, membership = self._get_token_context(
                 user_id=user.id,
@@ -760,46 +807,18 @@ class AuthService:
         email: str,
         password: str,
         confirm_password: str,
-    ):
-
-        email = self._normalize_email(email)
-
-        self._validate_password_confirmation(
-            password,
-            confirm_password,
+    ) -> dict[str, Any]:
+        """
+        Start an Individual sign-up. The account cannot be used until the
+        email is confirmed through the link we send. The response never
+        reveals whether the email already had an account.
+        """
+        return self._register(
+            email=email,
+            password=password,
+            confirm_password=confirm_password,
+            account_type=AccountType.INDIVIDUAL,
         )
-
-        existing_user = (
-            self.repository.get_user_by_email(email)
-        )
-
-        if existing_user is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="An account with this email already exists.",
-            )
-
-        password_hash = hash_password(password)
-
-        try:
-            user = self.repository.create_user(
-                email=email,
-                password_hash=password_hash,
-            )
-            user.account_type = AccountType.INDIVIDUAL
-
-            self.db.commit()
-            self.db.refresh(user)
-
-            return user
-
-        except IntegrityError as exc:
-            self.db.rollback()
-
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="An account with this email already exists.",
-            ) from exc
 
     # ========================================================
     # Organization Registration
@@ -811,8 +830,36 @@ class AuthService:
         email: str,
         password: str,
         confirm_password: str,
-    ):
+    ) -> dict[str, Any]:
+        """
+        Start an Organization sign-up (the user becomes the administrator of a
+        new organization once the email is confirmed).
+        """
+        return self._register(
+            email=email,
+            password=password,
+            confirm_password=confirm_password,
+            account_type=AccountType.ORGANIZATION,
+        )
 
+    # ========================================================
+    # Sign-up + Email Verification
+    # ========================================================
+
+    SIGNUP_MESSAGE = (
+        "Check your inbox. We've sent a link to confirm your email "
+        "and finish creating your account."
+    )
+    VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
+
+    def _register(
+        self,
+        *,
+        email: str,
+        password: str,
+        confirm_password: str,
+        account_type: AccountType,
+    ) -> dict[str, Any]:
         email = self._normalize_email(email)
 
         self._validate_password_confirmation(
@@ -820,56 +867,178 @@ class AuthService:
             confirm_password,
         )
 
-        existing_user = (
-            self.repository.get_user_by_email(email)
-        )
-
-        if existing_user is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="An account with this email already exists.",
-            )
-
+        # Hash first on every path, so the response time does not reveal
+        # whether the email already belongs to an account.
         password_hash = hash_password(password)
 
+        existing_user = self.repository.get_user_by_email_for_update(email)
+
+        if existing_user is not None and existing_user.is_email_verified:
+            # A confirmed account already uses this email. Tell its owner
+            # (by email) instead of telling the person filling in the form.
+            self.db.rollback()
+            base = settings.FRONTEND_URL.rstrip("/")
+            send_existing_account_email(
+                existing_user.email,
+                f"{base}/login",
+                f"{base}/forgot-password",
+            )
+            return {"message": self.SIGNUP_MESSAGE, "email": email}
+
         try:
-            user = self.repository.create_user(
-                email=email,
-                password_hash=password_hash,
-            )
-            user.account_type = AccountType.ORGANIZATION
-
-            organization = (
-                self.repository.create_organization()
-            )
-
-            membership = (
-                self.repository.create_membership(
-                    organization_id=organization.id,
-                    user_id=user.id,
-                    role=OrganizationRole.ADMIN,
+            if existing_user is None:
+                user = self.repository.create_user(
+                    email=email,
+                    password_hash=password_hash,
                 )
-            )
+            else:
+                # An unconfirmed account has no proven owner. The newest
+                # sign-up replaces it; only whoever opens the link in this
+                # inbox can activate it, with the password chosen here.
+                user = existing_user
+                self._reset_unconfirmed_user(user, password_hash=password_hash)
+
+            user.account_type = account_type
+            user.is_email_verified = False
+
+            if account_type == AccountType.ORGANIZATION:
+                self._ensure_admin_membership(user)
+            else:
+                self.repository.deactivate_user_memberships(user_id=user.id)
+
+            raw_token = self._issue_email_verification(user)
 
             self.db.commit()
 
-            self.db.refresh(user)
-            self.db.refresh(organization)
-            self.db.refresh(membership)
+        except IntegrityError:
+            # Another sign-up for the same email committed at the same moment;
+            # that request sends the link.
+            self.db.rollback()
+            return {"message": self.SIGNUP_MESSAGE, "email": email}
 
-            return (
-                user,
-                organization,
-                membership,
+        send_verification_email(user.email, self._verification_link(raw_token))
+
+        return {"message": self.SIGNUP_MESSAGE, "email": email}
+
+    def _ensure_admin_membership(self, user) -> None:
+        memberships = self.repository.get_active_user_memberships(user.id)
+        if any(m.role == OrganizationRole.ADMIN for m in memberships):
+            return
+        self.repository.deactivate_user_memberships(user_id=user.id)
+        organization = self.repository.create_organization()
+        self.repository.create_membership(
+            organization_id=organization.id,
+            user_id=user.id,
+            role=OrganizationRole.ADMIN,
+        )
+
+    def _reset_unconfirmed_user(self, user, *, password_hash: str) -> None:
+        """Wipe whatever an earlier, unconfirmed sign-up left behind."""
+        user.password_hash = password_hash
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        self.repository.revoke_all_user_refresh_sessions(user_id=user.id)
+        self.repository.retire_email_verification_tokens(user_id=user.id, at=utc_now())
+
+    def _issue_email_verification(self, user) -> str:
+        now = utc_now()
+        self.repository.retire_email_verification_tokens(user_id=user.id, at=now)
+        raw_token = secrets.token_urlsafe(48)
+        self.repository.create_email_verification_token(
+            user_id=user.id,
+            token_hash=hash_refresh_token(raw_token),
+            expires_at=now + timedelta(hours=settings.EMAIL_VERIFICATION_EXPIRE_HOURS),
+        )
+        return raw_token
+
+    @staticmethod
+    def _verification_link(raw_token: str) -> str:
+        return f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={raw_token}"
+
+    def verify_email(self, *, token: str) -> dict[str, Any]:
+        invalid = HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This confirmation link is not valid.",
+        )
+        if not token or not token.strip():
+            raise invalid
+
+        record = self.repository.get_email_verification_token_for_update(
+            token_hash=hash_refresh_token(token.strip()),
+        )
+        if record is None:
+            raise invalid
+
+        user = self.repository.get_user_by_id(record.user_id)
+        if user is None or not user.is_active:
+            raise invalid
+
+        if record.used_at is not None:
+            if user.is_email_verified:
+                # Opening the same link twice is harmless.
+                return {
+                    "message": "Your email is already confirmed. You can log in.",
+                    "email": user.email,
+                    "already_verified": True,
+                }
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "This link was replaced by a newer one. "
+                    "Use the most recent email we sent, or ask for a new link."
+                ),
             )
 
-        except IntegrityError as exc:
-            self.db.rollback()
-
+        if is_expired(record.expires_at):
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Unable to create organization account.",
-            ) from exc
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This link has expired. Ask for a new one.",
+            )
+
+        now = utc_now()
+        user.is_email_verified = True
+        record.used_at = now
+        self.repository.retire_email_verification_tokens(user_id=user.id, at=now)
+        self.db.commit()
+
+        return {
+            "message": "Email confirmed. You can log in now.",
+            "email": user.email,
+            "already_verified": False,
+        }
+
+    def resend_verification(self, *, email: str) -> dict[str, Any]:
+        generic = {
+            "message": (
+                "If that email has an account waiting for confirmation, "
+                "we've sent a new link."
+            )
+        }
+
+        try:
+            normalized = self._normalize_email(email)
+        except HTTPException:
+            return generic
+
+        user = self.repository.get_user_by_email_for_update(normalized)
+        if user is None or user.is_email_verified or not user.is_active:
+            self.db.rollback()
+            return generic
+
+        latest = self.repository.get_latest_email_verification_token(user_id=user.id)
+        if latest is not None and latest.created_at is not None:
+            created = latest.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            age = (utc_now() - created).total_seconds()
+            if age < self.VERIFICATION_RESEND_COOLDOWN_SECONDS:
+                self.db.rollback()
+                return generic
+
+        raw_token = self._issue_email_verification(user)
+        self.db.commit()
+        send_verification_email(user.email, self._verification_link(raw_token))
+        return generic
 
     # ========================================================
     # Login
@@ -951,6 +1120,21 @@ class AuthService:
 
         user.failed_login_attempts = 0
         user.locked_until = None
+
+        # Checked only after the password was proven, so this answer is
+        # never given to someone who does not know the password.
+        if not user.is_email_verified:
+            self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "email_not_verified",
+                    "message": (
+                        "Please confirm your email first. Open the link we "
+                        "sent you, or ask for a new one."
+                    ),
+                },
+            )
 
         role, organization_id, membership = (
             self._get_token_context(
@@ -1077,7 +1261,9 @@ class AuthService:
             self.repository.get_user_by_email(email)
         )
 
-        if existing_user is not None:
+        # An unconfirmed sign-up has no proven owner; it must not block the
+        # real owner from being invited (the invitation link proves the inbox).
+        if existing_user is not None and existing_user.is_email_verified:
 
             existing_membership = (
                 self.repository.get_membership(
@@ -1253,7 +1439,7 @@ class AuthService:
             self.repository.get_user_by_email(email)
         )
 
-        if existing_user is not None:
+        if existing_user is not None and existing_user.is_email_verified:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
@@ -1270,11 +1456,22 @@ class AuthService:
             # User
             # ------------------------------------------------
 
-            user = self.repository.create_user(
-                email=email,
-                password_hash=password_hash,
-            )
+            if existing_user is None:
+                user = self.repository.create_user(
+                    email=email,
+                    password_hash=password_hash,
+                )
+            else:
+                # An earlier, unconfirmed sign-up with this email: the
+                # invitation link proves the inbox, so take that account over
+                # cleanly instead of refusing the invitation.
+                user = existing_user
+                self._reset_unconfirmed_user(user, password_hash=password_hash)
+                self.repository.deactivate_user_memberships(user_id=user.id)
+
             user.account_type = AccountType.ORGANIZATION
+            # The invitation link was delivered to this inbox.
+            user.is_email_verified = True
 
             # ------------------------------------------------
             # Organization Membership
@@ -1464,7 +1661,11 @@ class AuthService:
             session.user_id
         )
 
-        if user is None or not user.is_active:
+        if (
+            user is None
+            or not user.is_active
+            or not user.is_email_verified
+        ):
 
             self.repository.revoke_refresh_session(
                 refresh_session=session,

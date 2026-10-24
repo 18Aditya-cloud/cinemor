@@ -150,6 +150,17 @@ def get_current_user_and_token(
             },
         )
 
+    # Strict email verification: an unconfirmed account can never use the
+    # API, even if a token were somehow issued to it.
+    if not user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "email_not_verified",
+                "message": "Please confirm your email first.",
+            },
+        )
+
     return user, payload
 
 

@@ -602,6 +602,29 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class VerifyEmailRequest(BaseModel):
+    """The token from the confirmation link emailed at sign-up."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        extra="forbid",
+    )
+
+    token: str = Field(
+        min_length=32,
+        max_length=128,
+    )
+
+
+class ResendVerificationRequest(BaseModel):
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        extra="forbid",
+    )
+
+    email: EmailStr
+
+
 class ResetPasswordRequest(BaseModel):
     model_config = ConfigDict(
         str_strip_whitespace=True,

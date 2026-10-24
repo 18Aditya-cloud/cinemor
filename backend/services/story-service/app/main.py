@@ -16,6 +16,7 @@ from app.api.routes.activity_routes import router as activity_router
 from app.api.routes.content_delete_routes import router as content_delete_router
 from app.api.routes.client_portal_routes import router as client_portal_router
 from app.core.config import settings
+from app.core.security_headers import SecurityHeadersMiddleware
 from app.services.activity_log import ActivityActorMiddleware, install_activity_log
 
 
@@ -32,6 +33,9 @@ app = FastAPI(
 # Recent activity: remember who is acting, and log organization changes as they are saved
 install_activity_log()
 app.add_middleware(ActivityActorMiddleware)
+
+# nosniff, frame denial, referrer policy; HSTS + strict CSP outside debug
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ---------------------------------------------------------

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { AUTH } from '../data/content.js';
-import { isBackendConnected, login, loginWithGoogle } from '../services/api.js';
+import { AUTH, VERIFY } from '../data/content.js';
+import { isBackendConnected, isEmailNotVerified, login, loginWithGoogle } from '../services/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { homeFor } from '../auth/homeFor.js';
 import { validateEmail } from '../auth/validators.js';
@@ -11,6 +11,7 @@ import AuthSuccess from '../components/auth/AuthSuccess.jsx';
 import GoogleButton from '../components/auth/GoogleButton.jsx';
 import PasswordField from '../components/auth/PasswordField.jsx';
 import TextField from '../components/auth/TextField.jsx';
+import VerifyEmailNotice from '../components/auth/VerifyEmailNotice.jsx';
 import styles from './AuthPage.module.css';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
@@ -20,6 +21,8 @@ const GENERIC_ERROR = 'Something went wrong. Please try again.';
  *
  * No password-strength guide here: the password was checked when the account was made (Sign up), and an
  * existing account may have an older, weaker password that must still log in.
+ * An account whose email is not confirmed yet gets "Confirm your email first" with "Send a new link" (the backend only
+ * says so after the password was right, so it reveals nothing to someone guessing).
  */
 export default function LoginForm({ onInvalid }) {
   const copy = AUTH.login;
@@ -32,7 +35,7 @@ export default function LoginForm({ onInvalid }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false });
-  const [status, setStatus] = useState('idle'); // idle | loading | google | success
+  const [status, setStatus] = useState('idle'); // idle | loading | google | success | unverified
   const [formError, setFormError] = useState('');
 
   const emailRef = useRef(null);
@@ -62,6 +65,10 @@ export default function LoginForm({ onInvalid }) {
   };
 
   const fail = (error) => {
+    if (isEmailNotVerified(error)) {
+      setStatus('unverified');
+      return;
+    }
     setStatus('idle');
     setFormError(error.status === 401 || error.status === 400 ? "That email and password don't match." : error.message || GENERIC_ERROR);
     onInvalid?.();
@@ -118,6 +125,21 @@ export default function LoginForm({ onInvalid }) {
   };
 
   if (status === 'success') return <AuthSuccess title="You're in" text="Opening your workspace..." />;
+  if (status === 'unverified') {
+    return (
+      <VerifyEmailNotice
+        email={email.trim()}
+        title={VERIFY.unverified.title}
+        text={VERIFY.unverified.text}
+        startCooldown={false}
+        onBack={() => {
+          setStatus('idle');
+          setPassword('');
+        }}
+        backLabel="Back to log in"
+      />
+    );
+  }
 
   return (
     <>
