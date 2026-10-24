@@ -6,6 +6,7 @@ import useResource from '../hooks/useResource.js';
 import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
 import { IconBook, IconImage, IconSparkles, IconTrash } from '../ui/DashIcons.jsx';
+import ConfirmModal from '../ui/ConfirmModal.jsx';
 import Notice from '../ui/Notice.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import { PLACE_LABEL, placeKind, scenesOfStory, SKETCH_MODELS, timeOfDay } from './sketchStudio.js';
@@ -338,15 +339,13 @@ function Workspace({ projectId, storyId, scene, scenes, record, records, charact
       setError(err.message);
     }
   };
+  const [asking, setAsking] = useState(null); // the sketch whose delete is being confirmed: { id, label, main }
+  // (ConfirmModal shows the error if the delete is refused)
   const remove = async (id) => {
-    try {
-      const saved = await deleteSceneSketch(projectId, storyId, scene.no, id);
-      onSaved(saved);
-      if (viewing === id) setViewing(saved.selected);
-      toast('Sketch deleted');
-    } catch (err) {
-      setError(err.message);
-    }
+    const saved = await deleteSceneSketch(projectId, storyId, scene.no, id);
+    onSaved(saved);
+    if (viewing === id) setViewing(saved.selected);
+    toast('Sketch deleted');
   };
   // the creator's own image: it becomes the scene's main sketch
   const fileRef = useRef(null);
@@ -574,11 +573,9 @@ function Workspace({ projectId, storyId, scene, scenes, record, records, charact
                         </span>
                       </span>
                     </button>
-                    {!isLive && (
-                      <button type="button" className={s.historyDelete} onClick={() => remove(k.id)} disabled={busy} aria-label={`Delete sketch ${sketches.length - n}`} title="Delete sketch">
-                        <IconTrash width={15} height={15} />
-                      </button>
-                    )}
+                    <button type="button" className={s.historyDelete} onClick={() => setAsking({ id: k.id, label: `Sketch ${sketches.length - n}`, main })} disabled={busy} aria-label={`Delete sketch ${sketches.length - n}`} title="Delete sketch">
+                      <IconTrash width={15} height={15} />
+                    </button>
                   </li>
                 );
               })}
@@ -586,6 +583,14 @@ function Workspace({ projectId, storyId, scene, scenes, record, records, charact
           )}
         </section>
       </div>
+      <ConfirmModal
+        open={Boolean(asking)}
+        title="Delete this sketch?"
+        text={asking ? `${asking.label} of scene ${scene.no} will be deleted for good.${asking.main && sketches.length > 1 ? ' The newest other sketch becomes the main one.' : ''} This cannot be undone.` : ''}
+        confirmLabel="Delete Sketch"
+        onClose={() => setAsking(null)}
+        onConfirm={() => remove(asking.id)}
+      />
     </div>
   );
 }

@@ -92,6 +92,101 @@ videos): keep your own `storage/` folders when you copy this backend over yours.
   `app/services/storyboard_dialogue_service.py`, `app/schemas/storyboard_dialogue.py`; the route is in
   `individual_routes.py`. In the employee dashboard it belongs to the Storyboard stage. No database change.
 
+## Project dates (organization projects)
+
+- The organization admin sets each project's **start date** and **deadline** when creating it (both required).
+- **Title**: fixed once the project is created (the backend refuses a different title).
+- **Start date**: can be changed only while the project is "Not started"; once the Team Leader starts it, it is
+  fixed (the backend refuses a change). **Deadline**: the admin can move it earlier or later at any time (never
+  before the start date). The Team Leader only sees the dates.
+- Cards, the projects table and the Team Leader's pages show both dates; a project that is not completed or aborted
+  and is past its deadline shows **"Delayed by N days"**.
+- Database: two new nullable columns on `projects` (`start_date`, `deadline`): run `alembic upgrade f1a2b3c4d5e6`
+  (after `e3f7a9c1d2b4`), or `sql/project_dates.sql` without Alembic.
+- **Client**: fixed once the project is created, like the title (the backend refuses a different client).
+
+## Recent activity (organization Overview)
+
+- Every change to organization data is written to the new `organization_activities` table automatically, at the
+  moment it is saved (`app/services/activity_log.py`, switched on in `app/main.py`). Nothing in the routes has to
+  log by hand, and a change that fails is not logged.
+- Logged: projects (created, deadline / start date, Team Leader, description, started / completed / aborted,
+  deleted), project teams, clients, job roles, tools, invitations (sent, accepted, cancelled), employees (job
+  roles, what they review, Team Leader, Reviewer, project limit, deactivated) and approved workflow stages, with
+  who did it (Admin / Team Leader / Reviewer / Employee).
+- `GET /api/organizations/{id}/activity?limit=&before_id=&kind=` (admins only, newest first).
+- Overview → Recent activity shows the latest 8, grouped by day; **View all** opens `/organization/activity`
+  (filters and "Show older activity").
+- Database: run `alembic upgrade a7c3e9d1b5f2` (after `f1a2b3c4d5e6`), or `sql/organization_activities.sql`.
+
+## Team: several job roles per employee, and project limits
+
+- On a project, the Team Leader can add an employee with **one or more of their job roles** at once (tick boxes),
+  and later change them (**Edit roles** on the team member's row). Only the job roles the organization gave the
+  employee can be chosen. Backend: `PUT /api/team-leaders/{tl}/projects/{id}/employees/{user_id}/job-roles`
+  `{ job_role_ids: [...] }` (reviewer assignments are not touched).
+- **Project limit** (`max_concurrent_projects`): a project counts while it is *Not started* or *Ongoing*, whether
+  the person leads it or works / reviews on it (one project counts once). Before, employees were counted only once a
+  project had started, so they could be put on any number of not-started projects.
+- A Team Leader at their limit is not offered in the Team Leader list when creating a project (the backend refuses
+  it too); an employee at their limit is not offered to Team Leaders.
+
+## Several stories per project
+
+- A project can have several stories, written by the same or different Story Writers. Every story goes through
+  the six stages on its own: when a story is approved, ITS Storyboard opens (then its Characters + Locations,
+  Sketches, AI Animation). The project page lists the stories, each with its own stages and buttons.
+- Submit / reopen name the story (`story_id`). Reviewers see only the newest submission of each story's stage.
+- The project page (employee and Team Leader "My Work") is sorted around what the person has to do:
+  **Ready for you** (stages they can work on, changes asked of them, work waiting for their review, each with its
+  buttons), then **All stories** (one line per story: its six stages as a bar, where it stands now; opening a line
+  shows every stage with Open / View, Submit, Take back, Approve / Ask for changes, Reopen). Filters (Needs you, In
+  review, Changes asked, Finished) and "Needs me first" sorting. Who works on each stage and the reviews are on the
+  side. Frontend only (`EmployeeProjectPage.jsx`, `Employee.module.css`).
+- Database: `project_workflow_stages.story_id` (existing rows are given their story): run
+  `alembic upgrade b8d4f0e2c6a3` (after `a7c3e9d1b5f2`), or `sql/per_story_workflow.sql`.
+
+## Submit for review: only real, changed work
+
+- A stage can be sent for review only when it has work in it: a written story, a storyboard, a character or location
+  profile or image, a sketch, a clip. After a reviewer asks for changes, the same work cannot be sent again: it has to
+  be changed first (changing it and changing it back counts as unchanged). After "Take back" the same work can be sent.
+- The Submit window asks first (`GET /api/employee/projects/{id}/stages/{stage}/submit-check?story_id=`) and shows the
+  reason in red, with Submit turned off; the backend checks again on Submit.
+- How: every submission saves a fingerprint of the stage's work (`app/services/stage_content.py`).
+  Database: `project_stage_submissions.content_fingerprint`: run `alembic upgrade c5e9a3f7d2b1` (after
+  `b8d4f0e2c6a3`), or `sql/submission_content_fingerprint.sql`.
+- Opening a story (a reviewer's View) shows its newest version in full, also when it was saved in the Story Editor or
+  on another device; the older versions stay above it in the chat.
+- Refusals and failures ("Your role on this project does not include the Story...") show in red; done messages stay
+  green.
+
+## Deleting work
+
+- **A whole story (organization projects)**: only the project's Team Leader, from the project page (open the story,
+  Delete story; it asks first). Its versions, storyboard, characters, locations, sketches, clips, film and reviews go
+  with it; the other stories stay. Employees get "Only the project's Team Leader can delete a story", and the story
+  chats show no Delete in organization projects. Backend: `DELETE /api/employee/projects/{id}/work/stories/{story_id}`
+  (handled in `employee_routes.py` / `EmployeeWorkflowService.delete_story`).
+- **Storyboard, images, sketches, clips, film** (individual creators and employees, every one asks first):
+  Storyboard page: Delete (the storyboard and everything made from it; the story stays). Character / Environment
+  Studio: the bin on the image (the generated or the uploaded one). Sketch Studio: the bin on a sketch. AI Animation:
+  the bin on a scene's clip, and Delete film (the clips stay and can be joined again). New routes, all under
+  `/api/individual/projects/{id}/stories/{story_id}/`: `DELETE storyboard`,
+  `DELETE characters/{id}/master-image?image_type=canonical|user_upload`, the same for `locations/{id}`,
+  `DELETE scenes/{scene}/sketches/{sketch}`, `DELETE video-clips/{clip}`, `DELETE video-generation/{job}`
+  (new file `app/api/routes/content_delete_routes.py`, added in `app/main.py`). In organization projects they go
+  through the work API, so the person's role and the stage are checked (an approved stage cannot be changed).
+  Stored files of what is deleted are removed too. No database change.
+
+## Smaller changes
+
+- Admin, Create / Edit Project: the start date can be today or later (an unchanged earlier date of an existing project
+  is kept). Client lists (admin and individual) show the client's email after the name.
+- Log in: no password-strength guide (Sign up still has it).
+- Team Leader, project team: a reviewer can be added for several job roles at once (tick boxes); each person has one
+  row (Employee and / or Reviewer, with "Works on" and "Reviews"); Edit roles changes both in one window.
+
 ## Employee dashboard (new)
 
 Employees now land on `/employee` (Team Leaders still land on `/team-leader`, with **My Work** in their menu).
@@ -106,9 +201,11 @@ Story ──approve──► Storyboard ──approve──► Characters ┐
 ```
 
 - An employee works on a stage when one of their roles on the project has that stage's Cinemor Feature
-  (Job Roles page): Story Creation, Storyboard Creation, Character Creation, Scene Creation (Locations),
-  Shot Creation (Sketches), Video Generation or Character Animation (AI Animation). One employee can have several
-  roles on a project. The mapping is in `backend/services/story-service/app/constants/workflow_stages.py`.
+  (Job Roles page). There are exactly six features, one per stage: Story Creation, Storyboard Creation, Character
+  Creation, Location Creation, Sketch Creation, AI Animation (backend keys: story_creation, storyboard_creation,
+  character_creation, scene_creation, shot_creation, video_generation; the old Image Generation, Character Animation
+  and Voice Generation were removed). One employee can have several roles on a project. The list is in
+  `app/constants/cinemor_features.py`, the stage mapping in `app/constants/workflow_stages.py`.
 - **Submit for review**: the employee chooses the reviewer; only reviewers of that stage on the project are offered.
   Nobody reviews their own work. The reviewer approves or asks for changes (with a comment). The project's Team
   Leader can also answer, but only if they are a reviewer of that stage.

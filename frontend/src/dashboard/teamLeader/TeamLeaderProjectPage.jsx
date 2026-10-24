@@ -28,8 +28,9 @@ const MOVES = {
 /**
  * One project, as its Team Leader sees it: its details, the status controls (start, complete or abort, depending on
  * where it is now), and the production team, with an inline form to add an employee (in one or more of their job
- * roles) or a reviewer (for one of the job roles they review). An employee's job roles on the project can be changed
- * later (Edit roles). Employees already at their project limit are not offered.
+ * roles) or a reviewer (for one or more of the job roles they review). Each person has one row, also when they both
+ * work and review here; Edit roles changes what they do and what they review in one window. Employees already at
+ * their project limit are not offered.
  */
 export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
   const toast = useToast();
@@ -37,9 +38,9 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
   const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState('employee');
   const [personId, setPersonId] = useState('');
-  const [jobRoleId, setJobRoleId] = useState('');
   const [jobRoleIds, setJobRoleIds] = useState([]); // an employee can do several of their job roles on one project
-  const [editingRoles, setEditingRoles] = useState(null); // the employee whose job roles are being changed
+  const [reviewRoleIds, setReviewRoleIds] = useState([]); // and a reviewer can review several job roles
+  const [editingRoles, setEditingRoles] = useState(null); // the person whose roles here are being changed
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [moving, setMoving] = useState(null); // the status being moved to while it saves
@@ -56,7 +57,7 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
     );
   }
 
-  const { project, members, availableEmployees, availableReviewers } = data;
+  const { project, members, availableEmployees, availableReviewers, reviewerRolesOf = {} } = data;
   const state = lifecycleOf(project.lifecycle);
   const moves = NEXT_LIFECYCLE[project.lifecycle] || [];
   const open = moves.length > 0; // a finished project's team can no longer change
@@ -65,25 +66,25 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
 
   const resetForm = () => {
     setPersonId('');
-    setJobRoleId('');
     setJobRoleIds([]);
+    setReviewRoleIds([]);
     setFormError('');
   };
 
-  // one row per employee (with all their job roles here), then one row per reviewer assignment
+  // one row per person: the job roles they do here and the job roles they review here
   const team = [];
   for (const m of members) {
-    if (m.kind === 'employee') {
-      let row = team.find((t) => t.kind === 'employee' && t.employeeId === m.employeeId);
-      if (!row) {
-        row = { key: `e${m.employeeId}`, kind: 'employee', employeeId: m.employeeId, email: m.email, roles: [], employeeJobRoles: m.employeeJobRoles || [] };
-        team.push(row);
-      }
-      row.roles.push({ memberId: m.id, id: m.jobRoleId, name: m.jobRoleName });
-    } else {
-      team.push({ key: `r${m.id}`, kind: 'reviewer', employeeId: m.employeeId, email: m.email, roles: [{ memberId: m.id, id: m.jobRoleId, name: m.jobRoleName }] });
+    let row = team.find((t) => t.employeeId === m.employeeId);
+    if (!row) {
+      row = { key: `p${m.employeeId}`, employeeId: m.employeeId, email: m.email, work: [], review: [], employeeJobRoles: m.employeeJobRoles || [], reviewerJobRoles: reviewerRolesOf[m.employeeId] || [] };
+      team.push(row);
     }
+    (m.kind === 'reviewer' ? row.review : row.work).push({ memberId: m.id, id: m.jobRoleId, name: m.jobRoleName });
   }
+  const names = (roles) => roles.map((r) => r.name).filter(Boolean).join(', ');
+  // the job roles this reviewer does not review here yet (the add form offers only those)
+  const reviewedHere = (id) => members.filter((m) => m.kind === 'reviewer' && m.employeeId === id).map((m) => m.jobRoleId);
+  const newReviewRoles = person && kind === 'reviewer' ? (person.reviewerJobRoles || []).filter((r) => !reviewedHere(person.id).includes(r.id)) : [];
 
   const move = async (to) => {
     setMoving(to);
@@ -101,11 +102,11 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
     event.preventDefault();
     if (!personId) return setFormError(`Choose ${kind === 'reviewer' ? 'a reviewer' : 'an employee'}.`);
     if (kind === 'employee' && jobRoleIds.length === 0) return setFormError('Choose at least one job role they will do on this project.');
-    if (kind === 'reviewer' && !jobRoleId) return setFormError('Choose the job role they will review on this project.');
+    if (kind === 'reviewer' && reviewRoleIds.length === 0) return setFormError('Choose at least one job role they will review on this project.');
     setSaving(true);
     try {
       if (kind === 'employee') await setEmployeeJobRoles(teamLeaderId, projectId, personId, jobRoleIds);
-      else await addProjectMember(teamLeaderId, projectId, { employeeId: personId, kind, jobRoleId });
+      else for (const id of reviewRoleIds) await addProjectMember(teamLeaderId, projectId, { employeeId: personId, kind, jobRoleId: id });
       toast(`${person?.email ?? 'Member'} added`);
       resetForm();
       setAdding(false);
@@ -232,9 +233,9 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
                 value={personId}
                 onChange={(v) => {
                   setPersonId(v);
-                  // a reviewer who reviews only one job role has it chosen for them
-                  const reviews = kind === 'reviewer' ? pool.find((p) => p.id === v)?.reviewerJobRoles || [] : [];
-                  setJobRoleId(reviews.length === 1 ? reviews[0].id : '');
+                  // a reviewer with only one job role left to review here has it chosen for them
+                  const reviews = kind === 'reviewer' ? (pool.find((p) => p.id === v)?.reviewerJobRoles || []).filter((r) => !reviewedHere(v).includes(r.id)) : [];
+                  setReviewRoleIds(reviews.length === 1 ? [reviews[0].id] : []);
                   // an employee with a single job role has it chosen for them
                   const roles = kind === 'employee' ? pool.find((p) => p.id === v)?.jobRoles || [] : [];
                   setJobRoleIds(roles.length === 1 ? [roles[0].id] : []);
@@ -257,17 +258,16 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
                 />
               )}
               {person && kind === 'reviewer' && (
-                <SelectField
-                  id="tl-role"
-                  label={kind === 'reviewer' ? 'Reviews Job Role' : 'Job Role'}
-                  placeholder="Select job role"
-                  options={(kind === 'reviewer' ? person.reviewerJobRoles || [] : person.jobRoles).map((r) => ({ value: r.id, label: r.name }))}
-                  value={jobRoleId}
-                  onChange={(v) => {
-                    setJobRoleId(v);
+                <RoleChecks
+                  label="Reviews Job Roles"
+                  hint="Choose one or more of the job roles they review."
+                  roles={newReviewRoles}
+                  empty="This reviewer has no job roles to review yet. Your organization sets them on the Employees page."
+                  value={reviewRoleIds}
+                  onChange={(ids) => {
+                    setReviewRoleIds(ids);
                     setFormError('');
                   }}
-                  emptyText={kind === 'reviewer' ? 'This reviewer has no job roles to review yet. Your organization sets them on the Employees page.' : 'This employee has no job roles yet.'}
                   disabled={saving}
                 />
               )}
@@ -309,18 +309,27 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
                     <span className={tl.email} style={{ display: 'block' }}>
                       {m.email}
                     </span>
-                    <span className={tl.rowDesc} style={{ display: 'block' }}>
-                      {m.roles.map((r) => r.name).filter(Boolean).join(', ') || '-'}
-                    </span>
+                    {m.work.length > 0 && (
+                      <span className={tl.rowDesc} style={{ display: 'block' }}>
+                        {m.review.length > 0 ? 'Works on: ' : ''}
+                        {names(m.work) || '-'}
+                      </span>
+                    )}
+                    {m.review.length > 0 && (
+                      <span className={tl.rowDesc} style={{ display: 'block' }}>
+                        Reviews: {names(m.review) || '-'}
+                      </span>
+                    )}
                   </span>
-                  <Pill tone={m.kind === 'reviewer' ? 'violet' : 'blue'}>{m.kind === 'reviewer' ? 'Reviewer' : 'Employee'}</Pill>
+                  <span className={tl.personPills}>
+                    {m.work.length > 0 && <Pill tone="blue">Employee</Pill>}
+                    {m.review.length > 0 && <Pill tone="violet">Reviewer</Pill>}
+                  </span>
                   {open ? (
                     <span className={tl.personActions}>
-                      {m.kind === 'employee' && (
-                        <Button variant="secondary" icon={IconPencil} onClick={() => setEditingRoles(m)} aria-label={`Edit the job roles of ${m.email}`}>
-                          Edit roles
-                        </Button>
-                      )}
+                      <Button variant="secondary" icon={IconPencil} onClick={() => setEditingRoles(m)} aria-label={`Edit the roles of ${m.email}`}>
+                        Edit roles
+                      </Button>
                       <Button variant="secondary" icon={IconTrash} iconOnly onClick={() => setRemoving(m)} aria-label={`Remove ${m.email} from this project`}>
                         Remove
                       </Button>
@@ -350,11 +359,11 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
       <ConfirmModal
         open={Boolean(removing)}
         title="Remove from project?"
-        text={removing ? `${removing.email} will no longer be on "${project.title}" as ${removing.kind === 'reviewer' ? 'a reviewer' : 'an employee'}.` : ''}
+        text={removing ? `${removing.email} will no longer be on "${project.title}"${removing.work.length && removing.review.length ? ', neither as an employee nor as a reviewer' : removing.review.length ? ' as a reviewer' : ' as an employee'}.` : ''}
         confirmLabel="Remove"
         onClose={() => setRemoving(null)}
         onConfirm={async () => {
-          for (const role of removing.roles) await removeProjectMember(teamLeaderId, projectId, role.memberId);
+          for (const role of [...removing.work, ...removing.review]) await removeProjectMember(teamLeaderId, projectId, role.memberId);
           toast(`${removing.email} removed`);
           await reload();
         }}
@@ -362,9 +371,15 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
       <EditRolesModal
         member={editingRoles}
         onClose={() => setEditingRoles(null)}
-        onSave={async (ids) => {
-          await setEmployeeJobRoles(teamLeaderId, projectId, editingRoles.employeeId, ids);
-          toast(`${editingRoles.email}'s job roles updated`);
+        onSave={async ({ work, review }) => {
+          const m = editingRoles;
+          // reviewer roles first (added, then taken off), so the person keeps their place on the project throughout
+          const had = m.review.map((r) => r.id);
+          for (const id of review.filter((x) => !had.includes(x))) await addProjectMember(teamLeaderId, projectId, { employeeId: m.employeeId, kind: 'reviewer', jobRoleId: id });
+          if (m.work.length > 0 && work.length > 0) await setEmployeeJobRoles(teamLeaderId, projectId, m.employeeId, work);
+          if (m.work.length > 0 && work.length === 0) for (const r of m.work) await removeProjectMember(teamLeaderId, projectId, r.memberId);
+          for (const r of m.review.filter((x) => !review.includes(x.id))) await removeProjectMember(teamLeaderId, projectId, r.memberId);
+          toast(`${m.email}'s roles updated`);
           setEditingRoles(null);
           await reload();
         }}
@@ -374,13 +389,13 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
 }
 
 /** Tick boxes for job roles (an employee can do several of their job roles on one project). */
-function RoleChecks({ label, hint, roles, value, onChange, disabled }) {
+function RoleChecks({ label, hint, roles, value, onChange, disabled, empty = 'This employee has no job roles yet. Your organization gives them on the Employees page.' }) {
   const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   return (
     <fieldset className={tl.roleChecks} disabled={disabled}>
       <legend className={tl.roleLegend}>{label}</legend>
       {roles.length === 0 ? (
-        <p className={tl.roleHint}>This employee has no job roles yet. Your organization gives them on the Employees page.</p>
+        <p className={tl.roleHint}>{empty}</p>
       ) : (
         <div className={tl.roleList}>
           {roles.map((r) => {
@@ -402,28 +417,38 @@ function RoleChecks({ label, hint, roles, value, onChange, disabled }) {
   );
 }
 
-/** Change which of their job roles an employee does on this project. */
+/**
+ * Change what one person does on this project, in one window: the job roles they work in (when they are an employee
+ * here) and the job roles they review (when they are a reviewer here). Only the roles the organization gave them can be
+ * chosen. Taking every role off is done with Remove.
+ */
 function EditRolesModal({ member, onClose, onSave }) {
-  const [ids, setIds] = useState([]);
+  const [work, setWork] = useState([]);
+  const [review, setReview] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [shownFor, setShownFor] = useState(null);
   if (member && shownFor !== member.key) {
-    // a new person was opened: start from the job roles they do here now
+    // a new person was opened: start from what they do here now
     setShownFor(member.key);
-    setIds(member.roles.map((r) => r.id).filter((id) => id != null));
+    setWork(member.work.map((r) => r.id).filter((id) => id != null));
+    setReview(member.review.map((r) => r.id).filter((id) => id != null));
     setError('');
   }
   if (!member && shownFor !== null) setShownFor(null);
-  // their organization job roles, plus any role they still hold here that the organization has since taken away
-  const roles = member ? [...member.employeeJobRoles, ...member.roles.filter((r) => r.id != null && !member.employeeJobRoles.some((x) => x.id === r.id))] : [];
+  // their organization roles, plus any role they still hold here that the organization has since taken away
+  const withHeld = (given, held) => [...given, ...held.filter((r) => r.id != null && !given.some((x) => x.id === r.id))];
+  const workRoles = member ? withHeld(member.employeeJobRoles, member.work) : [];
+  const reviewRoles = member ? withHeld(member.reviewerJobRoles, member.review) : [];
+  const isEmployee = Boolean(member?.work.length);
+  const isReviewer = Boolean(member?.review.length);
 
   const save = async (event) => {
     event.preventDefault();
-    if (ids.length === 0) return setError('Choose at least one job role. To take them off the project, use Remove.');
+    if (work.length === 0 && review.length === 0) return setError('Choose at least one role. To take them off the project, use Remove.');
     setBusy(true);
     try {
-      await onSave(ids);
+      await onSave({ work, review });
     } catch (err) {
       setError(err.message);
     }
@@ -431,20 +456,37 @@ function EditRolesModal({ member, onClose, onSave }) {
     return undefined;
   };
 
+  const title = isEmployee && isReviewer ? 'Edit roles' : isReviewer ? 'Edit review roles' : 'Edit job roles';
   return (
-    <Modal open={Boolean(member)} onClose={busy ? () => {} : onClose} icon={IconBriefcase} title="Edit job roles" subtitle={member ? `What ${member.email} does on this project.` : ''}>
-      <form onSubmit={save} noValidate>
-        <RoleChecks
-          label="Job Roles"
-          hint="Only the job roles your organization gave this employee can be chosen."
-          roles={roles}
-          value={ids}
-          onChange={(next) => {
-            setIds(next);
-            setError('');
-          }}
-          disabled={busy}
-        />
+    <Modal open={Boolean(member)} onClose={busy ? () => {} : onClose} icon={IconBriefcase} title={title} subtitle={member ? `What ${member.email} does on this project.` : ''}>
+      <form onSubmit={save} noValidate style={{ display: 'grid', gap: 18 }}>
+        {isEmployee && (
+          <RoleChecks
+            label="Works as (Employee)"
+            hint="The job roles they do the work in. Only the job roles your organization gave this employee can be chosen."
+            roles={workRoles}
+            value={work}
+            onChange={(next) => {
+              setWork(next);
+              setError('');
+            }}
+            disabled={busy}
+          />
+        )}
+        {isReviewer && (
+          <RoleChecks
+            label="Reviews (Reviewer)"
+            hint="The job roles they check. Only the job roles your organization lets them review can be chosen."
+            roles={reviewRoles}
+            empty="This reviewer has no job roles to review. Your organization sets them on the Employees page."
+            value={review}
+            onChange={(next) => {
+              setReview(next);
+              setError('');
+            }}
+            disabled={busy}
+          />
+        )}
         {error && (
           <p className={styles.formError} role="alert">
             {error}

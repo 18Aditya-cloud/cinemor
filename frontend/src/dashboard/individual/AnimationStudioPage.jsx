@@ -4,7 +4,8 @@ import { Link, useRouter } from '../../router/router.jsx';
 import cx from '../../utils/cx.js';
 import useResource from '../hooks/useResource.js';
 import Button from '../ui/Button.jsx';
-import { IconBook, IconCheck, IconFilm, IconImage, IconPlay, IconRefresh, IconSparkles } from '../ui/DashIcons.jsx';
+import { IconBook, IconCheck, IconFilm, IconImage, IconPlay, IconRefresh, IconSparkles, IconTrash } from '../ui/DashIcons.jsx';
+import ConfirmModal from '../ui/ConfirmModal.jsx';
 import Notice from '../ui/Notice.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import CinemorOrb from './CinemorOrb.jsx';
@@ -12,6 +13,8 @@ import { download } from './filmExport.js';
 import {
   assembleFilm,
   clipUrl,
+  deleteFilm,
+  deleteVideoClip,
   downloadFilm,
   filmUrl,
   getProject,
@@ -194,6 +197,8 @@ function Studio({ projectId, storyId, story }) {
   const [film, setFilm] = useState(null); // object URL of the finished film
   const [playing, setPlaying] = useState(null); // { sceneNo, title, url } a clip shown in the player
   const filmFor = useRef(null);
+  const [askClip, setAskClip] = useState(null); // { sc, clip } whose delete is being confirmed
+  const [askFilm, setAskFilm] = useState(false);
 
   const board = data?.[0];
   const scenes = data?.[1] || [];
@@ -444,6 +449,9 @@ function Studio({ projectId, storyId, story }) {
             <Button variant="secondary" icon={IconExport} onClick={save} disabled={!film || running}>
               Download film
             </Button>
+            <Button variant="danger" icon={IconTrash} onClick={() => setAskFilm(true)} disabled={!film || running}>
+              Delete film
+            </Button>
           </div>
           <p className={cs.note}>The film is joined automatically when every scene has a clip. Join again after making a scene again.</p>
         </section>
@@ -485,6 +493,11 @@ function Studio({ projectId, storyId, story }) {
                     <span className={cx(a.chip, a[`chip_${state}`])}>
                       {state === 'busy' ? 'Making the clip…' : state === 'ready' ? `Clip ready${clip.seconds ? ` · ${seconds(clip.seconds)}` : ''}` : state === 'failed' ? 'Clip failed' : 'No clip yet'}
                     </span>
+                    {(state === 'ready' || state === 'failed') && (
+                      <button type="button" className={a.clipDelete} onClick={() => setAskClip({ sc, clip })} disabled={running} aria-label={`Delete the clip of scene ${sc.no}`} title="Delete clip">
+                        <IconTrash width={14} height={14} />
+                      </button>
+                    )}
                     <label className={cx(a.pick, on && a.pickOn)}>
                       <input type="checkbox" checked={on} onChange={() => togglePick(sc.id)} disabled={running} />
                       <span className={a.pickBox} aria-hidden="true">
@@ -500,6 +513,33 @@ function Studio({ projectId, storyId, story }) {
           })}
         </ul>
       </section>
+
+      <ConfirmModal
+        open={Boolean(askClip)}
+        title="Delete this clip?"
+        text={askClip ? `The clip of scene ${askClip.sc.no} (“${askClip.sc.title}”) will be deleted for good. The scene can be made again; join the clips again to update the film. This cannot be undone.` : ''}
+        confirmLabel="Delete Clip"
+        onClose={() => setAskClip(null)}
+        onConfirm={async () => {
+          await deleteVideoClip(projectId, storyId, askClip.clip.id);
+          if (playing?.sceneNo === askClip.sc.no) setPlaying(null);
+          setClips(await listVideoClips(projectId, storyId));
+          toast('Clip deleted');
+        }}
+      />
+      <ConfirmModal
+        open={askFilm}
+        title="Delete the film?"
+        text="The joined film will be deleted for good. The scenes' clips stay, so the film can be joined again. This cannot be undone."
+        confirmLabel="Delete Film"
+        onClose={() => setAskFilm(false)}
+        onConfirm={async () => {
+          await deleteFilm(projectId, storyId, nowJob.id);
+          setFilm(null);
+          setPlaying(null);
+          toast('Film deleted');
+        }}
+      />
     </>
   );
 }

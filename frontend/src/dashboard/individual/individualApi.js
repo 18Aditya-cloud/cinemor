@@ -68,6 +68,8 @@ export const importStoryboard = route('importStoryboard');
 export const exportStoryboard = route('exportStoryboard');
 export const storyboardTemplate = route('storyboardTemplate');
 export const updateStoryboardDialogue = route('updateStoryboardDialogue');
+/** Delete the storyboard and everything made from it (the story stays). */
+export const deleteStoryboard = route('deleteStoryboard');
 
 /* characters */
 export const listCharacters = route('listCharacters');
@@ -77,6 +79,7 @@ export const generateCharacterImage = route('generateCharacterImage');
 export const uploadCharacterImage = route('uploadCharacterImage');
 export const setCharacterMainImage = route('setCharacterMainImage');
 export const downloadCharacterImage = route('downloadCharacterImage');
+export const deleteCharacterImage = route('deleteCharacterImage');
 /** Demo only: save details of a profile changed by hand. */
 export const saveCharacterRecord = demo.saveCharacterRecord;
 
@@ -88,6 +91,7 @@ export const generateLocationImage = route('generateLocationImage');
 export const uploadLocationImage = route('uploadLocationImage');
 export const setLocationMainImage = route('setLocationMainImage');
 export const downloadLocationImage = route('downloadLocationImage');
+export const deleteLocationImage = route('deleteLocationImage');
 /** Demo only: save details of a profile changed by hand. */
 export const saveLocationRecord = demo.saveLocationRecord;
 
@@ -124,8 +128,11 @@ export async function downloadSceneSketch(projectId, storyId, sceneNo, sketchId)
   if (!isLive) return demo.downloadSceneSketch(projectId, storyId, sceneNo, sketchId);
   return live.downloadSceneSketch(projectId, storyId, await sceneIdOf(projectId, storyId, sceneNo), sketchId);
 }
-/** Demo only (the backend keeps every sketch). */
-export const deleteSceneSketch = demo.deleteSceneSketch;
+/** Delete one sketch of a scene. Resolves the scene's record. */
+export async function deleteSceneSketch(projectId, storyId, sceneNo, sketchId) {
+  if (!isLive) return demo.deleteSceneSketch(projectId, storyId, sceneNo, sketchId);
+  return live.deleteSceneSketch(projectId, storyId, await sceneIdOf(projectId, storyId, sceneNo), sketchId);
+}
 
 /* AI animation (backend only) */
 export const listAnimationScenes = live.listSketchScenes;
@@ -137,3 +144,5 @@ export const clipUrl = live.clipUrl;
 export const assembleFilm = live.assembleFilm;
 export const filmUrl = live.filmUrl;
 export const downloadFilm = live.downloadFilm;
+export const deleteVideoClip = live.deleteVideoClip;
+export const deleteFilm = live.deleteFilm;

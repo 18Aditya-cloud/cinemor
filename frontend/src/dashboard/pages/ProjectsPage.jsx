@@ -275,7 +275,16 @@ function actionsColumn(onEdit, onDelete) {
   };
 }
 
-/** Create a project, or (with `project`) edit one: title, description, client and Team Leader. */
+/** Today's date in the browser's time zone, as YYYY-MM-DD (what a date field holds). */
+const todayIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/**
+ * Create a project, or (with `project`) edit one. The admin sets the start date and the deadline. Once created, the
+ * title cannot change; the start date is fixed once the Team Leader starts the project; the deadline can always move.
+ */
 function ProjectModal({ open, project, onClose, onSaved }) {
   const editing = Boolean(project);
   const form = useModalForm(
@@ -285,7 +294,7 @@ function ProjectModal({ open, project, onClose, onSaved }) {
   );
   const [clients, setClients] = useState([]);
   const [leaders, setLeaders] = useState([]);
-  const [leadersFull, setLeadersFull] = useState(0);
+  const [leadersFull, setLeadersFull] = useState(0); // Team Leaders hidden because they are at their project limit
   // the start date is fixed once the project has started (or ended)
   const startFixed = editing && project.lifecycle !== 'not_started';
 
@@ -296,7 +305,10 @@ function ProjectModal({ open, project, onClose, onSaved }) {
     Promise.all([listClients(), listEmployees()])
       .then(([c, e]) => {
         if (!alive) return;
-        setClients(c.map((x) => ({ value: x.id, label: x.name })));
+        // the email too, so two clients with the same name can be told apart
+        setClients(c.map((x) => ({ value: x.id, label: x.email ? `${x.name} (${x.email})` : x.name })));
+        // a Team Leader already on as many projects as their limit can't take another one
+        // (the project's own Team Leader stays in the list when editing)
         const full = (x) => x.maxProjects != null && x.currentProjects >= x.maxProjects && x.id !== project?.teamLeaderId;
         const all = e.filter((x) => x.teamLeader);
         setLeaders(all.filter((x) => !full(x)).map((x) => ({ value: x.id, label: x.maxProjects != null ? `${x.email} (${x.currentProjects} of ${x.maxProjects} projects)` : x.email })));
@@ -316,6 +328,8 @@ function ProjectModal({ open, project, onClose, onSaved }) {
     if (!values.clientId) errors.clientId = 'Choose a client.';
     if (!values.teamLeaderId) errors.teamLeaderId = 'Choose a Team Leader.';
     if (!values.startDate) errors.startDate = 'Choose the start date.';
+    // a new start date can only be today or later (an unchanged one on an existing project is left as it is)
+    else if (!startFixed && values.startDate < todayIso() && values.startDate !== (project?.startDate ?? '')) errors.startDate = 'The start date cannot be in the past. Choose today or a later day.';
     if (!values.deadline) errors.deadline = 'Choose the deadline.';
     else if (values.startDate && values.deadline < values.startDate) errors.deadline = 'The deadline cannot be before the start date.';
     form.setErrors(errors);
@@ -397,6 +411,7 @@ function ProjectModal({ open, project, onClose, onSaved }) {
             id="project-start"
             label="Start Date"
             type="date"
+            min={startFixed ? undefined : todayIso()}
             value={form.values.startDate}
             onChange={form.set('startDate')}
             error={form.errors.startDate}

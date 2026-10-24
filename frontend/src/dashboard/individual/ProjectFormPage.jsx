@@ -60,7 +60,8 @@ export default function ProjectFormPage({ projectId = null }) {
     setFormError('');
   };
 
-  const clientOptions = (clients ?? []).map((c) => ({ value: c.id, label: c.companyName ? `${c.name} (${c.companyName})` : c.name }));
+  // the email too, so two clients with the same name can be told apart
+  const clientOptions = (clients ?? []).map((c) => ({ value: c.id, label: `${c.name}${c.companyName ? `, ${c.companyName}` : ''}${c.email ? ` (${c.email})` : ''}` }));
   const clientName = (clients ?? []).find((c) => String(c.id) === String(values.clientId))?.name;
   const previewFor = values.projectType === 'client' ? (clientName ? `For ${clientName}` : PROJECT_TYPES.client) : PROJECT_TYPES.personal;
   const back = editing ? `/dashboard/projects/${projectId}` : '/dashboard/projects';

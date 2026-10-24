@@ -391,7 +391,7 @@ const personView = (e) => ({
   activeProjects: e.current_project_count ?? 0,
   maxProjects: e.max_concurrent_projects ?? null,
   available: e.is_available !== false,
-  onProject: Boolean(e.is_on_project), // already on the project asked about
+  onProject: Boolean(e.is_on_project), // already on the project asked about (another role there takes no new slot)
 });
 
 const memberView = (m) => ({
@@ -400,8 +400,9 @@ const memberView = (m) => ({
   employeeId: m.user_id,
   email: m.email,
   jobRoleId: m.job_role?.id ?? null,
-  employeeJobRoles: (m.employee_job_roles || []).map((r) => ({ id: r.id, name: r.name })),
   jobRoleName: m.job_role?.name || '',
+  // the job roles the organization gave this person (to choose from when changing their roles here)
+  employeeJobRoles: (m.employee_job_roles || []).map((r) => ({ id: r.id, name: r.name })),
 });
 
 export async function getTeamLeaderDashboard(teamLeaderId) {
@@ -428,16 +429,22 @@ export async function listTeamLeaderProjects(teamLeaderId) {
 export async function getTeamLeaderProject(teamLeaderId, projectId) {
   const [project, employees, reviewers] = await Promise.all([
     request(leader(teamLeaderId, `/projects/${projectId}`)),
+    // ?project_id: people already on this project are offered even at their project limit
     request(leader(teamLeaderId, `/available-employees?project_id=${projectId}`)),
     request(leader(teamLeaderId, `/available-reviewers?project_id=${projectId}`)),
   ]);
   const members = (project?.members || []).map(memberView);
   const on = new Set(members.map((m) => `${m.kind}:${m.employeeId}`));
+  const reviewing = (id) => members.filter((m) => m.kind === 'reviewer' && m.employeeId === id).map((m) => m.jobRoleId);
+  const allReviewers = (reviewers || []).map(personView);
   return {
     project: summaryView(project),
     members,
     availableEmployees: (employees || []).map(personView).filter((e) => !on.has(`employee:${e.id}`) && e.available),
-    availableReviewers: (reviewers || []).map(personView).filter((e) => !on.has(`reviewer:${e.id}`)),
+    // a reviewer can review several job roles on one project: offered while one of their roles is not reviewed here yet
+    availableReviewers: allReviewers.filter((e) => e.reviewerJobRoles.some((r) => !reviewing(e.id).includes(r.id))),
+    // the job roles each reviewer reviews (to choose from when changing what they review here)
+    reviewerRolesOf: Object.fromEntries(allReviewers.map((e) => [e.id, e.reviewerJobRoles])),
   };
 }
 
@@ -451,6 +458,7 @@ export async function removeProjectMember(teamLeaderId, projectId, memberId) {
   return {};
 }
 
+/** Add an employee with one or more of their job roles, or change which of their roles they do on the project. */
 export async function setEmployeeJobRoles(teamLeaderId, projectId, employeeId, jobRoleIds) {
   await request(leader(teamLeaderId, `/projects/${projectId}/employees/${employeeId}/job-roles`), { method: 'PUT', body: { job_role_ids: jobRoleIds.map(Number) } });
   return {};

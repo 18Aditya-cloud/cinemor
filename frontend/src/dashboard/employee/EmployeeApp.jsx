@@ -111,7 +111,8 @@ export default function EmployeeApp() {
   else if (route.page === 'overview') page = <EmployeeOverviewPage email={user.email} />;
   else {
     let module;
-    if (route.page === 'story') module = <StoryPage key={`story-${route.id}`} projectId={route.id} view={route.view} storyId={route.storyId} />;
+    // (only the project's Team Leader deletes a story, from the project page)
+    if (route.page === 'story') module = <StoryPage key={`story-${route.id}`} projectId={route.id} view={route.view} storyId={route.storyId} canDelete={false} />;
     else if (route.page === 'storyEdit') module = <StoryEditorPage key={`edit-${route.id}-${route.storyId}`} projectId={route.id} storyId={route.storyId} />;
     else if (route.page === 'storyboard') module = <StoryboardPage key={`storyboard-${route.id}`} projectId={route.id} storyId={route.storyId} />;
     else if (route.page === 'characters') module = <CharacterStudioPage key={`characters-${route.id}`} projectId={route.id} storyId={route.storyId} characterKey={route.key} />;

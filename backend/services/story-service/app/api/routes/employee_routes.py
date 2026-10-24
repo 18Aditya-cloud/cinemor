@@ -5,6 +5,7 @@ Employee dashboard API (/api/employee/...).
     GET   /projects                                   my projects (as employee, reviewer or Team Leader)
     GET   /projects/{id}                              one project: stages, people per stage, submissions
     GET   /projects/{id}/stages/{stage}/reviewers     who I can send this stage to
+    GET   /projects/{id}/stages/{stage}/submit-check  can I send it now (?story_id=); why not
     POST  /projects/{id}/stages/{stage}/submit        Submit for review { reviewer_user_id, note?, story_id? }
     POST  /projects/{id}/stages/{stage}/reopen        Team Leader: reopen an approved stage { reason? }
     GET   /reviews                                    reviews sent to me (and ones I may answer as Team Leader)
@@ -26,7 +27,9 @@ Stage keys: story, storyboard, characters, locations, sketches, animation.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+import re
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import CurrentUser
@@ -120,6 +123,7 @@ def list_stage_reviewers(project_id: int, stage: str, current_user: CurrentUser,
     except WorkflowError as exc:
         raise _fail(exc) from exc
 
+
 @router.get("/projects/{project_id}/stages/{stage}/submit-check")
 def check_submit(project_id: int, stage: str, current_user: CurrentUser, story_id: int | None = None, db: Session = Depends(get_db)):
     """Can this stage of this story be sent for review now? {can_submit, reason} (empty work, nothing changed...)."""
@@ -127,6 +131,7 @@ def check_submit(project_id: int, stage: str, current_user: CurrentUser, story_i
         return EmployeeWorkflowService(db).submit_check(project_id, stage, current_user, story_id)
     except WorkflowError as exc:
         raise _fail(exc) from exc
+
 
 @router.post("/projects/{project_id}/stages/{stage}/submit", status_code=201)
 def submit_stage(project_id: int, stage: str, request: StageSubmitRequest, current_user: CurrentUser, db: Session = Depends(get_db)):
@@ -196,6 +201,14 @@ _WORK_METHODS = ["GET", "POST", "PATCH", "PUT", "DELETE"]
 async def project_work(project_id: int, request: Request, current_user: CurrentUser, subpath: str = "", db: Session = Depends(get_db)):
     """The project's AI work (same paths as /api/individual/projects/{id}/...), after the role and stage checks."""
     service = EmployeeWorkflowService(db)
+    story_match = re.fullmatch(r"stories/(\d+)", subpath.strip("/"))
+    if request.method == "DELETE" and story_match:
+        # deleting a whole story: only the project's Team Leader, and its reviews and stages go with it
+        try:
+            service.delete_story(project_id, current_user, int(story_match.group(1)))
+        except WorkflowError as exc:
+            raise _fail(exc) from exc
+        return Response(status_code=204)
     try:
         project, access = service.require_view(project_id, current_user)
         service.check_work(project, current_user, access, request.method, subpath)

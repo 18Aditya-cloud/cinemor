@@ -1008,6 +1008,42 @@ class EmployeeWorkflowService:
         self.db.commit()
         return self.project_summary(project, user, access, detail=True)
 
+    # ================================================================ deleting a story
+    def delete_story(self, project_id: int, user: User, story_id: int) -> None:
+        """
+        The project's Team Leader deletes one of its stories, with everything made from it (its storyboard,
+        characters, locations, sketches, clips and film) and its reviews. Nobody else can.
+        """
+        project, access = self.require_view(project_id, user)
+        if not access.is_team_leader:
+            raise WorkflowError("Only the project's Team Leader can delete a story.", 403)
+        story = self._story_of(project, story_id)
+        from app.models.video_generation_job import VideoGenerationJob
+
+        running = (
+            self.db.query(VideoGenerationJob)
+            .filter(VideoGenerationJob.story_id == story.id, VideoGenerationJob.status.in_(["queued", "planning", "generating"]))
+            .first()
+        )
+        if running is not None:
+            raise WorkflowError(f"Clips are being made for “{story.title}”. Wait until they are ready, then delete the story.", 409)
+        title = story.title
+        subs = self.db.query(ProjectStageSubmission).filter(
+            ProjectStageSubmission.project_id == project.id, ProjectStageSubmission.story_id == story.id
+        )
+        involved = {x.submitted_by_user_id for x in subs} | {x.reviewer_user_id for x in subs}
+        subs.delete(synchronize_session=False)
+        self.db.query(ProjectWorkflowStage).filter(
+            ProjectWorkflowStage.project_id == project.id, ProjectWorkflowStage.story_id == story.id
+        ).delete(synchronize_session=False)
+        self.db.query(Story).filter(Story.id == story.id).delete(synchronize_session=False)
+        self._notify(
+            involved | {m.user_id for m in self._members(project.id)}, project, "story", "story_deleted",
+            f"{_name(user)} deleted the story “{title}” ({project.title}) and everything made from it.",
+            skip=user.id,
+        )
+        self.db.commit()
+
     # ================================================================ AI work (the proxy)
     _STORY_ID = re.compile(r"^stories/(\d+)(?:/(.*))?$")
 
@@ -1051,6 +1087,8 @@ class EmployeeWorkflowService:
             raise WorkflowError("The project's details are managed by the organization.", 403)
         if stage is None:
             raise WorkflowError("This action is not available on organization projects.", 403)
+        if method == "DELETE" and re.fullmatch(r"stories/\d+", subpath.strip("/")):
+            raise WorkflowError("Only the project's Team Leader can delete a story.", 403)
         label = _label(stage)
         if stage not in access.work_stages:
             raise WorkflowError(f"Your role on this project does not include the {label}. You can look at it, but not change it.", 403)

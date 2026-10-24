@@ -706,6 +706,23 @@ export async function selectSceneSketch(projectId, storyId, sceneNo, sketchId) {
 }
 
 /** Delete a sketch; if it was the selected one, the newest left takes its place. */
+/** Delete a story's storyboard and what was made from it here (characters, locations, sketches). */
+export async function deleteStoryboard(projectId, storyId) {
+  return demo((s) => {
+    findStory(s, projectId, storyId);
+    const boards = boardsOf(s, projectId);
+    if (!boards[Number(storyId)]) throw fail('This story has no storyboard.', 404);
+    delete boards[Number(storyId)];
+    ['characterStudio', 'locationStudio'].forEach((bucket) => {
+      const studio = studioOf(s, projectId, storyId, bucket);
+      Object.keys(studio).forEach((k) => delete studio[k]);
+    });
+    const sketches = sketchesOf(s, projectId, storyId);
+    Object.keys(sketches).forEach((k) => delete sketches[k]);
+    return null;
+  });
+}
+
 export async function deleteSceneSketch(projectId, storyId, sceneNo, sketchId) {
   return demo((s) => {
     const all = sketchesOf(s, projectId, storyId);
@@ -833,6 +850,9 @@ export async function uploadCharacterImage(projectId, storyId, key, file) {
 export async function setCharacterMainImage(projectId, storyId, key, which) {
   return saveCharacterRecord(projectId, storyId, key, { images: { active: which } });
 }
+export async function deleteCharacterImage(projectId, storyId, key, which) {
+  return saveCharacterRecord(projectId, storyId, key, { images: which === 'uploaded' ? { uploaded: null, active: 'master' } : { master: null, active: 'uploaded' } });
+}
 export async function downloadCharacterImage(projectId, storyId, key, which) {
   const record = (await getCharacterRecords(projectId, storyId))[key];
   const image = record?.images?.[which === 'uploaded' ? 'uploaded' : 'master'];
@@ -870,6 +890,9 @@ export async function uploadLocationImage(projectId, storyId, key, file) {
 }
 export async function setLocationMainImage(projectId, storyId, key, which) {
   return saveLocationRecord(projectId, storyId, key, { images: { active: which } });
+}
+export async function deleteLocationImage(projectId, storyId, key, which) {
+  return saveLocationRecord(projectId, storyId, key, { images: which === 'uploaded' ? { uploaded: null, active: 'master' } : { master: null, active: 'uploaded' } });
 }
 export async function downloadLocationImage(projectId, storyId, key, which) {
   const record = (await getLocationRecords(projectId, storyId))[key];

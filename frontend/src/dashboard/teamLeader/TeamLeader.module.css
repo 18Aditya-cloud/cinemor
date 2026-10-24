@@ -343,24 +343,92 @@
   }
 }
 
-.personActions { display: inline-flex; align-items: center; gap: 8px; }
-.roleChecks { min-width: 0; margin: 0 0 16px; padding: 0; border: 0; }
-.roleLegend { margin-bottom: 8px; padding: 0; font-size: 0.86rem; font-weight: 700; }
-.roleList { display: flex; flex-wrap: wrap; gap: 8px; }
+/* ---------- a team member's buttons (Edit roles, Remove) */
+/* a person who works and reviews here shows both tags */
+.personPills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.personActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- job role tick boxes (Add Team Member, Edit job roles) */
+.roleChecks {
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+.roleLegend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.roleList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .roleCheck {
-  position: relative; display: inline-flex; align-items: center; gap: 9px;
-  padding: 9px 14px 9px 10px; border: 1px solid var(--cm-line); border-radius: 12px;
-  background: var(--d-field-bg); color: var(--cm-ink-dim); font-size: 0.88rem; font-weight: 600;
-  cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px 9px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink-dim);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
-.roleCheck:hover { border-color: var(--cm-line-strong); color: var(--cm-ink); }
-.roleCheck[data-on='true'] { border-color: var(--d-violet-bd, var(--cm-line-strong)); background: var(--d-accent-fill); color: var(--cm-ink); }
-.roleCheck input { position: absolute; opacity: 0; pointer-events: none; }
-.roleCheck:has(input:focus-visible) { outline: 2px solid var(--cm-violet-hi); outline-offset: 2px; }
+.roleCheck:hover {
+  border-color: var(--cm-line-strong);
+  color: var(--cm-ink);
+}
+.roleCheck[data-on='true'] {
+  border-color: var(--d-violet-bd, var(--cm-line-strong));
+  background: var(--d-accent-fill);
+  color: var(--cm-ink);
+}
+.roleCheck input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.roleCheck:has(input:focus-visible) {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
 .roleBox {
-  display: grid; flex: none; place-items: center; width: 18px; height: 18px;
-  border: 1.5px solid var(--d-checkbox-line, var(--cm-line-strong)); border-radius: 6px; color: #fff;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--d-checkbox-line, var(--cm-line-strong));
+  border-radius: 6px;
+  color: #fff;
 }
-.roleCheck[data-on='true'] .roleBox { border-color: transparent; background: linear-gradient(135deg, #4d8bff, #8b5cf6); }
-.roleChecks:disabled .roleCheck { cursor: default; opacity: 0.6; }
-.roleHint { margin-top: 8px; color: var(--cm-ink-faint); font-size: 0.82rem; line-height: 1.4; }
+.roleCheck[data-on='true'] .roleBox {
+  border-color: transparent;
+  background: linear-gradient(135deg, #4d8bff, #8b5cf6);
+}
+.roleChecks:disabled .roleCheck {
+  cursor: default;
+  opacity: 0.6;
+}
+.roleHint {
+  margin-top: 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}

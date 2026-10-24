@@ -492,6 +492,22 @@ export async function importStoryboard(projectId, storyId, file) {
   return getStoryboard(projectId, storyId);
 }
 
+/**
+ * Delete the story's storyboard and everything made from it: characters and locations (profiles, images), scenes,
+ * sketches, clips and the film. The story stays.
+ */
+export async function deleteStoryboard(projectId, storyId) {
+  await request(`${S(projectId, storyId)}/storyboard`, { method: 'DELETE' });
+  const prefix = [`c/${projectId}/${storyId}/`, `l/${projectId}/${storyId}/`, `k/${projectId}/${storyId}/`, `v/${projectId}/${storyId}/`, `f/${projectId}/${storyId}/`];
+  for (const key of [...imageUrls.keys()]) {
+    if (prefix.some((p) => key.startsWith(p))) {
+      URL.revokeObjectURL(imageUrls.get(key));
+      imageUrls.delete(key);
+    }
+  }
+  return null;
+}
+
 /** The saved storyboard as the backend's JSON file (Blob). */
 export const exportStoryboard = (projectId, storyId) => request(`${S(projectId, storyId)}/storyboard/export`, { as: 'blob' });
 /** An empty storyboard in the backend's format, to fill in and import (Blob). */
@@ -646,6 +662,17 @@ export async function setCharacterMainImage(projectId, storyId, key, which) {
 export const downloadCharacterImage = (projectId, storyId, key, which) =>
   request(`${C(projectId, storyId, key)}/master-image/download?image_type=${which === 'uploaded' ? 'user_upload' : 'canonical'}`, { as: 'blob' });
 
+/** Delete a character's image: 'master' (the generated one) | 'uploaded'. Resolves the character's record. */
+export async function deleteCharacterImage(projectId, storyId, key, which) {
+  const uploaded = which === 'uploaded';
+  await request(`${C(projectId, storyId, key)}/master-image?image_type=${uploaded ? 'user_upload' : 'canonical'}`, { method: 'DELETE' });
+  const l = local();
+  const k = `c/${projectId}/${storyId}/${Number(key)}`;
+  if (l.imageChoice[k] === (uploaded ? 'uploaded' : 'master')) delete l.imageChoice[k];
+  saveLocal();
+  return characterRecord(projectId, storyId, key, { refresh: true });
+}
+
 /* ==================================================================================== environment studio */
 const L = (projectId, storyId, id) => `${S(projectId, storyId)}/locations/${Number(id)}`;
 
@@ -740,6 +767,17 @@ export async function setLocationMainImage(projectId, storyId, key, which) {
   return locationRecord(projectId, storyId, key);
 }
 
+/** Delete a location's image: 'master' (the generated one) | 'uploaded'. Resolves the location's record. */
+export async function deleteLocationImage(projectId, storyId, key, which) {
+  const uploaded = which === 'uploaded';
+  await request(`${L(projectId, storyId, key)}/master-image?image_type=${uploaded ? 'user_upload' : 'canonical'}`, { method: 'DELETE' });
+  const l = local();
+  const k = `l/${projectId}/${storyId}/${Number(key)}`;
+  if (l.imageChoice[k] === (uploaded ? 'uploaded' : 'master')) delete l.imageChoice[k];
+  saveLocal();
+  return locationRecord(projectId, storyId, key, { refresh: true });
+}
+
 export const downloadLocationImage = (projectId, storyId, key, which) =>
   request(`${L(projectId, storyId, key)}/master-image/download?image_type=${which === 'uploaded' ? 'user_upload' : 'canonical'}`, { as: 'blob' });
 
@@ -803,6 +841,20 @@ export async function uploadSceneSketch(projectId, storyId, sceneId, file) {
 export async function selectSceneSketch(projectId, storyId, sceneId, sketchId) {
   const l = local();
   l.sketchChoice[`${projectId}/${storyId}/${sceneId}`] = sketchId;
+  saveLocal();
+  return getSceneSketchRecord(projectId, storyId, sceneId);
+}
+
+/** Delete one sketch of a scene. Resolves the scene's record (another sketch becomes the main one). */
+export async function deleteSceneSketch(projectId, storyId, sceneId, sketchId) {
+  await request(`${S(projectId, storyId)}/scenes/${Number(sceneId)}/sketches/${Number(sketchId)}`, { method: 'DELETE' });
+  const cached = `k/${projectId}/${storyId}/${sceneId}/${sketchId}`;
+  if (imageUrls.has(cached)) {
+    URL.revokeObjectURL(imageUrls.get(cached));
+    imageUrls.delete(cached);
+  }
+  const l = local();
+  if (l.sketchChoice[`${projectId}/${storyId}/${sceneId}`] === Number(sketchId)) delete l.sketchChoice[`${projectId}/${storyId}/${sceneId}`];
   saveLocal();
   return getSceneSketchRecord(projectId, storyId, sceneId);
 }
@@ -875,4 +927,22 @@ export async function assembleFilm(projectId, storyId, jobId, sceneIds) {
 }
 /** The finished film, as an object URL to play (refresh after assembling again). */
 export const filmUrl = (projectId, storyId, jobId, refresh = false) => imageUrl(`f/${projectId}/${storyId}/${jobId}`, `${S(projectId, storyId)}/video-generation/${Number(jobId)}/download`, { refresh });
+/** Delete one scene's clip (the scene can be made again). */
+export async function deleteVideoClip(projectId, storyId, clipId) {
+  await request(`${S(projectId, storyId)}/video-clips/${Number(clipId)}`, { method: 'DELETE' });
+  const cached = `v/${projectId}/${storyId}/${clipId}`;
+  if (imageUrls.has(cached)) {
+    URL.revokeObjectURL(imageUrls.get(cached));
+    imageUrls.delete(cached);
+  }
+}
+/** Delete the joined film (the clips stay; they can be joined again). */
+export async function deleteFilm(projectId, storyId, jobId) {
+  await request(`${S(projectId, storyId)}/video-generation/${Number(jobId)}`, { method: 'DELETE' });
+  const cached = `f/${projectId}/${storyId}/${jobId}`;
+  if (imageUrls.has(cached)) {
+    URL.revokeObjectURL(imageUrls.get(cached));
+    imageUrls.delete(cached);
+  }
+}
 export const downloadFilm = (projectId, storyId, jobId) => request(`${S(projectId, storyId)}/video-generation/${Number(jobId)}/download`, { as: 'blob' });

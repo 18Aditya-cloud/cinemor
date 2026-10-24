@@ -6,13 +6,14 @@ import { listModels } from '../../services/storyApi.js';
 import useResource from '../hooks/useResource.js';
 import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
-import { IconBook, IconCube, IconPencil, IconRefresh, IconUsers } from '../ui/DashIcons.jsx';
+import { IconBook, IconCube, IconPencil, IconRefresh, IconTrash, IconUsers } from '../ui/DashIcons.jsx';
 import Modal from '../ui/Modal.jsx';
+import ConfirmModal from '../ui/ConfirmModal.jsx';
 import Notice from '../ui/Notice.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import CinemorOrb from './CinemorOrb.jsx';
 import { download } from './filmExport.js';
-import { exportStoryboard, generateStoryboard, getProject, getProjectStory, getStoryboard, importStoryboard, isLive, listProjectStories, listStoryboards, storyboardTemplate, updateStoryboardDialogue } from './individualApi.js';
+import { deleteStoryboard, exportStoryboard, generateStoryboard, getProject, getProjectStory, getStoryboard, importStoryboard, isLive, listProjectStories, listStoryboards, storyboardTemplate, updateStoryboardDialogue } from './individualApi.js';
 import { sceneCount } from './oneClick.js';
 import { IconArrowLeft } from './parts.jsx';
 import { countsOf, findCharacter, fromBackendBoard, has, nice, readStoryboard, scenesAt, scenesWith } from './storyboard.js';
@@ -140,6 +141,7 @@ function Board({ projectId, storyId, onSaved }) {
   const [makeError, setMakeError] = useState('');
   const [importing, setImporting] = useState(false);
   const [confirmRemake, setConfirmRemake] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [tab, setTab] = useState('overview');
   const [scene, setScene] = useState(0);
   const tabsRef = useRef(null);
@@ -278,6 +280,9 @@ function Board({ projectId, storyId, onSaved }) {
             <Button variant="secondary" icon={IconUpload} onClick={() => setImporting(true)}>
               Import JSON
             </Button>
+            <Button variant="danger" icon={IconTrash} onClick={() => setConfirmDelete(true)}>
+              Delete
+            </Button>
           </div>
         </div>
 
@@ -356,6 +361,21 @@ function Board({ projectId, storyId, onSaved }) {
           </div>
         </div>
       </Modal>
+      <ConfirmModal
+        open={confirmDelete}
+        title="Delete this storyboard?"
+        text="The storyboard is deleted for good, with everything made from it: the characters' and locations' profiles and images, every scene's sketches, the clips and the film. The story itself stays, and a new storyboard can be made from it. Export it first if you want to keep a copy."
+        confirmLabel="Delete Storyboard"
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={async () => {
+          await deleteStoryboard(projectId, storyId);
+          setSaved(null);
+          setTab('overview');
+          setScene(0);
+          onSaved();
+          toast('Storyboard deleted');
+        }}
+      />
       {importModal}
     </>
   );

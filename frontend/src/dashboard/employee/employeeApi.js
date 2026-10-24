@@ -72,7 +72,7 @@ const project = (p) => ({
   isTeamLeader: Boolean(p.is_team_leader),
   workRoles: (p.my_work_roles || []).map(role),
   reviewRoles: (p.my_review_roles || []).map(role),
-  stages: (p.stages || []).map(stage),
+  stages: (p.stages || []).map(stage), // the project as a whole: what this person does on each stage
   stories: (p.stories || []).map(storyView), // every story, with its own stages
   storyCount: p.story_count || 0,
   finishedStoryCount: p.finished_story_count || 0,
@@ -119,6 +119,11 @@ export const submitStage = async (projectId, stageKey, { reviewerUserId, note, s
       body: { reviewer_user_id: Number(reviewerUserId), note: note?.trim() || null, story_id: storyId ? Number(storyId) : null },
     }),
   );
+
+/** The project's Team Leader deletes one of its stories, with everything made from it and its reviews. */
+export const deleteProjectStory = async (projectId, storyId) => {
+  await request(`${E}/projects/${Number(projectId)}/work/stories/${Number(storyId)}`, { method: 'DELETE' });
+};
 
 export const reopenStage = async (projectId, stageKey, reason, storyId) =>
   project(await request(`${E}/projects/${Number(projectId)}/stages/${stageKey}/reopen`, { method: 'POST', body: { reason: reason?.trim() || null, story_id: storyId ? Number(storyId) : null } }));

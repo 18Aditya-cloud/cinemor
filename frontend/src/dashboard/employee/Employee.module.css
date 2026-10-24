@@ -772,7 +772,6 @@
   font-size: 0.82rem;
   line-height: 1.5;
 }
-
 /* the Submit window: why this cannot be sent now (nothing made yet, nothing changed since changes were asked) */
 .blocked {
   margin-bottom: 14px;
@@ -785,7 +784,6 @@
   font-weight: 600;
   line-height: 1.5;
 }
-
 .formError {
   margin-bottom: 12px;
   color: var(--d-danger-fg-strong);
@@ -1357,6 +1355,18 @@
   color: var(--cm-ink);
 }
 
+/* an opened story, for its Team Leader: delete it */
+.storyTlRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 18px 16px;
+  padding: 10px 12px;
+  border: 1px dashed var(--d-danger-bd);
+  border-radius: 14px;
+}
 /* The page fits the space it really has (sidebar open or closed, any screen): every part is sized by its own width. */
 .projectPage {
   container: projpage / inline-size;

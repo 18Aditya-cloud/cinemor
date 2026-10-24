@@ -9,7 +9,6 @@ import GlowButton from '../components/GlowButton.jsx';
 import { AlertCircle } from '../components/Icons.jsx';
 import AuthSuccess from '../components/auth/AuthSuccess.jsx';
 import GoogleButton from '../components/auth/GoogleButton.jsx';
-import PasswordChecklist from '../components/auth/PasswordChecklist.jsx';
 import PasswordField from '../components/auth/PasswordField.jsx';
 import TextField from '../components/auth/TextField.jsx';
 import styles from './AuthPage.module.css';
@@ -17,10 +16,10 @@ import styles from './AuthPage.module.css';
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
 /**
- * Log in: email, password (with the password guide), and "Sign in with Google".
+ * Log in: email, password and "Sign in with Google".
  *
- * The password guide here is only guidance. It never blocks logging in, because an existing
- * account may have an older, weaker password. (On Sign up the guide is required.)
+ * No password-strength guide here: the password was checked when the account was made (Sign up), and an
+ * existing account may have an older, weaker password that must still log in.
  */
 export default function LoginForm({ onInvalid }) {
   const copy = AUTH.login;
@@ -33,7 +32,6 @@ export default function LoginForm({ onInvalid }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false });
-  const [passwordFocused, setPasswordFocused] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading | google | success
   const [formError, setFormError] = useState('');
 
@@ -172,11 +170,8 @@ export default function LoginForm({ onInvalid }) {
             inputRef={passwordRef}
             disabled={busy}
             error={passwordError}
-            describedBy={`${uid}-guide`}
             onChange={(event) => setPassword(event.target.value)}
-            onFocus={() => setPasswordFocused(true)}
             onBlur={() => {
-              setPasswordFocused(false);
               if (password) setTouched((t) => ({ ...t, password: true }));
             }}
           />
@@ -185,7 +180,6 @@ export default function LoginForm({ onInvalid }) {
               Forgot password?
             </Link>
           </div>
-          <PasswordChecklist id={`${uid}-guide`} password={password} open={passwordFocused || password.length > 0} />
         </div>
 
         {formError && (

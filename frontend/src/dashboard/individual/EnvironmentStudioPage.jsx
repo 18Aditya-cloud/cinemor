@@ -5,7 +5,8 @@ import cx from '../../utils/cx.js';
 import useResource from '../hooks/useResource.js';
 import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
-import { IconBook, IconBuilding, IconCheck, IconImage, IconSparkles, IconSun } from '../ui/DashIcons.jsx';
+import { IconBook, IconBuilding, IconCheck, IconImage, IconSparkles, IconSun, IconTrash } from '../ui/DashIcons.jsx';
+import ConfirmModal from '../ui/ConfirmModal.jsx';
 import Notice from '../ui/Notice.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import { listModels } from '../../services/storyApi.js';
@@ -13,6 +14,7 @@ import { IMAGE_MODELS, LIMITS } from './characterStudio.js';
 import { DEFAULT_STYLE_NOTES, LIVE_PLACE, LOCATION_FIELDS, LOCATION_STYLES } from './environmentStudio.js';
 import { download } from './filmExport.js';
 import {
+  deleteLocationImage,
   downloadLocationImage,
   generateLocationImage,
   generateLocationProfile,
@@ -542,6 +544,7 @@ function MasterImage({ projectId, storyId, character, record, profile, ensurePro
   const [run, setRun] = useState(null); // { step, started, done }
   const [reveal, setReveal] = useState(0);
   const [error, setError] = useState('');
+  const [asking, setAsking] = useState(false); // "delete this image?"
   const fileRef = useRef(null);
   const shown = tab === 'master' ? images.master : images.uploaded;
   const isMain = shown && (images.active === tab || !images[images.active]);
@@ -635,6 +638,9 @@ function MasterImage({ projectId, storyId, character, record, profile, ensurePro
               >
                 <IconExport width={16} height={16} />
               </button>
+              <button type="button" className={s.toolButton} onClick={() => setAsking(true)} disabled={!shown} aria-label="Delete image" title="Delete image">
+                <IconTrash width={16} height={16} />
+              </button>
               <button type="button" className={s.toolButton} onClick={() => fileRef.current?.click()} aria-label={images.uploaded ? 'Replace your image' : 'Upload your image'} title={images.uploaded ? 'Replace your image' : 'Upload your image'}>
                 <IconUpload width={16} height={16} />
               </button>
@@ -674,6 +680,18 @@ function MasterImage({ projectId, storyId, character, record, profile, ensurePro
           )}
         </div>
       )}
+      <ConfirmModal
+        open={asking}
+        title={tab === 'master' ? 'Delete the master image?' : 'Delete your image?'}
+        text={`The ${tab === 'master' ? 'generated master image' : 'image you uploaded'} of ${character.name} will be deleted for good.${isMain && images[tab === 'master' ? 'uploaded' : 'master'] ? ' The other image becomes the main one.' : ''} This cannot be undone.`}
+        confirmLabel="Delete Image"
+        onClose={() => setAsking(false)}
+        onConfirm={async () => {
+          onSaved(await deleteLocationImage(projectId, storyId, character.key, tab));
+          setReveal((n) => n + 1);
+          toast('Image deleted');
+        }}
+      />
       {error && (
         <p className={s.error} role="alert">
           {error}

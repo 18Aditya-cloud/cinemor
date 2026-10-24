@@ -390,6 +390,7 @@ export async function updateEmployee(id, { maxProjects, jobRoleIds, teamLeader, 
     if (employee.reviewer && reviewing.length) {
       throw fail(`${employee.email} is still a reviewer on ${reviewing.map((p) => `“${p.title}”`).join(', ')}, which is not finished. Ask the project's Team Leader to remove them as a reviewer first, then change their Reviewer post.`, 400);
     }
+
     const was = { teamLeader: Boolean(employee.teamLeader), reviewer: Boolean(employee.reviewer) };
     employee.jobRoleIds = ids;
     delete employee.jobRoleId;
@@ -559,17 +560,28 @@ export async function getTeamLeaderProject(teamLeaderId, projectId) {
       project: projectSummary(project),
       members: project.members.map((m) => {
         const e = db.employees.find((x) => x.id === m.employeeId);
-        return { id: m.id, kind: m.kind, employeeId: m.employeeId, email: e?.email ?? '(removed employee)', jobRoleName: jobRoleName(m.jobRoleId) || (m.kind === 'reviewer' ? 'Reviewer' : ''),jobRoleId: m.jobRoleId ?? null,
-          employeeJobRoles: e ? rolesOf(e).map((id) => ({ id, name: jobRoleName(id) })).filter((r) => r.name) : [], };
+        return {
+          id: m.id,
+          kind: m.kind,
+          employeeId: m.employeeId,
+          email: e?.email ?? '(removed employee)',
+          jobRoleId: m.jobRoleId ?? null,
+          jobRoleName: jobRoleName(m.jobRoleId) || (m.kind === 'reviewer' ? 'Reviewer' : ''),
+          employeeJobRoles: e ? rolesOf(e).map((id) => ({ id, name: jobRoleName(id) })).filter((r) => r.name) : [],
+        };
       }),
+      // people already on this project are offered even at their project limit (no new slot is needed)
       availableEmployees: db.employees
         .filter((e) => e.id !== project.teamLeaderId && !on.has(`employee:${e.id}`))
         .map((e) => ({ ...personView(e), onProject: project.members.some((m) => m.employeeId === e.id) }))
         .filter((e) => e.available || e.onProject),
+      // a reviewer can review several job roles on one project: offered while one of their roles is not reviewed here yet
       availableReviewers: db.employees
-        .filter((e) => e.reviewer && e.id !== project.teamLeaderId && !on.has(`reviewer:${e.id}`))
+        .filter((e) => e.reviewer && e.id !== project.teamLeaderId)
+        .filter((e) => (e.reviewerJobRoleIds || []).some((id) => !project.members.some((m) => m.kind === 'reviewer' && m.employeeId === e.id && m.jobRoleId === id)))
         .map((e) => ({ ...personView(e), onProject: project.members.some((m) => m.employeeId === e.id) }))
         .filter((e) => e.available || e.onProject),
+      reviewerRolesOf: Object.fromEntries(db.employees.filter((e) => e.reviewer).map((e) => [e.id, personView(e).reviewerJobRoles || []])),
     };
   });
 }
@@ -585,7 +597,8 @@ export async function addProjectMember(teamLeaderId, projectId, { employeeId, ki
     if (kind === 'reviewer' && !employee.reviewer) throw fail(`${employee.email} is not a Reviewer.`, 400);
     // the same rule as the backend: a reviewer is added for one of the job roles they review
     if (kind === 'reviewer' && !(employee.reviewerJobRoleIds || []).includes(Number(jobRoleId))) throw fail('Choose one of the job roles this reviewer reviews.', 400);
-    if (project.members.some((m) => m.kind === kind && m.employeeId === employee.id)) throw fail(`${employee.email} is already on this project.`, 409);
+    if (kind === 'reviewer' && project.members.some((m) => m.kind === 'reviewer' && m.employeeId === employee.id && m.jobRoleId === Number(jobRoleId))) throw fail(`${employee.email} already reviews ${jobRoleName(Number(jobRoleId))} on this project.`, 409);
+    if (kind === 'employee' && project.members.some((m) => m.kind === kind && m.employeeId === employee.id)) throw fail(`${employee.email} is already on this project.`, 409);
     if (kind === 'employee') {
       if (!rolesOf(employee).includes(Number(jobRoleId))) throw fail('Choose one of this employee\u2019s job roles.', 400);
       if (employee.maxProjects != null && activeProjectCount(employee.id) >= employee.maxProjects) throw fail(`${employee.email} is already on ${employee.maxProjects} projects, their limit.`, 409);
@@ -608,6 +621,7 @@ export async function removeProjectMember(teamLeaderId, projectId, memberId) {
   });
 }
 
+/** Add an employee with one or more of their job roles, or change which of their roles they do on the project. */
 export async function setEmployeeJobRoles(teamLeaderId, projectId, employeeId, jobRoleIds) {
   if (isBackendConnected) return backend.setEmployeeJobRoles(teamLeaderId, projectId, employeeId, jobRoleIds);
   return demo(() => {
@@ -625,6 +639,7 @@ export async function setEmployeeJobRoles(teamLeaderId, projectId, employeeId, j
     project.members = project.members.filter((m) => !mine(m) || wanted.includes(m.jobRoleId));
     wanted.filter((id) => !have.includes(id)).forEach((id) => project.members.push({ id: nextId('member'), employeeId: employee.id, kind: 'employee', jobRoleId: id }));
     touch(project);
+    log('project', `${employee.email}'s job roles on "${project.title}" were updated`);
     return {};
   });
 }

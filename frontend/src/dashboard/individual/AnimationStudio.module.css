@@ -407,3 +407,28 @@
     animation: none;
   }
 }
+
+/* a scene's clip can be deleted (after a warning) */
+.clipDelete {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: 1px solid var(--d-danger-bd);
+  border-radius: 9px;
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg);
+  cursor: pointer;
+}
+.clipDelete:hover {
+  border-color: var(--d-danger-fg);
+}
+.clipDelete:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.clipDelete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

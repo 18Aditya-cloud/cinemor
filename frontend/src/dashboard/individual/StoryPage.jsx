@@ -36,7 +36,11 @@ const byLatest = (list) => [...list].sort((a, b) => (a.updatedAt === b.updatedAt
  * that asks Cinemor to change it. Each answer is saved as a new version of the story, and the
  * whole chat is saved with it (see individualApi.js), so it can be continued later from "Chats".
  */
-export default function StoryPage({ projectId, view = 'home', storyId = null }) {
+/**
+ * `canDelete`: whether the chat lists offer Delete (deleting a chat deletes its story). Organization projects pass
+ * false: there only the project's Team Leader deletes a story, from the project page.
+ */
+export default function StoryPage({ projectId, view = 'home', storyId = null, canDelete = true }) {
   const { data, error, reload } = useResource(() => load(projectId), [projectId]);
   const [project, models, lastSettings] = data ?? [null, [], null];
   useDocumentTitle(project ? `Story: ${project.title}` : 'Story');
@@ -69,7 +73,7 @@ export default function StoryPage({ projectId, view = 'home', storyId = null }) 
     return (
       <div className={s.page}>
         {head(true)}
-        <Studio project={project} models={models} lastSettings={lastSettings} storyId={view === 'chat' ? storyId : null} />
+        <Studio project={project} models={models} lastSettings={lastSettings} storyId={view === 'chat' ? storyId : null} canDelete={canDelete} />
       </div>
     );
   }
@@ -78,7 +82,7 @@ export default function StoryPage({ projectId, view = 'home', storyId = null }) 
     <div className={s.page}>
       {head(false)}
       <Choice projectId={projectId} mode={view === 'import' ? 'import' : null} />
-      {view === 'import' ? <ImportPanel projectId={projectId} /> : <RecentChats projectId={projectId} />}
+      {view === 'import' ? <ImportPanel projectId={projectId} /> : <RecentChats projectId={projectId} canDelete={canDelete} />}
     </div>
   );
 }
@@ -131,7 +135,7 @@ function ModeCard({ icon: Icon, title, text, on, onClick }) {
 }
 
 /* ====================================================================================== the project's chats */
-function RecentChats({ projectId }) {
+function RecentChats({ projectId, canDelete = true }) {
   const { navigate } = useRouter();
   const toast = useToast();
   const { data: chats, error, reload } = useResource(() => listProjectStories(projectId), [projectId]);
@@ -160,7 +164,7 @@ function RecentChats({ projectId }) {
       ) : chats.length === 0 ? (
         <p className={s.emptyChats}>No chats yet. Create a story with AI or import one, and its chat is saved here.</p>
       ) : (
-        <ChatList chats={chats} onOpen={(id) => navigate(`${storyBase(projectId)}/${id}`)} onDelete={remove} />
+        <ChatList chats={chats} onOpen={(id) => navigate(`${storyBase(projectId)}/${id}`)} onDelete={canDelete ? remove : undefined} />
       )}
     </section>
   );
@@ -250,7 +254,7 @@ function ChatList({ chats, currentId, onOpen, onDelete }) {
 }
 
 /* ====================================================================================== brief + chat */
-function Studio({ project, models, lastSettings, storyId }) {
+function Studio({ project, models, lastSettings, storyId, canDelete = true }) {
   const uid = useId();
   const toast = useToast();
   const { navigate } = useRouter();
@@ -631,6 +635,7 @@ function Studio({ project, models, lastSettings, storyId }) {
       </section>
 
       <HistoryPanel
+        canDelete={canDelete}
         open={panel === 'history'}
         projectId={project.id}
         currentId={story?.id}
@@ -672,7 +677,7 @@ function exportStory(story) {
 }
 
 /** "Chats": the project's story chats, newest activity first. */
-function HistoryPanel({ open, projectId, currentId, onClose, onOpen, onNew, onImport, onDeleted }) {
+function HistoryPanel({ open, projectId, currentId, onClose, onOpen, onNew, onImport, onDeleted, canDelete = true }) {
   const toast = useToast();
   const [chats, setChats] = useState(null);
   const [error, setError] = useState('');
@@ -711,12 +716,12 @@ function HistoryPanel({ open, projectId, currentId, onClose, onOpen, onNew, onIm
             chats={chats}
             currentId={currentId}
             onOpen={onOpen}
-            onDelete={async (chat) => {
+            onDelete={canDelete ? async (chat) => {
               await deleteProjectStory(projectId, chat.id);
               setChats((list) => list.filter((c) => c.id !== chat.id));
               toast('Chat deleted');
               onDeleted?.(chat.id);
-            }}
+            } : undefined}
           />
         )}
       </div>

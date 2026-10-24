@@ -5,13 +5,14 @@ import cx from '../../utils/cx.js';
 import useResource from '../hooks/useResource.js';
 import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
-import { IconCheckCircle, IconChevronDown, IconChevronLeft, IconClose, IconEye, IconInfo, IconLock, IconPlus, IconRefresh, IconSend } from '../ui/DashIcons.jsx';
+import { IconCheckCircle, IconChevronDown, IconChevronLeft, IconClose, IconEye, IconInfo, IconLock, IconPlus, IconRefresh, IconSend, IconTrash } from '../ui/DashIcons.jsx';
+import ConfirmModal from '../ui/ConfirmModal.jsx';
 import Notice from '../ui/Notice.jsx';
 import Pill from '../ui/Pill.jsx';
 import RefreshButton from '../ui/RefreshButton.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import pages from '../pages/pages.module.css';
-import { getMyProject, itemLabel, withdrawSubmission } from './employeeApi.js';
+import { deleteProjectStory, getMyProject, itemLabel, withdrawSubmission } from './employeeApi.js';
 import { NotificationBell, RolePills } from './EmployeeParts.jsx';
 import { AnswerModal, ReopenModal, SubmitModal } from './ReviewModals.jsx';
 import { modulePath, STAGES, stageMeta, STATE, SUBMISSION } from './stages.js';
@@ -56,6 +57,7 @@ export default function EmployeeProjectPage({ projectId }) {
   const [sort, setSort] = useState('mine');
   const [allTasks, setAllTasks] = useState(false);
   const [allReviews, setAllReviews] = useState(false);
+  const [deleting, setDeleting] = useState(null); // the story the Team Leader is deleting (asks first)
   useDocumentTitle(project?.title || 'Project');
 
   const back = (
@@ -393,6 +395,14 @@ export default function EmployeeProjectPage({ projectId }) {
                             })}
                           </ol>
                         )}
+                        {shown && project.isTeamLeader && (
+                          <div className={e.storyTlRow}>
+                            <span className={e.small}>As Team Leader you can delete this story, with everything made from it.</span>
+                            <Button variant="danger" icon={IconTrash} onClick={() => setDeleting(story)}>
+                              Delete story
+                            </Button>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
@@ -497,6 +507,18 @@ export default function EmployeeProjectPage({ projectId }) {
         </aside>
       </div>
 
+      <ConfirmModal
+        open={Boolean(deleting)}
+        title="Delete this story?"
+        text={deleting ? `“${deleting.title}” is deleted for good, with everything made from it: its versions, storyboard, characters, locations, sketches, clips and film, and its reviews. The other stories of the project are not touched. This cannot be undone.` : ''}
+        confirmLabel="Delete Story"
+        onClose={() => setDeleting(null)}
+        onConfirm={async () => {
+          await deleteProjectStory(project.id, deleting.id);
+          toast(`“${deleting.title}” deleted`);
+          await reload();
+        }}
+      />
       <SubmitModal open={Boolean(submit)} project={project} stage={submit?.stage} story={submit?.story} onClose={() => setSubmit(null)} onDone={reload} />
       <AnswerModal open={Boolean(answer)} submission={answer?.submission} mode={answer?.mode} onClose={() => setAnswer(null)} onDone={reload} />
       <ReopenModal open={Boolean(reopen)} project={project} stage={reopen?.stage} story={reopen?.story} onClose={() => setReopen(null)} onDone={reload} />
