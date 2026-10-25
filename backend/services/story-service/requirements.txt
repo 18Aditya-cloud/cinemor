@@ -27,3 +27,4 @@ moviepy>=2.2.1,<3
 # known Pillow 11.x decoder issues out of reach. Move to Pillow>=13 when moviepy
 # allows it (or when film assembly moves to plain ffmpeg).
 Pillow>=11.3.0,<12
+jsonschema
