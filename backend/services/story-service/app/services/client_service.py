@@ -7,7 +7,8 @@ from app.models.membership import OrganizationRole
 from app.repositories.auth_repository import AuthRepository
 from app.repositories.client_repository import ClientRepository
 from app.models.user import User, AccountType
-
+from app.models.project import Project, ProjectStatus
+from sqlalchemy import func, select
 
 class ClientService:
     """
@@ -172,11 +173,7 @@ class ClientService:
         organization_id: int,
         client_id: int,
     ):
-        """
-        Get a client belonging to the organization.
-
-        Any active organization member can view clients.
-        """
+        """Get a client with live project statistics."""
 
         self._require_active_member(
             user_id=actor_user_id,
@@ -189,11 +186,37 @@ class ClientService:
         )
 
         if client is None:
-            raise ValueError(
-                "Client not found."
-            )
+            raise ValueError("Client not found.")
 
-        return client
+        ongoing_projects = self.db.scalar(
+            select(func.count(Project.id)).where(
+                Project.organization_id == organization_id,
+                Project.client_id == client_id,
+                Project.status == ProjectStatus.STARTED,
+            )
+        ) or 0
+
+        successfully_delivered_projects = self.db.scalar(
+            select(func.count(Project.id)).where(
+                Project.organization_id == organization_id,
+                Project.client_id == client_id,
+                Project.status == ProjectStatus.COMPLETED,
+            )
+        ) or 0
+
+        return {
+            "id": client.id,
+            "organization_id": client.organization_id,
+            "name": client.name,
+            "email": client.email,
+            "phone": client.phone,
+            "ongoing_projects": ongoing_projects,
+            "successfully_delivered_projects": (
+                successfully_delivered_projects
+            ),
+            "created_at": client.created_at,
+            "updated_at": client.updated_at,
+        }
 
     # ========================================================
     # List / Search Clients
@@ -207,31 +230,77 @@ class ClientService:
         search: str | None = None,
     ):
         """
-        Return clients belonging to the organization.
-
-        Any active organization member can view clients.
-
-        Optional search:
-            - client name
-            - client email
-            - client phone
+        Get all clients belonging to an organization,
+        including their ongoing and successfully delivered
+        project counts.
         """
-
         self._require_active_member(
             user_id=actor_user_id,
             organization_id=organization_id,
         )
 
-        if search is not None:
-            search = search.strip()
-
-            if not search:
-                search = None
-
-        return self.repository.get_organization_clients(
+        clients = self.repository.get_organization_clients(
             organization_id=organization_id,
             search=search,
         )
+
+        if not clients:
+            return []
+
+        client_ids = [client.id for client in clients]
+
+        # Fetch project counts for all listed clients in one query.
+        project_counts = self.db.execute(
+            select(
+                Project.client_id,
+                Project.status,
+                func.count(Project.id).label("project_count"),
+            ).where(
+                Project.organization_id == organization_id,
+                Project.client_id.in_(client_ids),
+                Project.status.in_(
+                    [ProjectStatus.STARTED, ProjectStatus.COMPLETED]
+                ),
+            ).group_by(
+                Project.client_id,
+                Project.status,
+            )
+        ).all()
+
+        counts_by_client = {
+            client_id: {
+                "ongoing_projects": 0,
+                "successfully_delivered_projects": 0,
+            }
+            for client_id in client_ids
+        }
+
+        for client_id, project_status, project_count in project_counts:
+            if project_status == ProjectStatus.STARTED:
+                counts_by_client[client_id]["ongoing_projects"] = project_count
+            elif project_status == ProjectStatus.COMPLETED:
+                counts_by_client[client_id][
+                    "successfully_delivered_projects"
+                ] = project_count
+
+        return [
+            {
+                "id": client.id,
+                "organization_id": client.organization_id,
+                "name": client.name,
+                "email": client.email,
+                "phone": client.phone,
+                "ongoing_projects": counts_by_client[client.id][
+                    "ongoing_projects"
+                ],
+                "successfully_delivered_projects": counts_by_client[
+                    client.id
+                ]["successfully_delivered_projects"],
+                "created_at": client.created_at,
+                "updated_at": client.updated_at,
+            }
+            for client in clients
+        ]
 
     # ========================================================
     # Update Client

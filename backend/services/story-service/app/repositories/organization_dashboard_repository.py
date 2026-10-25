@@ -593,3 +593,30 @@ class OrganizationDashboardRepository:
         return list(
             self.db.scalars(statement).all()
         )
+    
+    def count_client_ongoing_projects(
+        self,
+        *,
+        organization_id: int,
+        client_id: int,
+    ) -> int:
+        statement = select(func.count(Project.id)).where(
+            Project.organization_id == organization_id,
+            Project.client_id == client_id,
+            Project.status == ProjectStatus.STARTED,
+        )
+        return int(self.db.scalar(statement) or 0)
+
+
+    def count_client_completed_projects(
+        self,
+        *,
+        organization_id: int,
+        client_id: int,
+    ) -> int:
+        statement = select(func.count(Project.id)).where(
+            Project.organization_id == organization_id,
+            Project.client_id == client_id,
+            Project.status == ProjectStatus.COMPLETED,
+        )
+        return int(self.db.scalar(statement) or 0)
