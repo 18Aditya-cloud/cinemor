@@ -605,6 +605,39 @@ def invite_employee(
         },
     }
 
+@router.get(
+    "/organizations/{organization_id}/employees/invitations",
+)
+def get_employee_invitations(
+    organization_id: int,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    service = AuthService(db)
+
+    return service.get_employee_invitations(
+        actor_user_id=current_user.id,
+        organization_id=organization_id,
+    )
+
+
+@router.delete(
+    "/organizations/{organization_id}/employees/invitations/{invitation_id}",
+)
+def revoke_employee_invitation(
+    organization_id: int,
+    invitation_id: int,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    service = AuthService(db)
+
+    return service.revoke_employee_invitation(
+        actor_user_id=current_user.id,
+        organization_id=organization_id,
+        invitation_id=invitation_id,
+    )
+
 # ============================================================
 # Accept Employee Invitation
 # ============================================================

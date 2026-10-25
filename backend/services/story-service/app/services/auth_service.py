@@ -2862,3 +2862,94 @@ class AuthService:
                     f"Unable to update job role '{name}'."
                 ),
             ) from exc
+            
+    
+    def get_employee_invitations(
+        self,
+        *,
+        actor_user_id: int,
+        organization_id: int,
+    ) -> list[dict[str, Any]]:
+        membership = self.get_user_membership(
+            user_id=actor_user_id,
+            organization_id=organization_id,
+        )
+
+        if membership.role.value != "organization_admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only organization administrators can view invitations.",
+            )
+
+        invitations = self.repository.get_pending_employee_invitations(
+            organization_id=organization_id,
+        )
+
+        return [
+            {
+                "id": invitation.id,
+                "organization_id": invitation.organization_id,
+                "email": invitation.email,
+                "job_role_id": invitation.job_role_id,
+                "system_role": invitation.system_role,
+                "expires_at": invitation.expires_at,
+            }
+            for invitation in invitations
+        ]
+
+
+    def revoke_employee_invitation(
+        self,
+        *,
+        actor_user_id: int,
+        organization_id: int,
+        invitation_id: int,
+    ) -> dict[str, Any]:
+        membership = self.get_user_membership(
+            user_id=actor_user_id,
+            organization_id=organization_id,
+        )
+
+        if membership.role.value != "organization_admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only organization administrators can revoke invitations.",
+            )
+
+        invitation = self.repository.get_invitation_by_id_for_update(
+            organization_id=organization_id,
+            invitation_id=invitation_id,
+        )
+
+        if invitation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invitation not found.",
+            )
+
+        if invitation.is_accepted:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An accepted invitation cannot be revoked.",
+            )
+
+        if invitation.revoked_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This invitation has already been revoked.",
+            )
+
+        try:
+            invitation_id = invitation.id
+            self.repository.delete_employee_invitation(
+                invitation=invitation,
+            )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return {
+            "message": "Employee invitation revoked and deleted successfully.",
+            "invitation_id": invitation.id,
+        }

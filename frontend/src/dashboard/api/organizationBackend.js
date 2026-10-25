@@ -175,8 +175,10 @@ export async function sendInvitation({ email, jobRoleId, maxProjects }) {
   return { id: inv.id, email: inv.email || email, jobRoleId: Number(jobRoleId), jobRoleName: role?.name || '', maxProjects: inv.max_concurrent_projects ?? null, sentAt: time(inv.created_at), status: 'pending' };
 }
 
-export async function revokeInvitation() {
-  throw unavailable('Revoking an invitation');
+export async function revokeInvitation(id) {
+  return request(authOrg(`/employees/invitations/${id}`), {
+    method: 'DELETE',
+  });
 }
 
 /**

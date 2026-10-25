@@ -1203,3 +1203,55 @@ class AuthRepository:
         self.db.flush()
 
         return len(sessions)
+    
+    def get_invitation_by_id_for_update(
+        self,
+        *,
+        organization_id: int,
+        invitation_id: int,
+    ) -> EmployeeInvitation | None:
+        return self.db.scalar(
+            select(EmployeeInvitation)
+            .where(
+                EmployeeInvitation.id == invitation_id,
+                EmployeeInvitation.organization_id == organization_id,
+            )
+            .with_for_update()
+        )
+
+
+    def get_pending_employee_invitations(
+        self,
+        *,
+        organization_id: int,
+    ) -> list[EmployeeInvitation]:
+        statement = (
+            select(EmployeeInvitation)
+            .where(
+                EmployeeInvitation.organization_id == organization_id,
+                EmployeeInvitation.is_accepted.is_(False),
+                EmployeeInvitation.revoked_at.is_(None),
+            )
+            .order_by(EmployeeInvitation.id.desc())
+        )
+
+        return list(self.db.scalars(statement).all())
+
+
+    def revoke_employee_invitation(
+        self,
+        *,
+        invitation: EmployeeInvitation,
+        revoked_at: datetime,
+    ) -> EmployeeInvitation:
+        invitation.revoked_at = revoked_at
+        self.db.flush()
+        return invitation
+    
+    def delete_employee_invitation(
+        self,
+        *,
+        invitation: EmployeeInvitation,
+    ) -> None:
+        self.db.delete(invitation)
+        self.db.flush()
