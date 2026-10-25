@@ -61,7 +61,7 @@ class OpenRouterVideoClient:
         prompt: str,
         duration: int | None = None,
         aspect_ratio: str | None = "16:9",
-        resolution: str | None = "480p",
+        resolution: str | None = "480p", #default
         generate_audio: bool | None = False,
         frame_images: list[dict[str, Any]] | None = None,
         input_references: list[dict[str, Any]] | None = None,
