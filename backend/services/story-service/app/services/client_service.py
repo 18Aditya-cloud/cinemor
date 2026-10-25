@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.membership import OrganizationRole
 from app.repositories.auth_repository import AuthRepository
 from app.repositories.client_repository import ClientRepository
+from app.models.user import User, AccountType
 
 
 class ClientService:
@@ -359,9 +360,19 @@ class ClientService:
             )
 
         try:
+            user = (
+                self.db.query(User)
+                .filter(
+                    User.email == client.email,
+                    User.account_type == AccountType.CLIENT,
+                )
+                .first()
+            )
             self.repository.delete_client(
                 client=client,
             )
+            if user is not None:
+                self.db.delete(user)
 
             self.db.commit()
 
