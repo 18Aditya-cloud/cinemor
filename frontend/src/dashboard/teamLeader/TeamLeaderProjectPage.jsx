@@ -1,48 +1,57 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import { Link } from '../../router/router.jsx';
+import cx from '../../utils/cx.js';
 import { addProjectMember, getTeamLeaderProject, NEXT_LIFECYCLE, removeProjectMember, setEmployeeJobRoles, setProjectStatus } from '../api/organizationApi.js';
+import ClientPanel from '../employee/ClientPanel.jsx';
+import { getMyProject } from '../employee/employeeApi.js';
+import { projectPath, STAGES, STATE, SUBMISSION } from '../employee/stages.js';
 import useResource from '../hooks/useResource.js';
+import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
 import ConfirmModal from '../ui/ConfirmModal.jsx';
-import { IconBriefcase, IconCheck, IconCheckCircle, IconChevronLeft, IconClose, IconPencil, IconPlay, IconPlus, IconTrash, IconUserCog, IconUsers } from '../ui/DashIcons.jsx';
+import { IconBriefcase, IconCheck, IconChevronLeft, IconChevronRight, IconClose, IconEye, IconPencil, IconPlus, IconRefresh, IconSearch, IconTrash, IconUsers } from '../ui/DashIcons.jsx';
 import EmptyState from '../ui/EmptyState.jsx';
 import Modal, { ModalFooter } from '../ui/Modal.jsx';
 import Notice from '../ui/Notice.jsx';
-import Pill from '../ui/Pill.jsx';
-import RefreshButton from '../ui/RefreshButton.jsx';
-import SelectField from '../ui/SelectField.jsx';
+import { Avatar, AvatarStack, Bar, Chip, CoverArt, Dot, palette, stageColor } from '../ui/Production.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import styles from '../pages/pages.module.css';
-import { initialsOf, lifecycleOf, shortDate } from './lifecycle.js';
+import { lifecycleOf, shortDate } from './lifecycle.js';
 import { dayLabel, DelayAlert } from '../projectDates.jsx';
 import tl from './TeamLeader.module.css';
+import t from './TeamLeaderProject.module.css';
 
-// The status buttons: what each move is called, and how it looks.
-const MOVES = {
-  ongoing: { label: 'Start Project', icon: IconPlay, variant: 'primary', confirm: null },
-  completed: { label: 'Mark Completed', icon: IconCheckCircle, variant: 'primary', confirm: { title: 'Mark as completed?', text: 'The project will be finished and its team can no longer change.', label: 'Mark Completed' } },
-  aborted: { label: 'Abort Project', icon: IconClose, variant: 'danger', confirm: { title: 'Abort this project?', text: 'The project will be stopped for good and its team can no longer change.', label: 'Abort Project' } },
+// The status switch: every state of a project, and what moving there asks first.
+const ORDER = ['not_started', 'ongoing', 'completed', 'aborted'];
+const LIFE_COLOR = { not_started: 'gray', ongoing: 'warn', completed: 'ok', aborted: 'red' };
+const CONFIRM = {
+  completed: { title: 'Mark as completed?', text: 'The project will be finished and its team can no longer change.', label: 'Mark Completed' },
+  aborted: { title: 'Abort this project?', text: 'The project will be stopped for good and its team can no longer change.', label: 'Abort Project' },
 };
+const TABS = ['stories', 'team', 'client', 'activity'];
+
+const nameOf = (email) => (email || '').split('@')[0];
 
 /**
- * One project, as its Team Leader sees it: its details, the status controls (start, complete or abort, depending on
- * where it is now), and the production team, with an inline form to add an employee (in one or more of their job
- * roles) or a reviewer (for one or more of the job roles they review). Each person has one row, also when they both
- * work and review here; Edit roles changes what they do and what they review in one window. Employees already at
- * their project limit are not offered.
+ * One project, as its Team Leader sees it: a header with the status switch (only the moves the project allows can be
+ * clicked), and four tabs:
+ *  - Stories: each story's six stages as coloured bars, opening the story in My Work;
+ *  - Team: one card per person (the job roles they work in, in their stage colour, the ones they review, dashed, and
+ *    how many projects they are on), "Who covers each stage", and the Add team member panel at the side;
+ *  - Client: the conversation with the project's client (client portal);
+ *  - Activity: the project's reviews, newest first.
+ * Employees at their project limit are shown in the panel but cannot be added.
  */
 export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
   const toast = useToast();
   const { data, loading, error, reload } = useResource(() => getTeamLeaderProject(teamLeaderId, projectId), [teamLeaderId, projectId]);
+  // the project's workflow (stories, who covers each stage, reviews): the Team Leader's own My Work view of it
+  const flow = useResource(() => getMyProject(projectId).catch(() => null), [projectId]);
+  const [tab, setTab] = useState('team');
+  const [filter, setFilter] = useState('all');
   const [adding, setAdding] = useState(false);
-  const [kind, setKind] = useState('employee');
-  const [personId, setPersonId] = useState('');
-  const [jobRoleIds, setJobRoleIds] = useState([]); // an employee can do several of their job roles on one project
-  const [reviewRoleIds, setReviewRoleIds] = useState([]); // and a reviewer can review several job roles
   const [editingRoles, setEditingRoles] = useState(null); // the person whose roles here are being changed
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
   const [moving, setMoving] = useState(null); // the status being moved to while it saves
   const [confirming, setConfirming] = useState(null); // a move that needs an "are you sure?"
   const [removing, setRemoving] = useState(null);
@@ -57,303 +66,214 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
     );
   }
 
-  const { project, members, availableEmployees, availableReviewers, reviewerRolesOf = {} } = data;
+  const { project, members, availableEmployees, availableReviewers, fullEmployees = [], capacityOf = {}, reviewerRolesOf = {} } = data;
   const state = lifecycleOf(project.lifecycle);
   const moves = NEXT_LIFECYCLE[project.lifecycle] || [];
   const open = moves.length > 0; // a finished project's team can no longer change
-  const pool = kind === 'reviewer' ? availableReviewers : availableEmployees;
-  const person = pool.find((p) => p.id === personId);
-
-  const resetForm = () => {
-    setPersonId('');
-    setJobRoleIds([]);
-    setReviewRoleIds([]);
-    setFormError('');
+  const wf = flow.data;
+  const reloadAll = async () => {
+    await Promise.all([reload(), flow.reload()]);
   };
+
+  // which stage each job role belongs to (from the workflow: who works on / reviews each stage, in which role)
+  const roleStage = {};
+  const names = {};
+  (wf?.stages || []).forEach((s) => {
+    [...s.workers, ...s.reviewers].forEach((w) => {
+      if (w.userId && w.name) names[w.userId] = w.name;
+      (w.roles || []).forEach((r) => {
+        if (!roleStage[r]) roleStage[r] = s.key;
+      });
+    });
+  });
+  const colorOf = (roleName) => roleStage[roleName] || 'brand';
 
   // one row per person: the job roles they do here and the job roles they review here
   const team = [];
   for (const m of members) {
-    let row = team.find((t) => t.employeeId === m.employeeId);
+    let row = team.find((x) => x.employeeId === m.employeeId);
     if (!row) {
-      row = { key: `p${m.employeeId}`, employeeId: m.employeeId, email: m.email, work: [], review: [], employeeJobRoles: m.employeeJobRoles || [], reviewerJobRoles: reviewerRolesOf[m.employeeId] || [] };
+      row = { key: `p${m.employeeId}`, employeeId: m.employeeId, email: m.email, name: names[m.employeeId] || nameOf(m.email), work: [], review: [], employeeJobRoles: m.employeeJobRoles || [], reviewerJobRoles: reviewerRolesOf[m.employeeId] || [] };
       team.push(row);
     }
     (m.kind === 'reviewer' ? row.review : row.work).push({ memberId: m.id, id: m.jobRoleId, name: m.jobRoleName });
   }
-  const names = (roles) => roles.map((r) => r.name).filter(Boolean).join(', ');
-  // the job roles this reviewer does not review here yet (the add form offers only those)
-  const reviewedHere = (id) => members.filter((m) => m.kind === 'reviewer' && m.employeeId === id).map((m) => m.jobRoleId);
-  const newReviewRoles = person && kind === 'reviewer' ? (person.reviewerJobRoles || []).filter((r) => !reviewedHere(person.id).includes(r.id)) : [];
+  const counts = { all: team.length, employees: team.filter((m) => m.work.length).length, reviewers: team.filter((m) => m.review.length).length };
+  const shown = team.filter((m) => (filter === 'employees' ? m.work.length : filter === 'reviewers' ? m.review.length : true));
 
   const move = async (to) => {
+    if (CONFIRM[to]) return setConfirming(to);
     setMoving(to);
     try {
       await setProjectStatus(teamLeaderId, projectId, to);
       toast(`Project is now ${lifecycleOf(to).label.toLowerCase()}`);
-      await reload();
+      await reloadAll();
     } catch (err) {
       toast(err.message, 'error');
     }
     setMoving(null);
-  };
-
-  const add = async (event) => {
-    event.preventDefault();
-    if (!personId) return setFormError(`Choose ${kind === 'reviewer' ? 'a reviewer' : 'an employee'}.`);
-    if (kind === 'employee' && jobRoleIds.length === 0) return setFormError('Choose at least one job role they will do on this project.');
-    if (kind === 'reviewer' && reviewRoleIds.length === 0) return setFormError('Choose at least one job role they will review on this project.');
-    setSaving(true);
-    try {
-      if (kind === 'employee') await setEmployeeJobRoles(teamLeaderId, projectId, personId, jobRoleIds);
-      else for (const id of reviewRoleIds) await addProjectMember(teamLeaderId, projectId, { employeeId: personId, kind, jobRoleId: id });
-      toast(`${person?.email ?? 'Member'} added`);
-      resetForm();
-      setAdding(false);
-      await reload();
-    } catch (err) {
-      setFormError(err.message);
-    }
-    setSaving(false);
     return undefined;
   };
 
-  return (
-    <div className={styles.page}>
-      <BackLink />
-      <div className={tl.headRow}>
-        <div>
-          <p className={tl.eyebrow}>Project</p>
-          <h1 className={tl.welcome}>{project.title}</h1>
-          {project.description && <p className={tl.lead}>{project.description}</p>}
-        </div>
-        <Pill tone={state.tone}>{state.label}</Pill>
-      </div>
+  const tabLabel = {
+    stories: `Stories${wf ? ` · ${wf.stories.length}` : ''}`,
+    team: `Team · ${team.length}`,
+    client: 'Client',
+    activity: 'Activity',
+  };
 
-      <div className={tl.info}>
-        <Info label="Client" value={project.clientName || '-'} />
-        <Info label="Start date" value={dayLabel(project.startDate) || '-'} />
-        <Info label="Deadline" value={dayLabel(project.deadline) || '-'} />
-        <Info label="Team members" value={new Set(members.map((m) => m.employeeId)).size} />
-        <Info label="Created" value={shortDate(project.createdAt)} />
-        <Info label="Last updated" value={shortDate(project.updatedAt)} />
+  return (
+    <div className={cx(styles.page, palette)}>
+      <BackLink />
+      <div className={t.head}>
+        <CoverArt seed={`p${project.id}`} sun={false} className={t.headArt} />
+        <div className={t.headText}>
+          <h1 className={t.title}>{project.title}</h1>
+          <p className={t.sub}>
+            {project.clientName ? `Client ${project.clientName} · ` : ''}
+            {dayLabel(project.startDate) || 'No start date'} → {dayLabel(project.deadline) || 'no deadline'}
+          </p>
+          <p className={t.subSmall}>
+            Created {shortDate(project.createdAt)} · Updated {shortDate(project.updatedAt)}
+          </p>
+        </div>
+        <div className={t.status} role="group" aria-label="Project status">
+          {ORDER.map((to) => {
+            const on = project.lifecycle === to;
+            const can = moves.includes(to);
+            return (
+              <button
+                key={to}
+                type="button"
+                className={cx(t.statusOption, on && t.statusOn, stageColor(LIFE_COLOR[to]))}
+                aria-pressed={on}
+                disabled={on || !can || Boolean(moving)}
+                title={on ? `The project is ${lifecycleOf(to).label.toLowerCase()}` : can ? `Move to ${lifecycleOf(to).label}` : `A ${state.label.toLowerCase()} project can't move to ${lifecycleOf(to).label.toLowerCase()}`}
+                onClick={() => move(to)}
+              >
+                {moving === to ? 'Saving…' : lifecycleOf(to).label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div style={{ margin: '-8px 0 18px' }}>
+      {project.description && <p className={t.lead}>{project.description}</p>}
+      <div style={{ margin: '0 0 14px' }}>
         <DelayAlert project={project} />
       </div>
+      {!open && <p className={tl.finished}>This project is {state.label.toLowerCase()}. Its status and team can no longer change.</p>}
 
-      <div className={tl.stack}>
-        <section className={styles.panel} aria-labelledby="tl-status-title">
-          <div className={styles.panelHead}>
-            <div>
-              <p className={styles.panelEyebrow}>Project control</p>
-              <h2 id="tl-status-title" className={styles.panelTitle}>
-                Status
-              </h2>
-            </div>
-          </div>
-          {open ? (
-            <div className={tl.controls}>
-              {moves.map((to) => {
-                const m = MOVES[to];
-                return (
-                  <Button key={to} variant={m.variant} icon={m.icon} loading={moving === to} disabled={Boolean(moving)} onClick={() => (m.confirm ? setConfirming(to) : move(to))}>
-                    {m.label}
+      <div className={t.tabs} role="tablist" aria-label="Project sections">
+        {TABS.map((id) => (
+          <button key={id} type="button" role="tab" id={`tl-tab-${id}`} aria-selected={tab === id} aria-controls={`tl-panel-${id}`} className={cx(t.tab, tab === id && t.tabOn)} onClick={() => setTab(id)}>
+            {tabLabel[id]}
+          </button>
+        ))}
+      </div>
+
+      <div className={cx(t.body, tab === 'team' && adding && open && t.bodyWithPanel)}>
+        <div role="tabpanel" id={`tl-panel-${tab}`} aria-labelledby={`tl-tab-${tab}`} className={t.panelMain}>
+          {tab === 'team' && (
+            <>
+              <div className={t.toolbar}>
+                <div className={t.filters} role="group" aria-label="Show">
+                  {[
+                    ['all', 'Everyone'],
+                    ['employees', 'Employees'],
+                    ['reviewers', 'Reviewers'],
+                  ].map(([id, label]) => (
+                    <button key={id} type="button" aria-pressed={filter === id} className={cx(t.filter, filter === id && t.filterOn)} onClick={() => setFilter(id)}>
+                      {label} <span>{counts[id]}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className={t.toolbarRight}>
+                  <Button variant="secondary" icon={IconRefresh} iconOnly onClick={reloadAll} loading={loading} aria-label="Refresh">
+                    Refresh
                   </Button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={tl.finished}>This project is {state.label.toLowerCase()}. Its status and team can no longer change.</p>
-          )}
-        </section>
-
-        <section className={styles.panel} aria-labelledby="tl-team-title">
-          <div className={`${styles.panelHead} ${tl.wrapHead}`}>
-            <div>
-              <p className={styles.panelEyebrow}>Production team</p>
-              <h2 id="tl-team-title" className={styles.panelTitle}>
-                Team Members
-              </h2>
-              <p className={styles.panelSub}>Employees do the work; reviewers check it.</p>
-            </div>
-            <div className={styles.rowActions}>
-              {open && (
-                <Button
-                  variant={adding ? 'secondary' : 'primary'}
-                  icon={adding ? IconClose : IconPlus}
-                  aria-expanded={adding}
-                  onClick={() => {
-                    setAdding((v) => !v);
-                    resetForm();
-                  }}
-                >
-                  {adding ? 'Close' : 'Add Team Member'}
-                </Button>
-              )}
-              <RefreshButton onClick={reload} loading={loading} />
-            </div>
-          </div>
-
-          {adding && open && (
-            <form className={tl.addBox} onSubmit={add} noValidate aria-labelledby="tl-add-title">
-              <p id="tl-add-title" className={tl.addTitle}>
-                Add Team Member
-              </p>
-              <p className={tl.addSub}>Assign an employee or a reviewer to this project.</p>
-              <div className={tl.segment} role="group" aria-label="Add as">
-                {[
-                  ['employee', 'Employee'],
-                  ['reviewer', 'Reviewer'],
-                ].map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={kind === id}
-                    onClick={() => {
-                      setKind(id);
-                      resetForm();
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <SelectField
-                id="tl-person"
-                label={kind === 'reviewer' ? 'Reviewer' : 'Employee'}
-                icon={kind === 'reviewer' ? IconUserCog : IconUsers}
-                placeholder={kind === 'reviewer' ? 'Select reviewer' : 'Select employee'}
-                options={pool.map((p) => ({
-                  value: p.id,
-                  label: p.onProject
-                    ? `${p.email} (already on this project)`
-                    : `${p.email} (${p.maxProjects == null ? `${p.activeProjects} active` : `${p.activeProjects} of ${p.maxProjects} projects`})`,
-                }))}
-                value={personId}
-                onChange={(v) => {
-                  setPersonId(v);
-                  // a reviewer with only one job role left to review here has it chosen for them
-                  const reviews = kind === 'reviewer' ? (pool.find((p) => p.id === v)?.reviewerJobRoles || []).filter((r) => !reviewedHere(v).includes(r.id)) : [];
-                  setReviewRoleIds(reviews.length === 1 ? [reviews[0].id] : []);
-                  // an employee with a single job role has it chosen for them
-                  const roles = kind === 'employee' ? pool.find((p) => p.id === v)?.jobRoles || [] : [];
-                  setJobRoleIds(roles.length === 1 ? [roles[0].id] : []);
-                  setFormError('');
-                }}
-                emptyText={kind === 'reviewer' ? 'No reviewers available. Your organization marks people as Reviewers.' : 'No employees with room for another project.'}
-                disabled={saving}
-              />
-              {person && kind === 'employee' && (
-                <RoleChecks
-                  label="Job Roles"
-                  hint="Choose one or more of their job roles for this project."
-                  roles={person.jobRoles}
-                  value={jobRoleIds}
-                  onChange={(ids) => {
-                    setJobRoleIds(ids);
-                    setFormError('');
-                  }}
-                  disabled={saving}
-                />
-              )}
-              {person && kind === 'reviewer' && (
-                <RoleChecks
-                  label="Reviews Job Roles"
-                  hint="Choose one or more of the job roles they review."
-                  roles={newReviewRoles}
-                  empty="This reviewer has no job roles to review yet. Your organization sets them on the Employees page."
-                  value={reviewRoleIds}
-                  onChange={(ids) => {
-                    setReviewRoleIds(ids);
-                    setFormError('');
-                  }}
-                  disabled={saving}
-                />
-              )}
-              {formError && (
-                <p className={styles.formError} role="alert">
-                  {formError}
-                </p>
-              )}
-              <div className={tl.addFoot}>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setAdding(false);
-                    resetForm();
-                  }}
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" icon={IconPlus} loading={saving}>
-                  Add Member
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {team.length === 0 ? (
-            <div style={{ padding: '8px 28px 28px' }}>
-              <EmptyState framed={false} icon={IconUsers} title="No team members" text="No employees or reviewers are assigned to this project yet." />
-            </div>
-          ) : (
-            <ul className={tl.people} aria-label="Team members">
-              {team.map((m) => (
-                <li key={m.key} className={tl.person}>
-                  <span className={tl.avatar} aria-hidden="true">
-                    {initialsOf(m.email)}
-                  </span>
-                  <span style={{ minWidth: 0 }}>
-                    <span className={tl.email} style={{ display: 'block' }}>
-                      {m.email}
-                    </span>
-                    {m.work.length > 0 && (
-                      <span className={tl.rowDesc} style={{ display: 'block' }}>
-                        {m.review.length > 0 ? 'Works on: ' : ''}
-                        {names(m.work) || '-'}
-                      </span>
-                    )}
-                    {m.review.length > 0 && (
-                      <span className={tl.rowDesc} style={{ display: 'block' }}>
-                        Reviews: {names(m.review) || '-'}
-                      </span>
-                    )}
-                  </span>
-                  <span className={tl.personPills}>
-                    {m.work.length > 0 && <Pill tone="blue">Employee</Pill>}
-                    {m.review.length > 0 && <Pill tone="violet">Reviewer</Pill>}
-                  </span>
-                  {open ? (
-                    <span className={tl.personActions}>
-                      <Button variant="secondary" icon={IconPencil} onClick={() => setEditingRoles(m)} aria-label={`Edit the roles of ${m.email}`}>
-                        Edit roles
-                      </Button>
-                      <Button variant="secondary" icon={IconTrash} iconOnly onClick={() => setRemoving(m)} aria-label={`Remove ${m.email} from this project`}>
-                        Remove
-                      </Button>
-                    </span>
-                  ) : (
-                    <span />
+                  {open && (
+                    <Button variant={adding ? 'secondary' : 'primary'} icon={adding ? IconClose : IconPlus} aria-expanded={adding} onClick={() => setAdding((x) => !x)}>
+                      {adding ? 'Close' : 'Add team member'}
+                    </Button>
                   )}
-                </li>
-              ))}
-            </ul>
+                </div>
+              </div>
+
+              {team.length === 0 ? (
+                <div className={t.card}>
+                  <EmptyState framed={false} icon={IconUsers} title="No team members" text="No employees or reviewers are assigned to this project yet." />
+                </div>
+              ) : (
+                <ul className={t.people} aria-label="Team members">
+                  {shown.map((m) => (
+                    <PersonCard key={m.key} member={m} capacity={capacityOf[m.employeeId]} colorOf={colorOf} open={open} onEdit={() => setEditingRoles(m)} onRemove={() => setRemoving(m)} />
+                  ))}
+                </ul>
+              )}
+
+              {wf && (
+                <section className={cx(t.card, t.cover)} aria-labelledby="tl-cover">
+                  <div className={t.cardHead}>
+                    <h2 id="tl-cover" className={t.cardTitle}>
+                      Who covers each stage
+                    </h2>
+                    <span className={t.muted}>empty stages show in red</span>
+                  </div>
+                  <ul className={t.coverGrid}>
+                    {wf.stages.map((s) => (
+                      <li key={s.key} className={cx(t.coverCell, stageColor(s.key), s.workers.length === 0 && t.coverGap)}>
+                        <b>{s.key === 'animation' ? 'Animation' : s.label}</b>
+                        {s.workers.length ? (
+                          <AvatarStack>
+                            {s.workers.slice(0, 4).map((w) => (
+                              <Avatar key={w.userId} name={w.name} seed={w.userId} size={26} />
+                            ))}
+                          </AvatarStack>
+                        ) : (
+                          <span className={t.gapText}>No one yet</span>
+                        )}
+                        <span className={t.coverReview}>{s.reviewers.length ? `Reviewed by ${s.reviewers.map((r) => r.name).join(', ')}` : 'No reviewer'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </>
           )}
-        </section>
+
+          {tab === 'stories' && <StoriesTab wf={wf} loading={flow.loading} />}
+          {tab === 'client' && (wf ? <ClientPanel project={wf} /> : <p className={t.muted}>{flow.loading ? 'Loading…' : 'The client conversation could not be loaded.'}</p>)}
+          {tab === 'activity' && <ActivityTab wf={wf} loading={flow.loading} />}
+        </div>
+
+        {tab === 'team' && adding && open && (
+          <AddPanel
+            key="add"
+            teamLeaderId={teamLeaderId}
+            projectId={projectId}
+            members={members}
+            availableEmployees={availableEmployees}
+            availableReviewers={availableReviewers}
+            fullEmployees={fullEmployees}
+            capacityOf={capacityOf}
+            names={names}
+            colorOf={colorOf}
+            onClose={() => setAdding(false)}
+            onAdded={reloadAll}
+          />
+        )}
       </div>
 
       <ConfirmModal
         open={Boolean(confirming)}
-        title={confirming ? MOVES[confirming].confirm.title : ''}
-        text={confirming ? MOVES[confirming].confirm.text : ''}
-        confirmLabel={confirming ? MOVES[confirming].confirm.label : ''}
+        title={confirming ? CONFIRM[confirming].title : ''}
+        text={confirming ? CONFIRM[confirming].text : ''}
+        confirmLabel={confirming ? CONFIRM[confirming].label : ''}
         onClose={() => setConfirming(null)}
         onConfirm={async () => {
           await setProjectStatus(teamLeaderId, projectId, confirming);
           toast(`Project is now ${lifecycleOf(confirming).label.toLowerCase()}`);
-          await reload();
+          await reloadAll();
         }}
       />
       <ConfirmModal
@@ -365,7 +285,7 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
         onConfirm={async () => {
           for (const role of [...removing.work, ...removing.review]) await removeProjectMember(teamLeaderId, projectId, role.memberId);
           toast(`${removing.email} removed`);
-          await reload();
+          await reloadAll();
         }}
       />
       <EditRolesModal
@@ -381,10 +301,292 @@ export default function TeamLeaderProjectPage({ teamLeaderId, projectId }) {
           for (const r of m.review.filter((x) => !review.includes(x.id))) await removeProjectMember(teamLeaderId, projectId, r.memberId);
           toast(`${m.email}'s roles updated`);
           setEditingRoles(null);
-          await reload();
+          await reloadAll();
         }}
       />
     </div>
+  );
+}
+
+/** One person on the team: who they are, their roles here (worked in, reviewed), their project load, Edit roles / Remove. */
+function PersonCard({ member: m, capacity, colorOf, open, onEdit, onRemove }) {
+  const max = capacity?.max;
+  const active = capacity?.active ?? null;
+  const full = max != null && active != null && active >= max;
+  return (
+    <li className={t.person}>
+      <Avatar name={m.name} seed={m.employeeId} size={46} />
+      <div className={t.personText}>
+        <p>
+          <b>{m.name}</b> <span className={t.muted}>{m.email}</span>
+        </p>
+        <div className={t.roles}>
+          {m.work.map((r) => (
+            <Chip key={`w${r.memberId}`} color={colorOf(r.name)}>
+              {r.name || 'Job role'}
+            </Chip>
+          ))}
+          {m.review.map((r) => (
+            <Chip key={`r${r.memberId}`} color={colorOf(r.name)} dashed icon={IconEye}>
+              {r.name || 'Job role'}
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <div className={t.load}>
+        {active != null ? (
+          <>
+            <span className={t.loadHead}>
+              <span className={t.muted}>Projects</span>
+              <b className={full ? t.full : undefined}>{max != null ? `${active} / ${max}${full ? ' · full' : ''}` : `${active}`}</b>
+            </span>
+            <Bar value={max ? (active / max) * 100 : 0} color={full ? 'red' : undefined} />
+          </>
+        ) : null}
+      </div>
+      {open ? (
+        <div className={t.personActions}>
+          <Button variant="secondary" icon={IconPencil} onClick={onEdit} aria-label={`Edit the roles of ${m.email}`}>
+            Edit roles
+          </Button>
+          <Button variant="secondary" icon={IconTrash} iconOnly onClick={onRemove} aria-label={`Remove ${m.email} from this project`}>
+            Remove
+          </Button>
+        </div>
+      ) : (
+        <span />
+      )}
+    </li>
+  );
+}
+
+/** The side panel to add someone: as an employee (in one or more of their job roles) or a reviewer. */
+function AddPanel({ teamLeaderId, projectId, members, availableEmployees, availableReviewers, fullEmployees, capacityOf, names, colorOf, onClose, onAdded }) {
+  const toast = useToast();
+  const uid = useId();
+  const [kind, setKind] = useState('employee');
+  const [query, setQuery] = useState('');
+  const [personId, setPersonId] = useState(null);
+  const [jobRoleIds, setJobRoleIds] = useState([]);
+  const [reviewRoleIds, setReviewRoleIds] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const pool = kind === 'reviewer' ? availableReviewers : availableEmployees;
+  const q = query.trim().toLowerCase();
+  const match = (p) => !q || p.email.toLowerCase().includes(q) || (names[p.id] || '').toLowerCase().includes(q);
+  const list = pool.filter(match);
+  const full = kind === 'employee' ? fullEmployees.filter(match) : [];
+  const person = pool.find((p) => p.id === personId);
+  const reviewedHere = (id) => members.filter((m) => m.kind === 'reviewer' && m.employeeId === id).map((m) => m.jobRoleId);
+
+  const reset = (nextKind = kind) => {
+    setKind(nextKind);
+    setPersonId(null);
+    setJobRoleIds([]);
+    setReviewRoleIds([]);
+    setFormError('');
+  };
+  const pick = (p) => {
+    setPersonId(p.id);
+    setFormError('');
+    const reviews = kind === 'reviewer' ? (p.reviewerJobRoles || []).filter((r) => !reviewedHere(p.id).includes(r.id)) : [];
+    setReviewRoleIds(reviews.length === 1 ? [reviews[0].id] : []);
+    const roles = kind === 'employee' ? p.jobRoles || [] : [];
+    setJobRoleIds(roles.length === 1 ? [roles[0].id] : []);
+  };
+
+  const add = async (event) => {
+    event.preventDefault();
+    if (!person) return setFormError(`Choose ${kind === 'reviewer' ? 'a reviewer' : 'an employee'}.`);
+    if (kind === 'employee' && jobRoleIds.length === 0) return setFormError('Choose at least one job role they will do on this project.');
+    if (kind === 'reviewer' && reviewRoleIds.length === 0) return setFormError('Choose at least one job role they will review on this project.');
+    setSaving(true);
+    try {
+      if (kind === 'employee') await setEmployeeJobRoles(teamLeaderId, projectId, person.id, jobRoleIds);
+      else for (const id of reviewRoleIds) await addProjectMember(teamLeaderId, projectId, { employeeId: person.id, kind, jobRoleId: id });
+      toast(`${person.email} added`);
+      reset();
+      await onAdded();
+    } catch (err) {
+      setFormError(err.message);
+    }
+    setSaving(false);
+    return undefined;
+  };
+
+  const load = (p) => {
+    const c = capacityOf[p.id];
+    if (p.onProject) return 'already on this project';
+    if (!c) return '';
+    return c.max == null ? `${c.active} active projects` : `${c.active} of ${c.max} projects`;
+  };
+
+  return (
+    <aside className={t.addPanel} aria-labelledby={`${uid}-title`}>
+      <form onSubmit={add} noValidate>
+        <div className={t.addHead}>
+          <h2 id={`${uid}-title`} className={t.cardTitle}>
+            Add team member
+          </h2>
+          <button type="button" className={t.close} onClick={onClose} aria-label="Close the panel">
+            <IconClose width={16} height={16} />
+          </button>
+        </div>
+        <div className={tl.segment} role="group" aria-label="Add as">
+          {[
+            ['employee', 'Employee'],
+            ['reviewer', 'Reviewer'],
+          ].map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={kind === id} onClick={() => reset(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className={t.search}>
+          <IconSearch width={15} height={15} aria-hidden="true" />
+          <span className="cm-sr-only">Search people</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or email" />
+        </label>
+
+        <ul className={t.pickList} aria-label={kind === 'reviewer' ? 'Reviewers' : 'Employees'}>
+          {list.length === 0 && full.length === 0 && <li className={t.muted}>{kind === 'reviewer' ? 'No reviewers available. Your organization marks people as Reviewers.' : 'No employees with room for another project.'}</li>}
+          {list.map((p) => {
+            const on = p.id === personId;
+            const roles = kind === 'reviewer' ? (p.reviewerJobRoles || []).filter((r) => !reviewedHere(p.id).includes(r.id)) : p.jobRoles || [];
+            const value = kind === 'reviewer' ? reviewRoleIds : jobRoleIds;
+            const setValue = kind === 'reviewer' ? setReviewRoleIds : setJobRoleIds;
+            return (
+              <li key={p.id} className={cx(t.pick, on && t.pickOn)}>
+                <button type="button" className={t.pickButton} aria-pressed={on} onClick={() => pick(p)}>
+                  <Avatar name={names[p.id] || p.email} seed={p.id} size={34} />
+                  <span>
+                    <b>{names[p.id] || nameOf(p.email)}</b>
+                    <span className={t.muted}>
+                      {p.email}
+                      {load(p) ? ` · ${load(p)}` : ''}
+                    </span>
+                  </span>
+                </button>
+                {on && (
+                  <fieldset className={t.pickRoles} disabled={saving}>
+                    <legend>{kind === 'reviewer' ? 'Reviews' : 'Works on'}</legend>
+                    {roles.length === 0 ? (
+                      <p className={t.muted}>{kind === 'reviewer' ? 'This reviewer has no job roles to review here.' : 'This employee has no job roles yet.'}</p>
+                    ) : (
+                      roles.map((r) => {
+                        const checked = value.includes(r.id);
+                        return (
+                          <label key={r.id} className={cx(t.roleRow, stageColor(colorOf(r.name)))} data-on={checked}>
+                            <input type="checkbox" checked={checked} onChange={() => setValue(checked ? value.filter((x) => x !== r.id) : [...value, r.id])} />
+                            <span className={t.box} aria-hidden="true">
+                              {checked && <IconCheck width={12} height={12} strokeWidth={3} />}
+                            </span>
+                            <Dot color={colorOf(r.name)} />
+                            {r.name}
+                          </label>
+                        );
+                      })
+                    )}
+                  </fieldset>
+                )}
+              </li>
+            );
+          })}
+          {full.map((p) => (
+            <li key={`f${p.id}`} className={cx(t.pick, t.pickFull)} aria-disabled="true">
+              <span className={t.pickButton}>
+                <Avatar name={names[p.id] || p.email} seed={p.id} size={34} />
+                <span>
+                  <b>{names[p.id] || nameOf(p.email)}</b>
+                  <span className={t.muted}>At their limit · {load(p)}</span>
+                </span>
+              </span>
+              <Chip color="red">Full</Chip>
+            </li>
+          ))}
+        </ul>
+        {formError && (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
+        )}
+        <Button type="submit" icon={IconPlus} loading={saving} disabled={!person} className={t.addButton}>
+          {person ? `Add ${names[person.id] || nameOf(person.email)} to the project` : 'Choose someone to add'}
+        </Button>
+      </form>
+    </aside>
+  );
+}
+
+/** Each story of the project with its six stages as coloured bars; Open shows the story in My Work. */
+function StoriesTab({ wf, loading }) {
+  if (!wf) return <p className={t.muted}>{loading ? 'Loading…' : 'The stories could not be loaded.'}</p>;
+  if (wf.stories.length === 0) return <div className={t.card}><EmptyState framed={false} icon={IconBriefcase} title="No stories yet" text="The Story Writers start the project's first story." /></div>;
+  return (
+    <ul className={t.storyList}>
+      {wf.stories.map((st) => (
+        <li key={st.id} className={t.storyRow}>
+          <CoverArt seed={`s${st.id}`} sun={false} className={t.storyArt} />
+          <span className={t.storyName}>
+            <b>{st.title}</b>
+            <span className={t.muted}>
+              {st.sentBy ? `by ${st.sentBy.name} · ` : ''}
+              {st.approvedCount} of {st.stages.length} approved
+            </span>
+          </span>
+          <ol className={t.segs} aria-label={`Stages of ${st.title}`}>
+            {st.stages.map((s) => (
+              <li key={s.key} className={cx(t.seg, stageColor(s.key), t[`seg_${s.status}`])} title={`${STAGES.find((x) => x.key === s.key)?.label}: ${STATE[s.status]?.label}`}>
+                <span className="cm-sr-only">
+                  {s.label}: {STATE[s.status]?.label}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <Link to={`${projectPath(wf.id)}?story=${st.id}`} className={t.openLink}>
+            Open <IconChevronRight width={15} height={15} aria-hidden="true" />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The project's reviews, newest first. */
+function ActivityTab({ wf, loading }) {
+  if (!wf) return <p className={t.muted}>{loading ? 'Loading…' : 'The activity could not be loaded.'}</p>;
+  if (wf.submissions.length === 0) return <p className={t.muted}>Nothing has been sent for review yet.</p>;
+  return (
+    <ul className={t.activity}>
+      {wf.submissions.map((x) => {
+        const st = SUBMISSION[x.status];
+        const color = x.status === 'approved' ? 'ok' : x.status === 'changes_requested' ? 'red' : x.status === 'pending' ? 'storyboard' : 'gray';
+        return (
+          <li key={x.id} className={cx(t.event, stageColor(x.stage))}>
+            <span className={t.eventDot} aria-hidden="true" />
+            <div>
+              <p>
+                <b>{x.submittedBy?.name}</b> sent the <b>{x.stageLabel}</b>
+                {x.storyTitle ? ` of “${x.storyTitle}”` : ''} to <b>{x.reviewer?.name}</b>
+                {x.reviewedBy && ['approved', 'changes_requested'].includes(x.status) ? (
+                  <>
+                    ; {x.status === 'approved' ? 'approved' : 'changes asked'} by <b>{x.reviewedBy.name}</b>
+                  </>
+                ) : null}
+                .
+              </p>
+              {x.note && <p className={t.quote}>{x.note}</p>}
+              {x.comment && <p className={t.quote}>{x.comment}</p>}
+            </div>
+            <span className={t.eventSide}>
+              <Chip color={color}>{st.label}</Chip>
+              <span className={t.muted}>{timeAgo(x.reviewedAt || x.at)}</span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -508,16 +710,7 @@ function EditRolesModal({ member, onClose, onSave }) {
 function BackLink() {
   return (
     <Link to="/team-leader/projects" className={tl.back}>
-      <IconChevronLeft width={16} height={16} /> Back to projects
+      <IconChevronLeft width={16} height={16} /> My Projects
     </Link>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div className={tl.infoCard}>
-      <p className={tl.label}>{label}</p>
-      <p className={tl.value}>{value}</p>
-    </div>
   );
 }

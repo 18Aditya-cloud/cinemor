@@ -38,7 +38,7 @@
 .title {
   margin-top: 8px;
   font-family: var(--cm-font-display);
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   font-size: clamp(1.9rem, 3.4vw, 3rem);
   line-height: 1.06;
   letter-spacing: -0.012em;

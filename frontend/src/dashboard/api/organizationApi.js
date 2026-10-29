@@ -557,6 +557,8 @@ const projectSummary = (p) => ({
   stage: p.stage || 'story',
   clientName: db.clients.find((c) => c.id === p.clientId)?.name ?? '',
   memberCount: (p.members || []).length,
+  startDate: p.startDate || '',
+  deadline: p.deadline || '',
   createdAt: p.createdAt ?? null,
   updatedAt: p.updatedAt ?? p.createdAt ?? null,
 });
@@ -581,9 +583,15 @@ export async function getTeamLeaderDashboard(teamLeaderId) {
     const people = new Set(mine.flatMap((p) => (p.members || []).map((m) => m.employeeId)));
     return {
       stats: { total: mine.length, notStarted: count('not_started'), ongoing: count('ongoing'), completed: count('completed'), aborted: count('aborted'), teamMembers: people.size },
-      projects: [...mine].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).slice(0, 4).map(projectSummary),
+      projects: [...mine].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).map(projectSummary),
     };
   });
+}
+
+/** A project's newest sketch as an image URL, for its dashboard card (null: keep the drawn cover). */
+export async function getProjectCoverImage(projectId, cover) {
+  if (!isBackendConnected || !cover) return null;
+  return backend.getProjectCoverImage(projectId, cover);
 }
 
 export async function listTeamLeaderProjects(teamLeaderId) {

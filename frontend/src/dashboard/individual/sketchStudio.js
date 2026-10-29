@@ -15,6 +15,8 @@ export const SKETCH_MODELS = [
   { id: 'qwen/qwen-image-2.1-pro', name: 'Qwen Image 2.1 Pro' },
   { id: 'black-forest-labs/flux.2-pro', name: 'FLUX.2 Pro' },
   { id: 'black-forest-labs/flux.2-max', name: 'FLUX.2 Max' },
+  { id: 'openai/gpt-image-2.5-flare', name: 'GPT Image 2.5 Flare' },
+  { id: 'openai/gpt-image-2.5-sunburst', name: 'GPT Image 2.5 Sunburst' },
 ];
 
 /** The scenes of a story: from its storyboard when it has one, else worked out from the story. */

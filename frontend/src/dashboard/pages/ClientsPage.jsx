@@ -7,6 +7,8 @@ import useModalForm from '../hooks/useModalForm.js';
 import useResource from '../hooks/useResource.js';
 import useOpenFromQuery from '../hooks/useOpenFromQuery.js';
 import Button from '../ui/Button.jsx';
+import { COUNTRY_OPTIONS, countryByKey, joinPhone, splitPhone } from '../ui/countryCodes.js';
+import SelectField from '../ui/SelectField.jsx';
 import DataTable from '../ui/DataTable.jsx';
 import { IconBuilding, IconClose, IconMail, IconPencil, IconPhone, IconPlus, IconSend, IconTrash } from '../ui/DashIcons.jsx';
 import timeAgo from '../timeAgo.js';
@@ -207,22 +209,25 @@ export default function ClientsPage() {
 
 function ClientModal({ open, client, onClose, onSaved }) {
   const editing = Boolean(client);
-  const form = useModalForm(open, { name: client?.name ?? '', email: client?.email ?? '', phone: client?.phone ?? '' }, client?.id ?? 'new');
+  // the phone number is kept as "<country code> <number>" (for example +91 98765 43210), so clients abroad fit too
+  const saved = splitPhone(client?.phone ?? '');
+  const form = useModalForm(open, { name: client?.name ?? '', email: client?.email ?? '', country: saved.country.key, phone: saved.number }, client?.id ?? 'new');
 
   const submit = async (event) => {
     event.preventDefault();
-    const { name, email, phone } = form.values;
+    const { name, email, phone, country } = form.values;
     const errors = {};
     if (!name.trim()) errors.name = 'Enter the client name.';
     if (!email.trim()) errors.email = 'Enter the client email.';
     else if (!EMAIL.test(email.trim())) errors.email = 'Enter a valid email address, like client@company.com.';
     if (!phone.trim()) errors.phone = 'Enter the client phone number.';
-    else if (phone.replace(/\D/g, '').length < 7 || !/^[+()\d][\d\s()+-]*$/.test(phone.trim())) errors.phone = 'Enter a valid phone number.';
+    else if (!/^[()\d][\d\s()-]*$/.test(phone.trim())) errors.phone = 'Enter only the number, without the country code (choose that on the left).';
+    else if (phone.replace(/\D/g, '').length < 4 || phone.replace(/\D/g, '').length + countryByKey(country).dial.length - 1 > 15) errors.phone = 'Enter a valid phone number.';
     form.setErrors(errors);
     if (Object.keys(errors).length) return form.focusFirstInvalid();
     form.setBusy(true);
     try {
-      const values = { name: name.trim(), email: email.trim(), phone: phone.trim() };
+      const values = { name: name.trim(), email: email.trim(), phone: joinPhone(countryByKey(country), phone) };
       if (editing) await updateClient(client.id, values);
       else await createClient(values);
       onSaved(editing);
@@ -239,7 +244,14 @@ function ClientModal({ open, client, onClose, onSaved }) {
       <form onSubmit={submit} noValidate>
         <TextField id="client-name" label="Client name" requiredMark placeholder="e.g. Mythic Studios" value={form.values.name} onChange={form.set('name')} error={form.errors.name} disabled={form.busy} />
         <TextField id="client-email" label="Email" requiredMark type="email" placeholder="client@company.com" value={form.values.email} onChange={form.set('email')} error={form.errors.email} disabled={form.busy} />
-        <TextField id="client-phone" label="Phone number" requiredMark type="tel" placeholder="+91 98765 43210" value={form.values.phone} onChange={form.set('phone')} error={form.errors.phone} disabled={form.busy} />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0 12px', alignItems: 'flex-start' }}>
+          <div style={{ flex: '1 1 190px', minWidth: 0 }}>
+            <SelectField id="client-country" label="Country code" requiredMark options={COUNTRY_OPTIONS} value={form.values.country} onChange={form.set('country')} disabled={form.busy} />
+          </div>
+          <div style={{ flex: '2 1 220px', minWidth: 0 }}>
+            <TextField id="client-phone" label="Phone number" requiredMark type="tel" placeholder="98765 43210" value={form.values.phone} onChange={form.set('phone')} error={form.errors.phone} disabled={form.busy} />
+          </div>
+        </div>
         {form.formError && (
           <p className={styles.formError} role="alert">
             {form.formError}

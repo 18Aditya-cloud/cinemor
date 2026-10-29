@@ -98,10 +98,13 @@ def _person(user: User | None) -> dict | None:
 
 
 def _name(user: User | None) -> str:
-    """The name the person chose in Settings, or the first part of their email."""
+    """
+    How a person is shown to the people they work with (reviews, messages, the team): the first part of their
+    email, "aarush4520" for aarush4520@gmail.com. The name chosen in Settings is shown only on their own dashboard.
+    """
     if user is None:
         return "Someone"
-    return (getattr(user, "display_name", None) or "").strip() or user.email.split("@")[0]
+    return user.email.split("@")[0]
 
 
 class ProjectAccess:

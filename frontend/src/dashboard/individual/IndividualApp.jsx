@@ -6,7 +6,7 @@ import DashboardLayout from '../DashboardLayout.jsx';
 import { ThemeProvider } from '../ThemeContext.jsx';
 import { WorkspaceProvider } from '../WorkspaceContext.jsx';
 import '../theme.css';
-import { IconGear, IconOverview, IconProjects, IconUsers } from '../ui/DashIcons.jsx';
+import { IconGear, IconLibrary, IconOverview, IconProjects, IconSparkles, IconUsers } from '../ui/DashIcons.jsx';
 import { ToastProvider } from '../ui/Toast.jsx';
 import ClientsPage from './ClientsPage.jsx';
 import { setDemoOwner } from './individualApi.js';
@@ -23,6 +23,7 @@ import EnvironmentStudioPage from './EnvironmentStudioPage.jsx';
 import SketchStudioPage from './SketchStudioPage.jsx';
 import StoryboardPage from './StoryboardPage.jsx';
 import StoryPage from './StoryPage.jsx';
+import QuickCreatePage, { LibraryPage } from '../quickCreate/QuickCreatePage.jsx';
 
 const NAV = [
   {
@@ -30,6 +31,8 @@ const NAV = [
     items: [
       { to: '/dashboard', label: 'Overview', icon: IconOverview },
       { to: '/dashboard/projects', label: 'My Projects', icon: IconProjects, match: (p) => p === '/dashboard/projects' || p.startsWith('/dashboard/projects/') },
+      { to: '/dashboard/quick-create', label: 'Quick Create', icon: IconSparkles, match: (p) => p === '/dashboard/quick-create' || p.startsWith('/dashboard/quick-create/') },
+      { to: '/dashboard/library', label: 'Library', icon: IconLibrary },
       { to: '/dashboard/clients', label: 'Clients', icon: IconUsers },
     ],
   },
@@ -47,6 +50,9 @@ function pageFor(path) {
   if (path === '/dashboard/projects/new') return { page: 'new' };
   if (path === '/dashboard/clients') return { page: 'clients' };
   if (path === '/dashboard/settings') return { page: 'settings' };
+  if (path === '/dashboard/library') return { page: 'library' };
+  const q = path.match(/^\/dashboard\/quick-create(?:\/(character|location|image|story|avatar-video|audio))?$/);
+  if (q) return { page: 'quick', tool: q[1] || null };
   let m = path.match(/^\/dashboard\/projects\/(\d+)$/);
   if (m) return { page: 'project', id: Number(m[1]) };
   m = path.match(/^\/dashboard\/projects\/(\d+)\/edit$/);
@@ -113,6 +119,8 @@ export default function IndividualApp() {
   else if (route.page === 'storyEdit') page = <StoryEditorPage key={`story-${route.id}-${route.storyId}`} projectId={route.id} storyId={route.storyId} />;
   else if (route.page === 'clients') page = <ClientsPage />;
   else if (route.page === 'settings') page = <SettingsPage />;
+  else if (route.page === 'quick') page = <QuickCreatePage key={route.tool || 'hub'} tool={route.tool} />;
+  else if (route.page === 'library') page = <LibraryPage />;
   else page = <OverviewPage />;
 
   return (

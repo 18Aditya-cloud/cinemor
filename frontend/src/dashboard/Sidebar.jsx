@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import logoUrl from '../assets/images/cinemor-logo.png';
 import cx from '../utils/cx.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { Link, useRouter } from '../router/router.jsx';
+import CommandPalette, { useRecentPlaces } from './CommandPalette.jsx';
+import timeAgo from './timeAgo.js';
 import { useTheme } from './ThemeContext.jsx';
 import { useWorkspace } from './WorkspaceContext.jsx';
 import {
@@ -17,6 +19,7 @@ import {
   IconSun,
   IconOverview,
   IconProjects,
+  IconSearch,
   IconShield,
   IconUserCog,
   IconUserPlus,
@@ -50,10 +53,12 @@ export const NAV = [
  * hiding the text); "Expand sidebar" turns it into the earlier, wider menu with the labels shown. On phones it is
  * always the wide, labelled version, opened as a drawer (see the media query at the bottom of the CSS).
  *
- * At the bottom: the Light / Dark switch and the account (name, role, Settings, Log out). There is no top bar.
+ * Under the logo: "Search or jump to…" (also Ctrl K / ⌘ K), and on the wide rail "Continue where you left" (the last
+ * project, story or studio opened in this dashboard). At the bottom: the Light / Dark switch and the account (name,
+ * role, Settings, Log out). There is no top bar.
  */
 export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, home = '/organization', settingsTo = '/organization/settings' }) {
-  const { path } = useRouter();
+  const { path, search } = useRouter();
   const asideRef = useRef(null);
   // The one tooltip shown while the rail is icon-only, for whichever item has the mouse or the keyboard focus.
   // It is a sibling of the scrolling <nav>, not a child of it, so nav's own scrollbar never clips it (a scrolling
@@ -68,6 +73,25 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
   };
   const hideTip = () => setTip(null);
 
+  // pages in the menu are not "places" to continue; everything else opened in this dashboard is
+  const menuPaths = nav.flatMap((g) => g.items.map((it) => it.to));
+  const menuKey = menuPaths.join('|');
+  const skip = useCallback((p) => menuKey.split('|').includes(p) || p.endsWith('/settings') || p.endsWith('/new'), [menuKey]);
+  const recent = useRecentPlaces(home, skip);
+  const last = recent.find((x) => x.to !== `${path}${search || ''}`);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const onKey = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearching((v) => !v);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
+
   return (
     <aside ref={asideRef} className={cx(styles.sidebar, collapsed && styles.collapsed, drawerOpen && styles.drawerOpen)} aria-label="Organization menu">
       <div className={styles.brand}>
@@ -78,6 +102,22 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
           </span>
         </Link>
       </div>
+
+      <button
+        type="button"
+        className={styles.search}
+        onClick={() => setSearching(true)}
+        aria-label="Search or jump to"
+        aria-keyshortcuts={mac ? 'Meta+K' : 'Control+K'}
+        onMouseEnter={showTip('Search  (Ctrl K)')}
+        onMouseLeave={hideTip}
+        onFocus={showTip('Search  (Ctrl K)')}
+        onBlur={hideTip}
+      >
+        <IconSearch width={17} height={17} aria-hidden="true" />
+        <span className={styles.searchText}>Search or jump to…</span>
+        <kbd className={styles.kbd}>{mac ? '⌘ K' : 'Ctrl K'}</kbd>
+      </button>
 
       <nav className={styles.nav} aria-label="Dashboard pages">
         {nav.map((group) => (
@@ -108,6 +148,15 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
             })}
           </div>
         ))}
+        {last && (
+          <Link to={last.to} className={styles.continue}>
+            <span className={styles.continueLabel}>Continue where you left</span>
+            <span className={styles.continueTitle}>{last.title}</span>
+            <span className={styles.continueMeta}>
+              Opened {timeAgo(last.at)} <IconChevronRight width={14} height={14} aria-hidden="true" />
+            </span>
+          </Link>
+        )}
       </nav>
 
       <div className={styles.foot}>
@@ -136,6 +185,7 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
           {tip.label}
         </span>
       )}
+      <CommandPalette open={searching} onClose={() => setSearching(false)} nav={nav} recent={recent} />
     </aside>
   );
 }
@@ -161,12 +211,24 @@ function ThemeToggle({ tip, hideTip }) {
   const light = theme === 'light';
   const label = light ? 'Switch to dark theme' : 'Switch to light theme';
   return (
-    <button type="button" className={styles.footButton} onClick={toggle} aria-label={label} onMouseEnter={tip(light ? 'Light theme' : 'Dark theme')} onMouseLeave={hideTip} onFocus={tip(light ? 'Light theme' : 'Dark theme')} onBlur={hideTip}>
+    <>
+      {/* the wide rail: both themes side by side */}
+      <div className={styles.themeSwitch} role="group" aria-label="Theme">
+        <button type="button" aria-pressed={light} className={cx(styles.themeOption, light && styles.themeOn)} onClick={() => !light && toggle()}>
+          <IconSun width={15} height={15} aria-hidden="true" /> Light
+        </button>
+        <button type="button" aria-pressed={!light} className={cx(styles.themeOption, !light && styles.themeOn)} onClick={() => light && toggle()}>
+          <IconMoon width={15} height={15} aria-hidden="true" /> Dark
+        </button>
+      </div>
+      {/* the icon rail: one button that switches */}
+      <button type="button" className={cx(styles.footButton, styles.themeRailButton)} onClick={toggle} aria-label={label} onMouseEnter={tip(light ? 'Light theme' : 'Dark theme')} onMouseLeave={hideTip} onFocus={tip(light ? 'Light theme' : 'Dark theme')} onBlur={hideTip}>
       <span key={theme} className={styles.themeIcon} aria-hidden="true">
         {light ? <IconSun width={19} height={19} /> : <IconMoon width={19} height={19} />}
       </span>
       <span className={styles.footText}>{light ? 'Light theme' : 'Dark theme'}</span>
     </button>
+    </>
   );
 }
 
@@ -198,8 +260,8 @@ function UserMenu({ settingsTo, tip, hideTip }) {
           {initials}
         </span>
         <span className={styles.userText}>
-          <span className={styles.userName}>{roleTitle}</span>
-          <span className={styles.userRole}>{roleLabel}</span>
+          <span className={styles.userName}>{displayName}</span>
+          <span className={styles.userRole}>{roleTitle}</span>
         </span>
         <IconChevronDown width={16} height={16} className={cx(styles.chevron, open && styles.flip)} />
       </button>

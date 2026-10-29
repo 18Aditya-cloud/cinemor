@@ -1,0 +1,389 @@
+/* One story of an organization project (StoryView.jsx). Colours: theme.css and the stage palette (ui/Production). */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+  align-items: start;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.main {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  color: var(--cm-ink-dim);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.back:hover {
+  color: var(--cm-ink);
+}
+
+/* ------------------------------------------------------------------ head */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.headArt {
+  flex: none;
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  box-shadow: var(--d-card-shadow-sm);
+}
+.headText {
+  flex: 1;
+  min-width: 220px;
+}
+.title {
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.sub {
+  margin-top: 6px;
+  color: var(--cm-ink-faint);
+  font-size: 0.86rem;
+}
+.switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-fill-1);
+}
+.switch {
+  overflow: hidden;
+  max-width: 170px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--cm-ink-faint);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.switch:hover {
+  color: var(--cm-ink);
+}
+.switch:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 1px;
+}
+.switchOn,
+.switchOn:hover {
+  background: var(--d-card-bg);
+  color: var(--cm-ink);
+  box-shadow: var(--d-card-shadow-sm);
+}
+.closed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--d-warn-bd);
+  border-radius: 14px;
+  background: var(--d-warn-bg);
+  color: var(--d-warn-fg);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ pipeline */
+.pipeCard {
+  padding: 20px 18px 18px;
+  border: 1px solid var(--cm-line);
+  border-radius: 22px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+
+/* ------------------------------------------------------------------ stages */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 16px 16px;
+  border: 1px solid var(--cm-line);
+  border-radius: 20px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.stage:hover,
+.stage:focus-within {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--c) 60%, transparent);
+  box-shadow: 0 26px 50px -30px var(--c);
+}
+.stage:focus-visible {
+  outline: 2px solid var(--c);
+  outline-offset: 3px;
+}
+.stageMine {
+  border-color: color-mix(in srgb, var(--c) 45%, transparent);
+}
+.stageLocked {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.66;
+}
+.stageLocked:hover,
+.stageLocked:focus-within {
+  transform: none;
+  border-color: var(--cm-line-strong);
+  box-shadow: none;
+}
+.flash {
+  animation: flash 1.2s ease;
+}
+@keyframes flash {
+  0%,
+  60% {
+    border-color: var(--c);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 30%, transparent);
+  }
+}
+.stageHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.stageName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.note svg {
+  flex: none;
+  margin-top: 2px;
+}
+.quote {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--d-danger-line);
+  border-radius: 4px 12px 12px 4px;
+  background: var(--d-danger-bg);
+  color: var(--cm-ink);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.quote span {
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+.approved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.82rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+.danger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px dashed var(--d-danger-bd);
+  border-radius: 18px;
+  color: var(--cm-ink-faint);
+  font-size: 0.86rem;
+}
+
+/* ------------------------------------------------------------------ timeline */
+.timeline {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 4px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 20px 18px;
+  border: 1px solid var(--cm-line);
+  border-radius: 22px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow);
+}
+.tlTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.tlSub {
+  margin-bottom: 12px;
+  color: var(--cm-ink-faint);
+  font-size: 0.8rem;
+}
+.tlEmpty {
+  color: var(--cm-ink-faint);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.events {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.events::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 13px;
+  width: 2px;
+  background: var(--cm-line);
+}
+.event {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+}
+.eventDot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c) 18%, var(--d-solid));
+  color: var(--c);
+}
+.eventBody {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.84rem;
+}
+.eventMeta {
+  color: var(--cm-ink-faint);
+  font-size: 0.76rem;
+}
+.eventQuote {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--d-fill-2);
+  color: var(--cm-ink-dim);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.eventMessage {
+  border-left: 3px solid var(--cm-violet-hi);
+}
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cm-line);
+}
+.composer textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 12px;
+  background: var(--d-field-bg);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.86rem;
+  resize: vertical;
+}
+.composer textarea:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 1px;
+}
+
+@media (max-width: 1280px) {
+  .stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .timeline {
+    position: static;
+    max-height: none;
+  }
+}
+@media (max-width: 680px) {
+  .stages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pipeCard {
+    overflow-x: auto;
+    padding: 16px 10px;
+  }
+  .pipeCard > ol {
+    min-width: 420px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    transition: none;
+  }
+  .flash {
+    animation: none;
+  }
+}

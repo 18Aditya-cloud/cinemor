@@ -5,7 +5,7 @@ import cx from '../../utils/cx.js';
 import useResource from '../hooks/useResource.js';
 import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
-import { IconCheckCircle, IconChevronDown, IconChevronLeft, IconClose, IconEye, IconInfo, IconLock, IconPlus, IconRefresh, IconSend, IconTrash } from '../ui/DashIcons.jsx';
+import { IconCheckCircle, IconChevronLeft, IconChevronRight, IconClose, IconEye, IconLock, IconPlus, IconSend } from '../ui/DashIcons.jsx';
 import ConfirmModal from '../ui/ConfirmModal.jsx';
 import Notice from '../ui/Notice.jsx';
 import Pill from '../ui/Pill.jsx';
@@ -16,7 +16,8 @@ import { deleteProjectStory, getMyProject, itemLabel, withdrawSubmission } from 
 import ClientPanel from './ClientPanel.jsx';
 import { NotificationBell, RolePills } from './EmployeeParts.jsx';
 import { AnswerModal, ReopenModal, SubmitModal } from './ReviewModals.jsx';
-import { modulePath, STAGES, stageMeta, STATE, SUBMISSION } from './stages.js';
+import { modulePath, projectPath, STAGES, stageMeta, STATE, SUBMISSION } from './stages.js';
+import StoryView from './StoryView.jsx';
 import e from './Employee.module.css';
 
 const names = (list) => (list.length ? list.map((p) => p.name).join(', ') : 'Nobody yet');
@@ -40,26 +41,29 @@ const FILTERS = [
 /**
  * One project's workflow, sorted around what this person has to do.
  *  - "Ready for you": the stages they can work on now, the changes asked of them, and the work waiting for their review.
- *  - "All stories": one line per story with its six stages as a bar, where it stands now, and (opened) every stage with
- *    its buttons: Open / View, Submit for review, Take back, Approve / Ask for changes and, as Team Leader, Reopen.
+ *  - "All stories": one line per story with its six stages as a bar and where it stands now. Opening a story shows it
+ *    on its own (StoryView, ?story=id): its stages on a line, a card per stage with its buttons (Open / View, Submit for
+ *    review, Take back, Approve / Ask for changes and, as Team Leader, Reopen and Delete story) and its timeline.
  *  - On the side: who works on and reviews each stage, and the project's reviews.
  * A project can have several stories; every story goes through the six stages on its own.
  */
 export default function EmployeeProjectPage({ projectId }) {
   const toast = useToast();
-  const { navigate } = useRouter();
+  const { navigate, search } = useRouter();
   const { data: project, loading, error, reload } = useResource(() => getMyProject(projectId), [projectId]);
   const [submit, setSubmit] = useState(null); // { stage, story }
   const [answer, setAnswer] = useState(null); // { submission, mode }
   const [reopen, setReopen] = useState(null); // { stage, story }
   const [taking, setTaking] = useState(null);
-  const [open, setOpen] = useState({}); // story id -> opened or closed (the default depends on the story)
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('mine');
   const [allTasks, setAllTasks] = useState(false);
   const [allReviews, setAllReviews] = useState(false);
   const [deleting, setDeleting] = useState(null); // the story the Team Leader is deleting (asks first)
-  useDocumentTitle(project?.title || 'Project');
+  // a story opened on its own (?story=id) names the tab after itself
+  const storyParam = Number(new URLSearchParams(search).get('story')) || null;
+  const openedTitle = storyParam ? project?.stories.find((st) => st.id === storyParam)?.title : null;
+  useDocumentTitle(openedTitle ? `${openedTitle} · ${project.title}` : project?.title || 'Project');
 
   const back = (
     <Link to="/employee/projects" className={e.back}>
@@ -82,7 +86,6 @@ export default function EmployeeProjectPage({ projectId }) {
   const needsYou = (story) => story.stages.some((s) => s.canWork || pending(story, s.key)?.canAct);
   const hasMine = (story) => story.stages.some((s) => s.canWork || pending(story, s.key)?.canAct || pending(story, s.key)?.canWithdraw);
   const finished = (story) => story.stages.length > 0 && story.approvedCount === story.stages.length;
-  const isOpen = (story) => open[story.id] ?? project.stories.length === 1;
   const matches = {
     all: () => true,
     mine: needsYou,
@@ -141,6 +144,52 @@ export default function EmployeeProjectPage({ projectId }) {
     setTaking(null);
   };
 
+  const modals = (
+    <>
+      <ConfirmModal
+        open={Boolean(deleting)}
+        title="Delete this story?"
+        text={deleting ? `“${deleting.title}” is deleted for good, with everything made from it: its versions, storyboard, characters, locations, sketches, clips and film, and its reviews. The other stories of the project are not touched. This cannot be undone.` : ''}
+        confirmLabel="Delete Story"
+        onClose={() => setDeleting(null)}
+        onConfirm={async () => {
+          await deleteProjectStory(project.id, deleting.id);
+          toast(`“${deleting.title}” deleted`);
+          navigate(projectPath(project.id), { replace: true });
+          await reload();
+        }}
+      />
+      <SubmitModal open={Boolean(submit)} project={project} stage={submit?.stage} story={submit?.story} onClose={() => setSubmit(null)} onDone={reload} />
+      <AnswerModal open={Boolean(answer)} submission={answer?.submission} mode={answer?.mode} onClose={() => setAnswer(null)} onDone={reload} />
+      <ReopenModal open={Boolean(reopen)} project={project} stage={reopen?.stage} story={reopen?.story} onClose={() => setReopen(null)} onDone={reload} />
+    </>
+  );
+
+  // one story on its own (?story=id)
+  const opened = storyParam ? project.stories.find((st) => st.id === storyParam) : null;
+  if (opened) {
+    return (
+      <div className={pages.page}>
+        {error && <Notice message={error.message} onRetry={reload} />}
+        <StoryView
+          key={opened.id}
+          project={project}
+          story={opened}
+          pending={pending}
+          lastAnswer={lastAnswer}
+          onSubmit={setSubmit}
+          onAnswer={setAnswer}
+          onReopen={setReopen}
+          onTakeBack={takeBack}
+          taking={taking}
+          onDelete={setDeleting}
+          navigate={navigate}
+        />
+        {modals}
+      </div>
+    );
+  }
+
   return (
     <div className={cx(pages.page, e.projectPage)}>
       {back}
@@ -170,7 +219,7 @@ export default function EmployeeProjectPage({ projectId }) {
           <NotificationBell />
           <RefreshButton onClick={reload} loading={loading} />
           {canWrite && (
-            <Button icon={IconPlus} onClick={() => navigate(`${modulePath(project.id, 'story')}/new`)}>
+            <Button icon={IconPlus} onClick={() => navigate(modulePath(project.id, 'story'))}>
               Write a new story
             </Button>
           )}
@@ -234,7 +283,7 @@ export default function EmployeeProjectPage({ projectId }) {
               <div className={cx(e.card, e.emptyStories)}>
                 <p>{canWrite ? 'No story yet. Write the first one: it starts the workflow.' : 'No story yet. The Story Writers start here.'}</p>
                 {canWrite && (
-                  <Button icon={IconPlus} onClick={() => navigate(`${modulePath(project.id, 'story')}/new`)}>
+                  <Button icon={IconPlus} onClick={() => navigate(modulePath(project.id, 'story'))}>
                     Write the first story
                   </Button>
                 )}
@@ -264,12 +313,10 @@ export default function EmployeeProjectPage({ projectId }) {
                 )}
                 <ol className={e.storyRows}>
                   {stories.map(({ st: story }) => {
-                    const shown = isOpen(story);
                     const now = nowOf(story);
                     const mine = hasMine(story);
-                    const bodyId = `story-${story.id}-stages`;
                     return (
-                      <li key={story.id} className={cx(e.storyItem, mine && e.storyItemMine, shown && e.storyItemOpen)}>
+                      <li key={story.id} className={cx(e.storyItem, mine && e.storyItemMine)}>
                         <div className={e.storyLine}>
                           <div className={e.storyName}>
                             <Link to={modulePath(project.id, 'story', story.id)} className={e.storyLink}>
@@ -295,115 +342,17 @@ export default function EmployeeProjectPage({ projectId }) {
                             <Pill tone={now.tone}>{now.label}</Pill>
                             {now.note && <span className={e.small}>{now.note}</span>}
                           </div>
-                          <button
-                            type="button"
-                            className={cx(e.rowToggle, needsYou(story) && !shown && e.rowTogglePrimary)}
-                            aria-expanded={shown}
-                            aria-controls={bodyId}
-                            aria-label={`${shown ? 'Close' : needsYou(story) ? 'Open' : 'View'} ${story.title}`}
-                            onClick={() => setOpen((o) => ({ ...o, [story.id]: !shown }))}
+                          <Link
+                            to={`${projectPath(project.id)}?story=${story.id}`}
+                            className={cx(e.rowToggle, needsYou(story) && e.rowTogglePrimary)}
+                            style={{ textDecoration: 'none' }}
+                            aria-label={`${needsYou(story) ? 'Open' : 'View'} ${story.title}`}
                           >
-                            {shown ? 'Close' : needsYou(story) ? 'Open' : 'View'}
-                            <IconChevronDown width={15} height={15} className={cx(shown && e.flip)} aria-hidden="true" />
-                          </button>
+                            {needsYou(story) ? 'Open' : 'View'}
+                            <IconChevronRight width={15} height={15} aria-hidden="true" />
+                          </Link>
                         </div>
 
-                        {shown && (
-                          <ol id={bodyId} className={e.stageCards} aria-label={`Stages of ${story.title}`}>
-                            {story.stages.map((s) => {
-                              const meta = stageMeta(s.key);
-                              const state = STATE[s.status];
-                              const sub = pending(story, s.key);
-                              const answered = lastAnswer(story, s.key);
-                              const canReopen = project.isTeamLeader && ['approved', 'in_review', 'changes_requested'].includes(s.status);
-                              const yours = mineOf[s.key]?.roleAllows || mineOf[s.key]?.canReview;
-                              return (
-                                <li key={s.key} className={cx(e.stageCard, yours && e.stageCardMine, s.status === 'locked' && e.stageCardLocked)}>
-                                  <div className={e.stageCardHead}>
-                                    <span className={e.stageCardName}>
-                                      <span className={e.tileSm} aria-hidden="true">
-                                        <meta.icon width={15} height={15} />
-                                      </span>
-                                      {s.label}
-                                    </span>
-                                    <Pill tone={state.tone}>{state.label}</Pill>
-                                  </div>
-                                  {s.status === 'locked' && (
-                                    <span className={e.stageRowNote}>
-                                      <IconLock width={13} height={13} /> {s.lockedReason}
-                                    </span>
-                                  )}
-                                  {s.status === 'open' && (
-                                    <span className={e.stageRowNote}>
-                                      <IconInfo width={13} height={13} /> {s.canWork ? 'Your part: open it and work on it.' : `Open for ${names(mineOf[s.key]?.workers || [])}.`}
-                                    </span>
-                                  )}
-                                  {s.status === 'in_review' && sub && (
-                                    <span className={e.stageRowNote}>
-                                      <IconInfo width={13} height={13} /> {sub.submittedBy?.name} sent it to {sub.reviewer?.name} {timeAgo(sub.at)}.{sub.note ? ` “${sub.note}”` : ''}
-                                    </span>
-                                  )}
-                                  {s.status === 'changes_requested' && answered && (
-                                    <span className={e.quote}>
-                                      {answered.comment}
-                                      <span className={e.quoteBy}>
-                                        {answered.reviewedBy?.name}, {timeAgo(answered.reviewedAt)}
-                                      </span>
-                                    </span>
-                                  )}
-                                  {s.status === 'approved' && (
-                                    <span className={e.stageRowNote}>
-                                      <IconCheckCircle width={13} height={13} /> Approved{s.approvedBy ? ` by ${s.approvedBy.name}` : ''}
-                                      {s.approvedAt ? `, ${timeAgo(s.approvedAt)}` : ''}.
-                                    </span>
-                                  )}
-                                  {(s.status !== 'locked' || canReopen) && (
-                                    <div className={e.stageCardActions}>
-                                      {s.status !== 'locked' && (
-                                        <Button variant={s.canWork ? 'primary' : 'secondary'} icon={s.canWork ? meta.icon : IconEye} onClick={() => navigate(modulePath(project.id, s.key, story.id))}>
-                                          {s.canWork ? 'Open' : 'View'}
-                                        </Button>
-                                      )}
-                                      {s.canWork && (
-                                        <Button variant="secondary" icon={IconSend} onClick={() => setSubmit({ stage: s, story })}>
-                                          {s.status === 'changes_requested' ? 'Submit again' : 'Submit for review'}
-                                        </Button>
-                                      )}
-                                      {sub?.canWithdraw && (
-                                        <Button variant="secondary" onClick={() => takeBack(sub)} loading={taking === sub.id}>
-                                          Take back
-                                        </Button>
-                                      )}
-                                      {sub?.canAct && (
-                                        <>
-                                          <Button icon={IconCheckCircle} onClick={() => setAnswer({ submission: sub, mode: 'approve' })}>
-                                            Approve
-                                          </Button>
-                                          <Button variant="danger" icon={IconClose} onClick={() => setAnswer({ submission: sub, mode: 'changes' })}>
-                                            Ask for changes
-                                          </Button>
-                                        </>
-                                      )}
-                                      {canReopen && (
-                                        <Button variant="secondary" icon={IconRefresh} onClick={() => setReopen({ stage: s, story })}>
-                                          Reopen
-                                        </Button>
-                                      )}
-                                    </div>
-                                  )}
-                                </li>
-                              );
-                            })}
-                          </ol>
-                        )}
-                        {shown && project.isTeamLeader && (
-                          <div className={e.storyTlRow}>
-                            <span className={e.small}>As Team Leader you can delete this story, with everything made from it.</span>
-                            <Button variant="danger" icon={IconTrash} onClick={() => setDeleting(story)}>
-                              Delete story
-                            </Button>
-                          </div>
-                        )}
                       </li>
                     );
                   })}
@@ -509,21 +458,7 @@ export default function EmployeeProjectPage({ projectId }) {
         </aside>
       </div>
 
-      <ConfirmModal
-        open={Boolean(deleting)}
-        title="Delete this story?"
-        text={deleting ? `“${deleting.title}” is deleted for good, with everything made from it: its versions, storyboard, characters, locations, sketches, clips and film, and its reviews. The other stories of the project are not touched. This cannot be undone.` : ''}
-        confirmLabel="Delete Story"
-        onClose={() => setDeleting(null)}
-        onConfirm={async () => {
-          await deleteProjectStory(project.id, deleting.id);
-          toast(`“${deleting.title}” deleted`);
-          await reload();
-        }}
-      />
-      <SubmitModal open={Boolean(submit)} project={project} stage={submit?.stage} story={submit?.story} onClose={() => setSubmit(null)} onDone={reload} />
-      <AnswerModal open={Boolean(answer)} submission={answer?.submission} mode={answer?.mode} onClose={() => setAnswer(null)} onDone={reload} />
-      <ReopenModal open={Boolean(reopen)} project={project} stage={reopen?.stage} story={reopen?.story} onClose={() => setReopen(null)} onDone={reload} />
+      {modals}
     </div>
   );
 }

@@ -391,6 +391,10 @@ const summaryView = (p) => {
     startDate: p.start_date || '',
     deadline: p.deadline || '',
     memberCount: (p.members || []).length,
+    // the people on the project (each once, without the Team Leader), for the avatars on the dashboard cards
+    people: [...new Set((p.members || []).filter((m) => !m.is_team_leader).map((m) => m.email))],
+    // the newest sketch made in the project (dashboard only), shown on its card instead of the drawn cover
+    cover: p.cover_sketch ? { storyId: p.cover_sketch.story_id, sceneId: p.cover_sketch.scene_id, sketchId: p.cover_sketch.sketch_id } : null,
     createdAt: time(p.created_at),
     updatedAt: time(p.updated_at),
   };
@@ -423,11 +427,21 @@ export async function getTeamLeaderDashboard(teamLeaderId) {
   const s = d?.statistics || {};
   return {
     stats: { total: s.total_projects ?? 0, notStarted: s.pending_projects ?? 0, ongoing: s.ongoing_projects ?? 0, completed: s.completed_projects ?? 0, aborted: s.aborted_projects ?? 0, teamMembers: s.total_members ?? 0 },
-    projects: [...(d?.projects || [])]
-      .sort((a, b) => (time(b.created_at) ?? 0) - (time(a.created_at) ?? 0))
-      .slice(0, 4)
-      .map(summaryView),
+    // every project, newest first (the page shows the latest ones and works out the small details from all of them)
+    projects: [...(d?.projects || [])].sort((a, b) => (time(b.created_at) ?? 0) - (time(a.created_at) ?? 0)).map(summaryView),
   };
+}
+
+// A project's cover sketch, fetched with the sign-in token and shown from an object URL (one per sketch).
+const coverUrls = new Map();
+export async function getProjectCoverImage(projectId, cover) {
+  if (!cover) return null;
+  const key = `${projectId}/${cover.sketchId}`;
+  if (coverUrls.has(key)) return coverUrls.get(key);
+  const blob = await request(`/api/employee/projects/${Number(projectId)}/work/stories/${Number(cover.storyId)}/scenes/${Number(cover.sceneId)}/sketches/${Number(cover.sketchId)}/preview`, { as: 'blob' });
+  const url = URL.createObjectURL(blob);
+  coverUrls.set(key, url);
+  return url;
 }
 
 export async function listTeamLeaderProjects(teamLeaderId) {
@@ -450,10 +464,19 @@ export async function getTeamLeaderProject(teamLeaderId, projectId) {
   const on = new Set(members.map((m) => `${m.kind}:${m.employeeId}`));
   const reviewing = (id) => members.filter((m) => m.kind === 'reviewer' && m.employeeId === id).map((m) => m.jobRoleId);
   const allReviewers = (reviewers || []).map(personView);
+  const allEmployees = (employees || []).map(personView);
+  // how many projects each person is on, and their limit (the team cards show it)
+  const capacityOf = {};
+  [...allEmployees, ...allReviewers].forEach((e) => {
+    capacityOf[e.id] = { active: e.activeProjects, max: e.maxProjects };
+  });
   return {
     project: summaryView(project),
     members,
-    availableEmployees: (employees || []).map(personView).filter((e) => !on.has(`employee:${e.id}`) && e.available),
+    capacityOf,
+    // employees at their project limit (shown in Add team member, but they cannot be added)
+    fullEmployees: allEmployees.filter((e) => !on.has(`employee:${e.id}`) && !e.available),
+    availableEmployees: allEmployees.filter((e) => !on.has(`employee:${e.id}`) && e.available),
     // a reviewer can review several job roles on one project: offered while one of their roles is not reviewed here yet
     availableReviewers: allReviewers.filter((e) => e.reviewerJobRoles.some((r) => !reviewing(e.id).includes(r.id))),
     // the job roles each reviewer reviews (to choose from when changing what they review here)

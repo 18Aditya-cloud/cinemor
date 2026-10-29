@@ -1,5 +1,5 @@
 /*
- * The rail is always the same dark colours, whichever theme (light or dark) the rest of the dashboard is in — a
+ * The rail is always the same dark colours, whichever theme (light or dark) the rest of the dashboard is in â€” a
  * fixed set of the dark theme's own values, defined here so the whole file can keep using the usual "--cm-" and
  * "--d-" names without caring which theme is active. Only this file needs to know that.
  */
@@ -33,6 +33,136 @@
   color: var(--cm-ink); /* the fixed colour above, not whichever the site's own theme currently has */
   background: linear-gradient(180deg, #100a24 0%, #0a0616 100%);
   transition: width 0.4s var(--cm-ease), margin 0.4s var(--cm-ease);
+  --tip-ink: #fff;
+}
+
+/* ---- "Search or jump toâ€¦" ---- */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  margin: 0 14px 6px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 13px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-faint);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.search:hover {
+  border-color: var(--cm-line-strong);
+  background: var(--d-fill-2);
+  color: var(--cm-ink-dim);
+}
+.searchText {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kbd {
+  flex: none;
+  padding: 2px 6px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 6px;
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+/* ---- "Continue where you left" ---- */
+.continue {
+  display: grid;
+  gap: 3px;
+  margin: 16px 0 4px;
+  padding: 12px 13px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--d-accent-fill), transparent 75%), var(--d-fill-1);
+  color: var(--cm-ink);
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.continue:hover {
+  border-color: var(--cm-violet-hi);
+  transform: translateY(-1px);
+}
+.continue:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.continueLabel {
+  color: var(--cm-ink-faint);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.continueTitle {
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.continueMeta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cm-violet-hi);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* ---- the Light / Dark switch (wide rail) ---- */
+.themeSwitch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--cm-line);
+  border-radius: 14px;
+  background: var(--d-fill-1);
+}
+.themeOption {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--cm-ink-faint);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.themeOption:hover {
+  color: var(--cm-ink);
+}
+.themeOption:focus-visible,
+.search:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 2px;
+}
+.themeOn,
+.themeOn:hover {
+  background: var(--d-fill-3);
+  color: var(--d-strong);
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.6);
+}
+/* the single theme button is only for the icon rail */
+.footButton.themeRailButton {
+  display: none;
 }
 
 .brand {
@@ -140,7 +270,7 @@
   border-radius: 10px;
   background: var(--d-popover-bg);
   box-shadow: var(--d-popover-shadow);
-  color: #fff;
+  color: var(--tip-ink);
   font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
@@ -366,8 +496,21 @@
 .collapsed .wordmark,
 .collapsed .linkText,
 .collapsed .collapseText,
-.collapsed .section {
+.collapsed .section,
+.collapsed .searchText,
+.collapsed .kbd,
+.collapsed .continue,
+.collapsed .themeSwitch {
   display: none;
+}
+.collapsed .footButton.themeRailButton {
+  display: flex;
+}
+.collapsed .search {
+  justify-content: center;
+  width: 44px;
+  margin: 0 auto 6px;
+  padding: 0;
 }
 .collapsed .brand {
   justify-content: center;
@@ -490,6 +633,28 @@
   }
   .collapsed .footText {
     display: inline;
+  }
+  .collapsed .searchText {
+    display: revert;
+  }
+  .kbd,
+  .collapsed .kbd {
+    display: none;
+  }
+  .collapsed .search {
+    justify-content: flex-start;
+    width: auto;
+    margin: 0 14px 6px;
+    padding: 0 10px 0 12px;
+  }
+  .collapsed .continue {
+    display: grid;
+  }
+  .collapsed .themeSwitch {
+    display: grid;
+  }
+  .collapsed .footButton.themeRailButton {
+    display: none;
   }
   .collapsed .userText {
     display: grid;

@@ -42,7 +42,7 @@
 .pageTitle {
   font-family: var(--cm-font-display);
   font-size: clamp(2.2rem, 4vw, 2.9rem);
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1;
 }
 .pageSub {
@@ -1059,13 +1059,13 @@
   transition: width 0.25s linear;
 }
 .forgeHint {
-  min-height: 2.9em; /* room for two lines, so "Generating…" does not jump when the tip changes */
+  min-height: 2.9em; /* room for two lines, so "Generatingâ€¦" does not jump when the tip changes */
   margin: 0;
   color: rgba(235, 235, 240, 0.55);
   font-size: 0.74rem;
   line-height: 1.45;
 }
-/* a small frame (a wide scene sketch on a phone) keeps only "Generating…" and the line */
+/* a small frame (a wide scene sketch on a phone) keeps only "Generatingâ€¦" and the line */
 @container (max-width: 420px) {
   .forgeHint {
     display: none;

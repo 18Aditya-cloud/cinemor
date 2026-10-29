@@ -128,7 +128,10 @@ export function PasswordCard(props) {
   return <PasswordForm {...props} />;
 }
 
-/** The name others see (Team pages, reviews, comments). Empty: the first part of the email is shown. */
+/**
+ * The name shown on your own dashboard (the welcome heading and the sidebar). The people you work with (reviews,
+ * messages, the team) always see the first part of your email. Empty: the first part of the email is shown here too.
+ */
 export function ProfileCard() {
   const toast = useToast();
   const uid = useId();
@@ -163,7 +166,7 @@ export function ProfileCard() {
             Your Name
           </h2>
           <p className={pageStyles.panelSub}>
-            The name people see on your work, reviews and messages{user?.email ? ` (you log in with ${user.email})` : ''}.
+            The name shown on your dashboard. In reviews and messages people see {fallback ? `“${fallback}”` : 'the first part of your email'}{user?.email ? ` (you log in with ${user.email})` : ''}.
           </p>
         </div>
         <IconUser width={20} height={20} className={pageStyles.panelIcon} />

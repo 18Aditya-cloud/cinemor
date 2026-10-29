@@ -73,6 +73,14 @@ class TeamLeaderProjectMemberResponse(BaseModel):
 # Project
 # ============================================================
 
+class TeamLeaderCoverSketch(BaseModel):
+    """The newest scene sketch of a project, shown on its dashboard card."""
+
+    story_id: int
+    scene_id: int
+    sketch_id: int
+
+
 class TeamLeaderProjectResponse(BaseModel):
     id: int
 
@@ -95,6 +103,9 @@ class TeamLeaderProjectResponse(BaseModel):
     members: list[TeamLeaderProjectMemberResponse] = Field(
         default_factory=list,
     )
+
+    # only on the dashboard: a sketch to show on the card (None: the drawn cover)
+    cover_sketch: TeamLeaderCoverSketch | None = None
 
     model_config = ConfigDict(
         from_attributes=True,

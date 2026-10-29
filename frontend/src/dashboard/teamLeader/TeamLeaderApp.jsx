@@ -58,7 +58,7 @@ export default function TeamLeaderApp() {
 
   return (
     <ThemeProvider>
-      <WorkspaceProvider role={ROLE} personName={user.displayName || user.email}>
+      <WorkspaceProvider role={ROLE} personName={user.displayName || user.email.split('@')[0]}>
         <ToastProvider>
           <DashboardLayout nav={NAV} home="/team-leader" settingsTo="/team-leader/settings">
             {match ? (

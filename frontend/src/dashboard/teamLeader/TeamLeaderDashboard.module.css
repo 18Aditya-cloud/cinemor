@@ -1,0 +1,426 @@
+/*
+ * The Team Leader's Dashboard (TeamLeaderDashboardPage.jsx).
+ *
+ * Every state has one colour pair, used for everything that belongs to it (icon, small text, pill, bar, glow):
+ *   total = brand blue-violet, not started = purple, ongoing = blue, completed = green, aborted = red, team = gold.
+ * --a is the deeper colour, --b the lighter one, --t the colour for text (deeper on light, lighter on dark).
+ */
+.toneTotal {
+  --a: #4d6bff;
+  --b: #8b5cf6;
+}
+.toneWaiting {
+  --a: #9333ea;
+  --b: #c084fc;
+}
+.toneOngoing {
+  --a: #2563eb;
+  --b: #38bdf8;
+}
+.toneDone {
+  --a: #059669;
+  --b: #34d399;
+}
+.toneStopped {
+  --a: #e11d48;
+  --b: #fb7185;
+}
+.toneTeam {
+  --a: #d97706;
+  --b: #fbbf24;
+}
+.stat,
+.card {
+  --t: var(--a);
+}
+:global(:root[data-theme='dark']) .stat,
+:global(:root[data-theme='dark']) .card {
+  --t: var(--b);
+}
+
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ------------------------------------------------------------------ welcome */
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.eyebrow {
+  color: var(--d-eyebrow, var(--cm-violet-hi));
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.welcome {
+  margin-top: 4px;
+  font-family: var(--cm-font-display);
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-weight: var(--cm-display-weight, 600);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+.lead {
+  margin-top: 8px;
+  color: var(--cm-ink-dim);
+  font-size: 1rem;
+}
+
+/* ------------------------------------------------------------------ the six counts */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+.stat {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid var(--cm-line);
+  border-radius: 20px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow-sm);
+}
+/* the state's colour, coming in from the right edge only */
+.spill {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(90px 90px at 100% 50%, color-mix(in srgb, var(--b) 30%, transparent), transparent 75%),
+    linear-gradient(270deg, color-mix(in srgb, var(--a) 24%, transparent) 0%, color-mix(in srgb, var(--b) 11%, transparent) 18%, transparent 42%);
+}
+.spill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--b), var(--a));
+  box-shadow: 0 0 22px 3px color-mix(in srgb, var(--a) 65%, transparent);
+}
+.statIcon {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, var(--a), var(--b));
+  box-shadow: 0 10px 22px -10px var(--a), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+.statText {
+  position: relative;
+  min-width: 0;
+}
+.statLabel {
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.statValue {
+  margin-top: 2px;
+  color: var(--cm-ink);
+  font-family: var(--cm-font-display);
+  font-size: 2.1rem;
+  font-weight: var(--cm-display-weight, 600);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.statNote {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--t);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ My Projects */
+.panel {
+  padding: 24px 26px 30px;
+  border: 1px solid var(--cm-line);
+  border-radius: 26px;
+  background: var(--d-card-bg);
+  box-shadow: var(--d-card-shadow);
+}
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.panelTitle {
+  font-family: var(--cm-font-display);
+  font-size: 1.7rem;
+  font-weight: var(--cm-display-weight, 600);
+  letter-spacing: -0.01em;
+}
+.panelSub {
+  margin-top: 2px;
+  color: var(--cm-ink-faint);
+  font-size: 0.9rem;
+}
+.viewAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--d-link, var(--cm-violet-hi));
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.viewAll:hover {
+  text-decoration: underline;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cards > li {
+  min-width: 0;
+}
+
+/* one project: lifts and glows from below in its state's colour under the mouse or keyboard focus */
+.card {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: 20px;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.25s var(--cm-ease, ease);
+}
+.inner {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--cm-line);
+  border-radius: 20px;
+  background: var(--d-fill-1);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.inner::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 60%;
+  pointer-events: none;
+  background: linear-gradient(0deg, color-mix(in srgb, var(--a) 16%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.glow {
+  position: absolute;
+  right: 8%;
+  bottom: -34px;
+  left: 8%;
+  height: 70px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--a) 70%, transparent), color-mix(in srgb, var(--b) 25%, transparent) 60%, transparent);
+  filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-6px);
+}
+.card:hover .inner,
+.card:focus-visible .inner {
+  border-color: color-mix(in srgb, var(--a) 45%, transparent);
+  box-shadow: 0 34px 50px -18px color-mix(in srgb, var(--a) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--a) 22%, transparent);
+}
+.card:hover .inner::after,
+.card:focus-visible .inner::after,
+.card:hover .glow,
+.card:focus-visible .glow {
+  opacity: 1;
+}
+.card:focus-visible {
+  outline: none;
+}
+.card:focus-visible .inner {
+  outline: 2px solid var(--b);
+  outline-offset: 2px;
+}
+
+.cover {
+  position: relative;
+  height: 132px;
+  flex: none;
+}
+.art,
+.sketch {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.sketch img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5, 3, 12, 0.05) 30%, rgba(5, 3, 12, 0.78));
+}
+/* the state, as it was on the cards: a white pill with a dot */
+.pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--a) 30%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--a);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--a);
+}
+.title {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  left: 16px;
+  overflow: hidden;
+  display: -webkit-box;
+  color: #fff;
+  font-family: var(--cm-font-display);
+  font-size: 1.45rem;
+  font-weight: var(--cm-display-weight, 600);
+  line-height: 1.1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 14px 16px 16px;
+}
+.client {
+  overflow: hidden;
+  color: var(--cm-ink-dim);
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.timeRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 12px 0 6px;
+  font-size: 0.78rem;
+}
+.dates {
+  color: var(--cm-ink-faint);
+}
+.when {
+  color: var(--t);
+  font-weight: 700;
+}
+.late {
+  color: #e11d48;
+}
+:global(:root[data-theme='dark']) .late {
+  color: #fb7185;
+}
+.bar {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--a) 13%, transparent);
+}
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--a), var(--b));
+}
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+.muted {
+  color: var(--cm-ink-faint);
+  font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------------------ smaller screens */
+@media (max-width: 1100px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .head {
+    flex-wrap: wrap;
+  }
+  .stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .panel {
+    padding: 20px 16px 24px;
+    border-radius: 22px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .inner,
+  .inner::after,
+  .glow {
+    transition: none;
+  }
+  .card:hover,
+  .card:focus-visible {
+    transform: none;
+  }
+}

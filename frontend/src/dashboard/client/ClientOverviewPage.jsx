@@ -2,6 +2,7 @@ import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import { Link } from '../../router/router.jsx';
 import cx from '../../utils/cx.js';
 import useResource from '../hooks/useResource.js';
+import { useWorkspace } from '../WorkspaceContext.jsx';
 import pages from '../pages/pages.module.css';
 import timeAgo from '../timeAgo.js';
 import { IconMail, IconPlay, IconProjects, IconStoryboard } from '../ui/DashIcons.jsx';
@@ -21,6 +22,8 @@ const greeting = () => {
 export default function ClientOverviewPage() {
   useDocumentTitle('Client portal');
   const { data, loading, error, reload } = useResource(getOverview, []);
+  // the name chosen in Settings (else the first part of the email), the same as in the sidebar
+  const { displayName } = useWorkspace();
   const projects = data?.projects || [];
   const leaders = [];
   projects.forEach((p) => {
@@ -32,7 +35,7 @@ export default function ClientOverviewPage() {
       <div className={c.headRow}>
         <div>
           <h1 className={c.greeting}>
-            {greeting()}, {data?.name || 'there'}
+            {greeting()}, {displayName || data?.name || 'there'}
           </h1>
           {data && (
             <p className={c.lead}>

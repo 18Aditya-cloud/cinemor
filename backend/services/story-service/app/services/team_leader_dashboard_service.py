@@ -5,8 +5,13 @@ from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.models.employee_workflow import OrganizationProjectWorkspace
 from app.models.membership import OrganizationRole
 from app.models.project import ProjectStatus
+from app.models.scene_sketch import SceneSketch
+from app.models.scenes import Scene
+from app.models.story import Story
+from app.models.story_board import StoryBoard
 
 from app.repositories.auth_repository import AuthRepository
 from app.repositories.team_leader_dashboard_repository import (
@@ -170,10 +175,48 @@ class TeamLeaderDashboardService:
     # Project Response
     # ========================================================
 
+    def _cover_sketches(self, projects) -> dict:
+        """
+        One sketch per project, to show on its card instead of the drawn
+        cover: the newest scene sketch made in the project's AI work.
+        Projects without a sketch are left out.
+        """
+
+        ids = [project.id for project in projects]
+        if not ids:
+            return {}
+        rows = (
+            self.db.query(
+                OrganizationProjectWorkspace.project_id,
+                Story.id,
+                Scene.id,
+                SceneSketch.id,
+            )
+            .join(Story, Story.individual_project_id == OrganizationProjectWorkspace.individual_project_id)
+            .join(StoryBoard, StoryBoard.story_id == Story.id)
+            .join(Scene, Scene.story_board_id == StoryBoard.id)
+            .join(SceneSketch, SceneSketch.scene_id == Scene.id)
+            .filter(
+                OrganizationProjectWorkspace.project_id.in_(ids),
+                SceneSketch.status == "generated",
+                SceneSketch.storage_key.isnot(None),
+            )
+            .order_by(SceneSketch.id.desc())
+            .all()
+        )
+        covers: dict = {}
+        for project_id, story_id, scene_id, sketch_id in rows:
+            covers.setdefault(
+                project_id,
+                {"story_id": story_id, "scene_id": scene_id, "sketch_id": sketch_id},
+            )
+        return covers
+
     def _build_project_response(
         self,
         *,
         project,
+        cover_sketch=None,
     ):
         """
         Convert Project ORM object into the response shape
@@ -183,6 +226,7 @@ class TeamLeaderDashboardService:
         team_leader_id = project.team_leader_id
 
         return {
+            "cover_sketch": cover_sketch,
             "id": project.id,
             "organization_id": project.organization_id,
             "client_id": project.client_id,
@@ -231,6 +275,8 @@ class TeamLeaderDashboardService:
             for project in projects
         )
 
+        covers = self._cover_sketches(projects)
+
         return {
             "statistics": {
                 "total_projects": len(projects),
@@ -261,6 +307,7 @@ class TeamLeaderDashboardService:
             "projects": [
                 self._build_project_response(
                     project=project,
+                    cover_sketch=covers.get(project.id),
                 )
                 for project in projects
             ],

@@ -25,7 +25,7 @@
 .greeting {
   font-family: var(--cm-font-display);
   font-size: clamp(2.1rem, 4.4vw, 3rem);
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1.02;
   letter-spacing: -0.01em;
 }
@@ -273,7 +273,7 @@
 .projectTitle {
   font-family: var(--cm-font-display);
   font-size: 1.55rem;
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1.08;
 }
 .roles {
@@ -379,7 +379,7 @@
 .pageTitle {
   font-family: var(--cm-font-display);
   font-size: clamp(2rem, 4vw, 2.8rem);
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1.05;
 }
 .facts {

@@ -7,6 +7,17 @@
  *
  * To change how the light theme looks, change the values in the light block. Nothing else needs to change.
  */
+/*
+ * The dashboards' font: Outfit, for headings and text alike (the landing page keeps its own fonts, because
+ * data-theme is only on <html> while a dashboard is open). Headings that were set in the old serif at weight 400
+ * use --cm-display-weight, so they keep the weight they need in Outfit.
+ */
+:root[data-theme] {
+  --cm-font-display: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --cm-font-body: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --cm-display-weight: 600;
+}
+
 :root {
   /* surfaces */
   --d-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)), #0e0a1b;

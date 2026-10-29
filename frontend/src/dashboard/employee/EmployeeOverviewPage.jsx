@@ -2,6 +2,7 @@ import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import { Link, useRouter } from '../../router/router.jsx';
 import cx from '../../utils/cx.js';
 import useResource from '../hooks/useResource.js';
+import { useWorkspace } from '../WorkspaceContext.jsx';
 import timeAgo from '../timeAgo.js';
 import Button from '../ui/Button.jsx';
 import { IconCheckCircle, IconChevronRight, IconPencil } from '../ui/DashIcons.jsx';
@@ -29,7 +30,9 @@ export default function EmployeeOverviewPage({ email }) {
   useDocumentTitle('My Work');
   const { navigate } = useRouter();
   const { data, loading, error, reload } = useResource(loadAll, []);
-  const name = (email || '').split('@')[0] || 'there';
+  // the name chosen in Settings (else the first part of the email), the same as in the sidebar
+  const { displayName } = useWorkspace();
+  const name = displayName || (email || '').split('@')[0] || 'there';
   const projects = data?.projects || [];
   const tasks = data ? upNext(projects, data.reviews) : [];
   const toReview = data ? data.reviews.filter((r) => r.canAct).length : 0;

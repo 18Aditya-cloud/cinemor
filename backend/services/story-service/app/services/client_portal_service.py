@@ -90,6 +90,13 @@ def person_name(user: User | None) -> str:
     return (user.display_name or "").strip() or user.email.split("@")[0]
 
 
+def handle(user: User | None) -> str:
+    """How a person is shown to the people they talk to: the first part of their email ("aarush4520")."""
+    if user is None:
+        return "Someone"
+    return user.email.split("@")[0]
+
+
 def _iso(value):
     return value.isoformat() if value is not None else None
 
@@ -353,7 +360,7 @@ If you did not expect this email, you can ignore it.
 
     def _leader(self, project: Project) -> dict | None:
         leader = self.db.get(User, project.team_leader_id) if project.team_leader_id else None
-        return {"name": person_name(leader), "email": leader.email} if leader else None
+        return {"name": handle(leader), "email": leader.email} if leader else None
 
     def _lifecycle(self, project: Project) -> dict:
         status = project.status.value if hasattr(project.status, "value") else str(project.status)
@@ -404,7 +411,7 @@ If you did not expect this email, you can ignore it.
                 if row.story_id in titles:
                     updates.append({"kind": "ready", "stage": row.stage, "text": READY_WORDS.get(row.stage, "Ready"), "story": titles[row.story_id], "project_id": p["id"], "project": p["title"], "at": _iso(row.approved_at)})
             for c in self.db.query(ClientComment).filter(ClientComment.project_id == p["id"], ClientComment.author_side == "team"):
-                updates.append({"kind": "reply", "text": f"{person_name(c.author)} replied", "story": c.story.title if c.story else None, "project_id": p["id"], "project": p["title"], "at": _iso(c.created_at)})
+                updates.append({"kind": "reply", "text": f"{handle(c.author)} replied", "story": c.story.title if c.story else None, "project_id": p["id"], "project": p["title"], "at": _iso(c.created_at)})
         updates.sort(key=lambda u: u["at"] or "", reverse=True)
         ready = []
         for p in projects:
@@ -494,7 +501,7 @@ If you did not expect this email, you can ignore it.
         return {
             "id": c.id,
             "side": c.author_side,
-            "author": person_name(c.author),
+            "author": handle(c.author),
             "story_id": c.story_id,
             "story": c.story.title if c.story else None,
             "body": c.body,
@@ -525,7 +532,7 @@ If you did not expect this email, you can ignore it.
         story = self._story_in(project, story_id)
         comment = ClientComment(project_id=project.id, story_id=story.id if story else None, author_user_id=user.id, author_side="client", body=text[:4000])
         self.db.add(comment)
-        self._tell_leader(project, f"{person_name(user)} (client) wrote on “{project.title}”{f' about “{story.title}”' if story else ''}: “{text[:160]}”")
+        self._tell_leader(project, f"{handle(user)} (client) wrote on “{project.title}”{f' about “{story.title}”' if story else ''}: “{text[:160]}”")
         self.db.commit()
         self.db.refresh(comment)
         return self._comment_dict(comment)
@@ -555,7 +562,7 @@ If you did not expect this email, you can ignore it.
         if decision == "approve" and text:
             line += f" {text}"
         self.db.add(ClientComment(project_id=project.id, story_id=story.id, author_user_id=user.id, author_side="client", body=line[:4000]))
-        self._tell_leader(project, f"{person_name(user)} (client) {'approved' if decision == 'approve' else 'asked for changes to'} the film of “{story.title}” ({project.title}).")
+        self._tell_leader(project, f"{handle(user)} (client) {'approved' if decision == 'approve' else 'asked for changes to'} the film of “{story.title}” ({project.title}).")
         self.db.commit()
         return self.project_detail(user, project_id)
 

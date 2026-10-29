@@ -12,6 +12,8 @@ IMAGE_MODELS = {
     "black-forest-labs/flux.2-pro": "FLUX.2 Pro",
     "black-forest-labs/flux.2-flex": "FLUX.2 Flex",
     "black-forest-labs/flux.2-max": "FLUX.2 Max",
+    "openai/gpt-image-2.5-flare": "GPT Image 2.5 Flare",
+    "openai/gpt-image-2.5-sunburst": "GPT Image 2.5 Sunburst",
 }
 
 DEFAULT_IMAGE_MODEL = "qwen/qwen-image-2.1-turbo"

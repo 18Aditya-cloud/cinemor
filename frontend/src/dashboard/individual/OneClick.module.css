@@ -76,7 +76,7 @@
 .promptTitle {
   font-family: var(--cm-font-display);
   font-size: clamp(2.3rem, 4.6vw, 3.4rem);
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1.05;
 }
 .promptSub {
@@ -750,7 +750,7 @@
   margin: 0;
   font-family: var(--cm-font-display);
   font-size: max(18px, 4.2cqw);
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1.05;
   letter-spacing: -0.005em;
   text-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);

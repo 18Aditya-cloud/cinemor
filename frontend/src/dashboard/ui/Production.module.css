@@ -1,0 +1,331 @@
+/*
+ * The production look shared by the project pages: one colour per stage (used for chips, icons, bars and the pipeline),
+ * cover art, the stage pipeline and the progress ring. Light and dark come from the dashboard theme (theme.css).
+ */
+
+/* ------------------------------------------------------------------ stage colours */
+.palette {
+  --s-story: #f5b544;
+  --s-storyboard: #38bdf8;
+  --s-characters: #f472b6;
+  --s-locations: #34d399;
+  --s-sketches: #fb923c;
+  --s-animation: #a78bfa;
+  --s-ok: #34d399;
+  --s-warn: #fbbf24;
+  --s-red: #fb7185;
+  --s-gray: #9a93b8;
+  --s-chip-fill: 16%;
+  --s-on-color: #0b0716;
+}
+:global(:root[data-theme='light']) .palette {
+  --s-story: #b7700a;
+  --s-storyboard: #0274b5;
+  --s-characters: #cf2477;
+  --s-locations: #05845c;
+  --s-sketches: #d2500b;
+  --s-animation: #6d32e0;
+  --s-ok: #05845c;
+  --s-warn: #a96200;
+  --s-red: #d61f45;
+  --s-gray: #6f6a8c;
+  --s-chip-fill: 11%;
+  --s-on-color: #ffffff;
+}
+
+.story {
+  --c: var(--s-story);
+}
+.storyboard {
+  --c: var(--s-storyboard);
+}
+.characters {
+  --c: var(--s-characters);
+}
+.locations {
+  --c: var(--s-locations);
+}
+.sketches {
+  --c: var(--s-sketches);
+}
+.animation {
+  --c: var(--s-animation);
+}
+.ok {
+  --c: var(--s-ok);
+}
+.warn {
+  --c: var(--s-warn);
+}
+.red {
+  --c: var(--s-red);
+}
+.gray {
+  --c: var(--s-gray);
+}
+.brand {
+  --c: var(--cm-violet-hi);
+}
+
+/* ------------------------------------------------------------------ chips, icons, dots */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) var(--s-chip-fill), transparent);
+  color: var(--c);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.chipDashed {
+  border-style: dashed;
+  background: transparent;
+}
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) var(--s-chip-fill), transparent);
+  color: var(--c);
+}
+.iconSm {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+/* ------------------------------------------------------------------ cover art */
+.art {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--art, linear-gradient(180deg, #2a1450 0%, #7a2a5c 48%, #f19a52 100%));
+}
+.art0 {
+  --art: linear-gradient(180deg, #2a1450 0%, #7a2a5c 48%, #f19a52 100%);
+}
+.art1 {
+  --art: linear-gradient(180deg, #0d2a3f 0%, #1f6a7a 50%, #c9e6c8 100%);
+}
+.art2 {
+  --art: linear-gradient(180deg, #1d0f2e 0%, #3b2a7a 55%, #9d8cff 100%);
+}
+.art3 {
+  --art: linear-gradient(180deg, #26150a 0%, #7a3f1a 55%, #f2c46b 100%);
+}
+.art4 {
+  --art: linear-gradient(180deg, #0b1d2e 0%, #234b7a 55%, #f0a3c4 100%);
+}
+.sun {
+  position: absolute;
+  top: 18%;
+  left: 58%;
+  width: 34%;
+  max-width: 260px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe2a8, #ffb36b 60%, transparent 62%);
+  opacity: 0.85;
+}
+.hills {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 62%;
+}
+.shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5, 3, 12, 0.05) 30%, rgba(5, 3, 12, 0.72));
+}
+
+/* ------------------------------------------------------------------ pipeline */
+.pipe {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pipe::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  right: calc(50% / var(--n, 6));
+  left: calc(50% / var(--n, 6));
+  height: 2px;
+  background: var(--cm-line-strong);
+}
+.pipeFill {
+  position: absolute;
+  top: 18px;
+  left: calc(50% / var(--n, 6));
+  height: 2px;
+  background: linear-gradient(90deg, var(--s-story), var(--s-storyboard), var(--s-characters), var(--s-locations), var(--s-sketches), var(--s-animation));
+}
+.node {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cm-ink-faint);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+.node:disabled {
+  cursor: default;
+}
+.nodeDot {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--cm-line-strong);
+  border-radius: 50%;
+  background: var(--d-solid);
+  color: var(--cm-ink-faint);
+  transition: transform 0.18s var(--cm-ease, ease), box-shadow 0.18s ease;
+}
+.node:not(:disabled):hover .nodeDot {
+  transform: translateY(-2px);
+}
+.node:focus-visible {
+  outline: none;
+}
+.node:focus-visible .nodeDot {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 3px;
+}
+.nodeDone .nodeDot {
+  border-color: var(--c);
+  background: var(--c);
+  color: var(--s-on-color);
+}
+.nodeNow .nodeDot {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 20%, var(--d-solid));
+  color: var(--c);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 16%, transparent);
+}
+.nodeDone,
+.nodeNow {
+  color: var(--cm-ink);
+}
+
+/* ------------------------------------------------------------------ ring and bar */
+.ring {
+  position: relative;
+  flex: none;
+  width: var(--size, 110px);
+  height: var(--size, 110px);
+}
+.ringTrack {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(var(--c, var(--cm-violet-hi)) calc(var(--p) * 1%), var(--d-fill-3) 0);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%);
+  mask: radial-gradient(circle, transparent 58%, #000 59%);
+}
+.ringText {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+.ringValue {
+  font-size: calc(var(--size, 110px) / 4.2);
+  font-weight: 800;
+  line-height: 1;
+}
+.ringSub {
+  margin-top: 3px;
+  color: var(--cm-ink-faint);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.bar {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 9px;
+  background: var(--d-fill-3);
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 9px;
+  background: var(--c, linear-gradient(90deg, #4d8bff, #8b5cf6));
+}
+
+/* ------------------------------------------------------------------ people */
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--av, 34px);
+  height: var(--av, 34px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--a1, #a78bfa), var(--a2, #7a3cff));
+  color: #fff;
+  font-size: calc(var(--av, 34px) / 2.7);
+  font-weight: 800;
+}
+.av0 {
+  --a1: #f472b6;
+  --a2: #a78bfa;
+}
+.av1 {
+  --a1: #38bdf8;
+  --a2: #4d8bff;
+}
+.av2 {
+  --a1: #34d399;
+  --a2: #0ea5a5;
+}
+.av3 {
+  --a1: #fbbf24;
+  --a2: #fb923c;
+}
+.av4 {
+  --a1: #a78bfa;
+  --a2: #7a3cff;
+}
+.stack {
+  display: flex;
+}
+.stack > * + * {
+  margin-left: -8px;
+}
+.stack > * {
+  box-shadow: 0 0 0 2px var(--d-solid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nodeDot {
+    transition: none;
+  }
+}

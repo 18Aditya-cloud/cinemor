@@ -219,7 +219,7 @@
   margin: -4px 0 0;
   font-family: var(--cm-font-display);
   font-size: 1.7rem;
-  font-weight: 400;
+  font-weight: var(--cm-display-weight, 400);
   line-height: 1.1;
 }
 .summary {
