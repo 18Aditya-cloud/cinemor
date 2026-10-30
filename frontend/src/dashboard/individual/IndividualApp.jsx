@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import './studio.css';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { homeFor } from '../../auth/homeFor.js';
 import { useRouter } from '../../router/router.jsx';
@@ -29,16 +30,17 @@ const NAV = [
   {
     section: 'Workspace',
     items: [
-      { to: '/dashboard', label: 'Overview', icon: IconOverview },
-      { to: '/dashboard/projects', label: 'My Projects', icon: IconProjects, match: (p) => p === '/dashboard/projects' || p.startsWith('/dashboard/projects/') },
-      { to: '/dashboard/quick-create', label: 'Quick Create', icon: IconSparkles, match: (p) => p === '/dashboard/quick-create' || p.startsWith('/dashboard/quick-create/') },
-      { to: '/dashboard/library', label: 'Library', icon: IconLibrary },
-      { to: '/dashboard/clients', label: 'Clients', icon: IconUsers },
+      // (tone: each item's own colour, from studio.css)
+      { to: '/dashboard', label: 'Overview', icon: IconOverview, tone: 'var(--cm-violet-hi)' },
+      { to: '/dashboard/projects', label: 'My Projects', icon: IconProjects, tone: 'var(--st-board)', match: (p) => p === '/dashboard/projects' || p.startsWith('/dashboard/projects/') },
+      { to: '/dashboard/quick-create', label: 'Quick Create', icon: IconSparkles, tone: 'var(--st-sketch)', match: (p) => p === '/dashboard/quick-create' || p.startsWith('/dashboard/quick-create/') },
+      { to: '/dashboard/library', label: 'Library', icon: IconLibrary, tone: 'var(--st-anim)' },
+      { to: '/dashboard/clients', label: 'Clients', icon: IconUsers, tone: 'var(--st-loc)' },
     ],
   },
   {
     section: 'Account',
-    items: [{ to: '/dashboard/settings', label: 'Settings', icon: IconGear }],
+    items: [{ to: '/dashboard/settings', label: 'Settings', icon: IconGear, tone: 'var(--cm-ink-dim)' }],
   },
 ];
 const ROLE = { roleTitle: 'Creator', roleLabel: 'Individual Creator', roleSentence: 'Individual Creator' };
@@ -93,6 +95,14 @@ export default function IndividualApp() {
   const allowed = user?.accountType === 'individual';
   const route = pageFor(path);
   if (allowed) setDemoOwner(user.email);
+
+  // the creator workspace's studio colours (studio.css), only while this dashboard is open
+  useEffect(() => {
+    document.documentElement.dataset.studio = 'creator';
+    return () => {
+      delete document.documentElement.dataset.studio;
+    };
+  }, []);
 
   useEffect(() => {
     if (checking) return;

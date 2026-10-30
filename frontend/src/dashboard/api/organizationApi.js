@@ -342,7 +342,7 @@ export async function createTool({ name, description, url }) {
 /* ------------------------------------------------------------------- activity */
 export async function listActivity() {
   if (isBackendConnected) return backend.listActivity();
-  return demo(() => db.activity.slice(0, 12));
+  return demo(() => db.activity.slice(0, 100));
 }
 
 /** The Activity page: { items, hasMore }, newest first. `beforeId` loads the next page, `kind` filters ("project", "employee,invitation"). */
@@ -556,7 +556,9 @@ const projectSummary = (p) => ({
   lifecycle: lifecycleOf(p),
   stage: p.stage || 'story',
   clientName: db.clients.find((c) => c.id === p.clientId)?.name ?? '',
-  memberCount: (p.members || []).length,
+  // the people on the team (each once) and the Team Leader, who is on the team too
+  people: [...new Set((p.members || []).map((m) => db.employees.find((e) => e.id === m.employeeId)?.email).filter(Boolean))],
+  memberCount: new Set((p.members || []).map((m) => m.employeeId)).size + 1,
   startDate: p.startDate || '',
   deadline: p.deadline || '',
   createdAt: p.createdAt ?? null,

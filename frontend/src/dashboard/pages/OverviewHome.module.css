@@ -351,6 +351,21 @@
 }
 
 /* Recent activity */
+/* Recent activity: the last 14 days, scrolling inside the card */
+.feedScroll {
+  max-height: 440px;
+  margin: 10px -10px 0 0;
+  padding-right: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cm-line) transparent;
+}
+.feedScroll:focus-visible {
+  outline: 2px solid var(--cm-violet-hi);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
 .feed {
   display: grid;
   margin: 14px 0 0;

@@ -753,6 +753,17 @@
 .saveRow > span {
   margin-right: auto;
 }
+/* while details are changed, Save stays in sight at the bottom of the screen */
+.identityCard .saveRow {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -6px -6px;
+  padding: 12px 6px 6px;
+  border-radius: 0 0 14px 14px;
+  background: var(--d-card-bg);
+  box-shadow: 0 -12px 18px -14px rgba(0, 0, 0, 0.35);
+}
 
 /* ------------------------------------------------------------------ the image, in the middle */
 .tabs {
@@ -917,7 +928,8 @@
 /* model + what to change + Generate, in one bar */
 .genBar {
   display: grid;
-  grid-template-columns: minmax(130px, 170px) minmax(0, 1fr) auto;
+  /* the optional prompt has the whole first row, so it is never squeezed; the model and the button sit under it */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   padding: 6px;
   border: 1px solid var(--cm-line);
@@ -934,8 +946,11 @@
   font-size: 0.82rem;
 }
 .genPrompt {
+  grid-column: 1 / -1;
+  grid-row: 1;
   min-width: 0;
-  padding: 8px 6px;
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--d-hairline) !important;
   border: 0;
   background: transparent;
   color: var(--cm-ink);
@@ -1059,13 +1074,13 @@
   transition: width 0.25s linear;
 }
 .forgeHint {
-  min-height: 2.9em; /* room for two lines, so "Generatingâ€¦" does not jump when the tip changes */
+  min-height: 2.9em; /* room for two lines, so "Generating…" does not jump when the tip changes */
   margin: 0;
   color: rgba(235, 235, 240, 0.55);
   font-size: 0.74rem;
   line-height: 1.45;
 }
-/* a small frame (a wide scene sketch on a phone) keeps only "Generatingâ€¦" and the line */
+/* a small frame (a wide scene sketch on a phone) keeps only "Generating…" and the line */
 @container (max-width: 420px) {
   .forgeHint {
     display: none;

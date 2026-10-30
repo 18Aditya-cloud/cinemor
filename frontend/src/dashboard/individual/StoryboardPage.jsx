@@ -13,7 +13,7 @@ import Notice from '../ui/Notice.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import CinemorOrb from './CinemorOrb.jsx';
 import { download } from './filmExport.js';
-import { deleteStoryboard, exportStoryboard, generateStoryboard, getProject, getProjectStory, getStoryboard, importStoryboard, isLive, listProjectStories, listStoryboards, storyboardTemplate, updateStoryboardDialogue } from './individualApi.js';
+import { deleteStoryboard, exportStoryboard, generateStoryboard, getProject, getProjectStory, getStoryboard, importStoryboard, isLive, listProjectStories, listStoryboards, storyboardTemplate, updateStoryboardDialogue, updateStoryboardScene } from './individualApi.js';
 import { sceneCount } from './oneClick.js';
 import { IconArrowLeft } from './parts.jsx';
 import { countsOf, findCharacter, fromBackendBoard, has, nice, readStoryboard, scenesAt, scenesWith } from './storyboard.js';
@@ -342,6 +342,10 @@ function Board({ projectId, storyId, onSaved }) {
               setSaved(await updateStoryboardDialogue(projectId, storyId, sceneAt, lineAt, text));
               toast('Line saved');
             }}
+            onEditScene={async (sceneAt, fields) => {
+              setSaved(await updateStoryboardScene(projectId, storyId, sceneAt, fields));
+              toast('Scene saved. New sketches and clips follow it.');
+            }}
           />
         )}
         {tab === 'locations' && <Locations board={board} onScene={(n) => goTo('scenes', n)} />}
@@ -588,12 +592,23 @@ function Characters({ board, onScene }) {
   );
 }
 
-function Scenes({ board, index, onIndex, onEditLine }) {
+// the scene details a person may change (they feed the sketches and the clips)
+const SCENE_BLOCKS = [
+  { key: 'primary_action', label: 'What happens', max: 4000, required: true },
+  { key: 'visual_description', label: 'What we see', max: 4000, required: true },
+  { key: 'camera_suggestion', label: 'Camera', max: 2000, required: false },
+];
+
+function Scenes({ board, index, onIndex, onEditLine, onEditScene }) {
   const listRef = useRef(null);
   const sc = board.scenes[index] || board.scenes[0];
   const i = board.scenes.indexOf(sc);
   const [editing, setEditing] = useState(null); // the line being edited (its position in the list)
-  useEffect(() => setEditing(null), [i]);
+  const [editingBlock, setEditingBlock] = useState(null); // 'primary_action' | 'visual_description' | 'camera_suggestion'
+  useEffect(() => {
+    setEditing(null);
+    setEditingBlock(null);
+  }, [i]);
 
   useEffect(() => {
     listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -656,18 +671,37 @@ function Scenes({ board, index, onIndex, onEditLine }) {
         )}
 
         <div className={s.sceneBlocks}>
-          {[
-            ['What happens', sc.primary_action],
-            ['What we see', sc.visual_description],
-            ['Camera', sc.camera_suggestion],
-          ]
-            .filter(([, v]) => has(v))
-            .map(([label, v]) => (
-              <div key={label} className={s.sceneBlock}>
-                <h4 className={s.subLabel}>{label}</h4>
-                <p className={s.prose}>{v}</p>
+          {SCENE_BLOCKS.filter((b) => onEditScene || has(sc[b.key])).map((b) => (
+            <div key={b.key} className={cx(s.sceneBlock, editingBlock === b.key && s.sceneBlockEditing)}>
+              <div className={s.blockHead}>
+                <h4 className={s.subLabel}>{b.label}</h4>
+                {onEditScene && editingBlock !== b.key && (
+                  <button type="button" className={s.lineEdit} onClick={() => setEditingBlock(b.key)} aria-label={`Edit ${b.label}`} title={`Edit ${b.label}`}>
+                    <IconPencil width={15} height={15} />
+                  </button>
+                )}
               </div>
-            ))}
+              {editingBlock === b.key ? (
+                <LineEditor
+                  line={sc[b.key] || ''}
+                  speaker={b.label}
+                  label={b.label}
+                  saveLabel="Save"
+                  max={b.max}
+                  required={b.required}
+                  onCancel={() => setEditingBlock(null)}
+                  onSave={async (text) => {
+                    await onEditScene(sc.at ?? i, { [b.key]: text });
+                    setEditingBlock(null);
+                  }}
+                />
+              ) : has(sc[b.key]) ? (
+                <p className={s.prose}>{sc[b.key]}</p>
+              ) : (
+                <p className={s.none}>Not set. Add it to guide the sketch and the clip.</p>
+              )}
+            </div>
+          ))}
         </div>
 
         <div className={s.dialogue}>
@@ -724,14 +758,16 @@ function Scenes({ board, index, onIndex, onEditLine }) {
   );
 }
 
-/** One dialogue line being changed: the text, Save and Cancel (Esc cancels, Ctrl/Cmd + Enter saves). */
-function LineEditor({ line, speaker, onSave, onCancel }) {
+/**
+ * A dialogue line (or a scene detail) being changed: the text, Save and Cancel (Esc cancels, Ctrl/Cmd + Enter saves).
+ */
+function LineEditor({ line, speaker, onSave, onCancel, label, saveLabel = 'Save line', max = 2000, required = true }) {
   const [text, setText] = useState(line);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const save = async () => {
     const value = text.trim();
-    if (!value) return setError('The line cannot be empty.');
+    if (!value && required) return setError(label ? `${label} cannot be empty.` : 'The line cannot be empty.');
     if (value === line.trim()) return onCancel();
     setBusy(true);
     setError('');
@@ -748,9 +784,9 @@ function LineEditor({ line, speaker, onSave, onCancel }) {
       <textarea
         className={s.lineInput}
         value={text}
-        rows={Math.min(6, Math.max(2, Math.ceil(text.length / 70)))}
-        maxLength={2000}
-        aria-label={`${speaker || 'The'}'s line`}
+        rows={Math.min(8, Math.max(2, Math.ceil(text.length / 70)))}
+        maxLength={max}
+        aria-label={label || `${speaker || 'The'}'s line`}
         disabled={busy}
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
@@ -770,7 +806,7 @@ function LineEditor({ line, speaker, onSave, onCancel }) {
           Cancel
         </Button>
         <Button onClick={save} loading={busy}>
-          Save line
+          {saveLabel}
         </Button>
       </span>
     </span>

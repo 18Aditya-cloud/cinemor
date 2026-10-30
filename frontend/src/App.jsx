@@ -20,6 +20,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 import StudioPage from './pages/StudioPage.jsx';
 import ParticleField from './particles/ParticleField.jsx';
 import { homeFor } from './auth/homeFor.js';
+import { quickCreatePath, rememberQuickCreate } from './auth/afterAuth.js';
 import { isAuthPath, isClientPath, isDashboardPath, isEmployeePath, isHomePath, isIndividualPath, isTeamLeaderPath, RouterProvider, useRouter } from './router/router.jsx';
 import HeroBackground from './sections/HeroBackground.jsx';
 import AuthBackdrop from './sections/AuthBackdrop.jsx';
@@ -73,6 +74,15 @@ function Shell() {
 
   // "Create your story" and the cards' "Try now": new visitors go to Sign up, signed-in users to their home.
   const handleCreate = () => navigate(user ? homeFor(user) : '/signup');
+  // "Create your first" on the wall of work: into Quick Create. New visitors sign up first and are taken there after.
+  const handleCreateFirst = () => {
+    if (user) {
+      navigate(user.accountType === 'individual' ? quickCreatePath : homeFor(user));
+      return;
+    }
+    rememberQuickCreate();
+    navigate('/signup');
+  };
 
   // The dashboard has its own frame (sidebar and top bar), so none of the marketing layers are drawn.
   if (isIndividualPath(path)) {
@@ -126,7 +136,7 @@ function Shell() {
   else if (path === '/accept-invitation') page = <AcceptInvitationPage />;
   else if (path === '/client-invitation') page = <ClientInvitationPage />;
   else if (path === '/app') page = <StudioPage />;
-  else page = <HomePage stageRef={stageRef} onCreate={handleCreate} />;
+  else page = <HomePage stageRef={stageRef} onCreate={handleCreate} onCreateFirst={handleCreateFirst} />;
 
   return (
     <div className="cm-scope cinemor-app">

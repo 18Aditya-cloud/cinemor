@@ -1419,7 +1419,8 @@ Do not render captions, subtitles, watermarks, or UI elements.
 
         # Only models on the configured allowlist may be requested, so a
         # caller cannot pick an arbitrary (expensive) OpenRouter model.
-        allowed_video_models = set(settings.OPENROUTER_VIDEO_MODELS)
+        # (the Animation module's models, and the ones one-click generation offers)
+        allowed_video_models = set(settings.OPENROUTER_VIDEO_MODELS) | set(settings.ONE_CLICK_VIDEO_MODELS)
         if model_name not in allowed_video_models:
             raise ValueError(
                 "Unsupported video model. Choose one of: "

@@ -478,6 +478,15 @@ export async function updateStoryboardDialogue(projectId, storyId, sceneAt, line
   return getStoryboard(projectId, storyId);
 }
 
+/**
+ * Change a scene's "What happens", "What we see" and "Camera" (PATCH /storyboard/scenes/{scene}); `fields` holds
+ * any of primary_action, visual_description, camera_suggestion. Resolves the storyboard, as getStoryboard does.
+ */
+export async function updateStoryboardScene(projectId, storyId, sceneAt, fields) {
+  await request(`${S(projectId, storyId)}/storyboard/scenes/${Number(sceneAt)}`, { method: 'PATCH', body: fields });
+  return getStoryboard(projectId, storyId);
+}
+
 /** Break the story down with AI (POST /storyboard). Replaces the story's storyboard. */
 export async function generateStoryboard(projectId, storyId, { model }) {
   await request(`${S(projectId, storyId)}/storyboard`, { method: 'POST', body: { model_id: model || null } });
@@ -625,6 +634,12 @@ export async function generateCharacterProfile(projectId, storyId, key, { style,
   return characterRecord(projectId, storyId, key);
 }
 
+/** Details of the character's profile changed by hand ({ nose_shape: 'straight' }). Resolves the character's record. */
+export async function saveCharacterIdentity(projectId, storyId, key, fields) {
+  await request(`${C(projectId, storyId, key)}/profile`, { method: 'PATCH', body: { fields } });
+  return characterRecord(projectId, storyId, key);
+}
+
 /** Make the master image with an image model (POST /master-image, image_type canonical). */
 export async function generateCharacterImage(projectId, storyId, key, { model, prompt = '' }) {
   const made = await request(`${C(projectId, storyId, key)}/master-image`, { method: 'POST', body: { image_type: 'canonical', model_id: model, customization_instructions: prompt } });
@@ -735,6 +750,12 @@ export async function generateLocationProfile(projectId, storyId, key, { style, 
   const k = `l/${projectId}/${storyId}/${Number(key)}`;
   l.imageMeta[k] = { ...(l.imageMeta[k] || {}), styleNotes };
   saveLocal();
+  return locationRecord(projectId, storyId, key);
+}
+
+/** Details of the place's profile changed by hand ({ lighting: 'golden hour' }). Resolves the place's record. */
+export async function saveLocationIdentity(projectId, storyId, key, fields) {
+  await request(`${L(projectId, storyId, key)}/profile`, { method: 'PATCH', body: { fields } });
   return locationRecord(projectId, storyId, key);
 }
 
@@ -946,3 +967,108 @@ export async function deleteFilm(projectId, storyId, jobId) {
   }
 }
 export const downloadFilm = (projectId, storyId, jobId) => request(`${S(projectId, storyId)}/video-generation/${Number(jobId)}/download`, { as: 'blob' });
+/* ================================================================================ one-click generation (a whole film) */
+// backend/services/story-service/app/api/routes/one_click_routes.py: one prompt -> story, storyboard, characters,
+// places, sketches, clips and the joined film, made on the server (poll getOneClickFilm).
+const OC = (projectId) => `/api/individual/projects/${Number(projectId)}/one-click`;
+const filmTime = (v) => (v ? Date.parse(v) : null);
+const toFilm = (f) => ({
+  id: f.id,
+  projectId: f.project_id,
+  status: f.status, // queued | running | done | failed | cancelled
+  stage: f.stage,
+  prompt: f.prompt || '',
+  settings: {
+    textModel: f.settings?.text_model || '',
+    imageModel: f.settings?.image_model || '',
+    videoModel: f.settings?.video_model || '',
+    videoModelName: f.settings?.video_model_name || f.settings?.video_model || '',
+    length: f.settings?.length || 'medium',
+    style: f.settings?.style || '',
+    language: f.settings?.language || 'English',
+    fromScript: Boolean(f.settings?.from_script),
+    scriptTitle: f.settings?.script_title || '',
+    sourceKinds: f.settings?.source_kinds || [],
+    format: f.settings?.format || 'auto', // what was chosen ("auto": Cinemor decides)
+    formatUsed: f.settings?.format_used || '', // what the video is made as
+    formatLabel: f.settings?.format_label || '',
+    formatReason: f.settings?.format_reason || '',
+    review: Boolean(f.settings?.review),
+  },
+  detail: f.detail || '',
+  error: f.error_message || '',
+  story: f.story ? { id: f.story.id, title: f.story.title, content: f.story.content || '' } : null,
+  job: f.job ? { id: f.job.id, status: f.job.status, total: f.job.total, completed: f.job.completed, failed: f.job.failed, error: f.job.error_message || '', filmReady: Boolean(f.job.film_ready) } : null,
+  steps: (f.steps || []).map((s) => ({ key: s.key, label: s.label, state: s.state, count: s.count ? { done: s.count.done || 0, total: s.count.total || 0, failed: s.count.failed || 0 } : null })),
+  scenes: (f.scenes || []).map((s) => ({
+    id: s.id,
+    no: s.no,
+    title: s.title || `Scene ${s.no}`,
+    summary: s.summary || '',
+    visual: s.visual || '',
+    action: s.action || '',
+    inFilm: s.in_film !== false,
+    sketchId: s.sketch?.id ?? null,
+    clip: s.clip ? { id: s.clip.id, status: s.clip.status, seconds: s.clip.seconds || null, error: s.clip.error_message || '' } : null,
+  })),
+  createdAt: filmTime(f.created_at),
+  updatedAt: filmTime(f.updated_at),
+  finishedAt: filmTime(f.finished_at),
+});
+
+/** The choices: video models (with a short note), story models, image models, lengths, styles, languages. */
+export async function getOneClickOptions(projectId) {
+  const o = await request(`${OC(projectId)}/options`);
+  return {
+    videoModels: o.video_models || [],
+    defaultVideoModel: o.default_video_model || o.video_models?.[0]?.id || '',
+    textModels: o.text_models || [],
+    imageModels: o.image_models || [],
+    defaultImageModel: o.default_image_model || '',
+    lengths: o.lengths || [],
+    styles: o.styles || [],
+    languages: o.languages || [],
+    formats: o.formats || [{ id: 'auto', label: 'Auto', about: '' }],
+  };
+}
+/** The project's films, newest first (without their scenes). */
+export const listOneClickFilms = async (projectId) => (await request(OC(projectId))).map(toFilm);
+/** One film with its scenes, sketches and clips. */
+export const getOneClickFilm = async (projectId, filmId) => toFilm(await request(`${OC(projectId)}/${Number(filmId)}`));
+/** Start a film: an idea, and/or a script (its text). It is made on the server; poll getOneClickFilm. */
+export async function startOneClickFilm(projectId, { prompt = '', script = null, textModel, imageModel = '', videoModel, length, style, language, format = 'auto', review = false }) {
+  const film = await request(OC(projectId), {
+    method: 'POST',
+    body: {
+      prompt,
+      script_title: script?.title || '',
+      script_content: script?.content || '',
+      text_model: textModel,
+      image_model: imageModel,
+      video_model: videoModel,
+      length,
+      style,
+      language,
+      format,
+      review,
+      source_kinds: script?.kinds || [],
+    },
+  });
+  return toFilm(film);
+}
+/** Read one uploaded file of any kind (PDF, DOCX, PPTX, TXT, a picture): { title, kind, text, words, pages, note }. */
+export async function readOneClickSource(projectId, file) {
+  const form = new FormData();
+  form.append('file', file);
+  return request(`${OC(projectId)}/source`, { method: 'POST', body: form });
+}
+/** Which kind of video fits the material: { format, label, title, reason }. */
+export const analyzeOneClickSource = (projectId, { text = '', prompt = '' }) => request(`${OC(projectId)}/analyze`, { method: 'POST', body: { text, prompt } });
+/** After checking the script (maybe edited): go on making the film. */
+export const continueOneClickFilm = async (projectId, filmId, { title = null, content = null } = {}) =>
+  toFilm(await request(`${OC(projectId)}/${Number(filmId)}/continue`, { method: 'POST', body: { title, content } }));
+/** Stop a film that is being made (before its scenes are being filmed). */
+export const cancelOneClickFilm = async (projectId, filmId) => toFilm(await request(`${OC(projectId)}/${Number(filmId)}/cancel`, { method: 'POST' }));
+/** A scene's sketch, as an object URL. */
+export const sketchImageUrl = (projectId, storyId, sceneId, sketchId) =>
+  imageUrl(`k/${projectId}/${storyId}/${sceneId}/${sketchId}`, `${S(projectId, storyId)}/scenes/${Number(sceneId)}/sketches/${Number(sketchId)}/preview`);

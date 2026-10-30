@@ -392,6 +392,10 @@
   color: var(--cm-ink-faint);
   font-size: 0.78rem;
 }
+/* the Team Leader's own avatar, first in the team: a violet ring */
+.leadAvatar.leadAvatar {
+  box-shadow: 0 0 0 2px var(--d-solid), 0 0 0 4px var(--cm-violet-hi);
+}
 
 /* ------------------------------------------------------------------ smaller screens */
 @media (max-width: 1100px) {

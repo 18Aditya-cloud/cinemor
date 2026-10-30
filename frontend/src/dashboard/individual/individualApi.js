@@ -68,6 +68,8 @@ export const importStoryboard = route('importStoryboard');
 export const exportStoryboard = route('exportStoryboard');
 export const storyboardTemplate = route('storyboardTemplate');
 export const updateStoryboardDialogue = route('updateStoryboardDialogue');
+/** Change a scene's "What happens", "What we see" and "Camera". */
+export const updateStoryboardScene = route('updateStoryboardScene');
 /** Delete the storyboard and everything made from it (the story stays). */
 export const deleteStoryboard = route('deleteStoryboard');
 
@@ -82,6 +84,8 @@ export const downloadCharacterImage = route('downloadCharacterImage');
 export const deleteCharacterImage = route('deleteCharacterImage');
 /** Demo only: save details of a profile changed by hand. */
 export const saveCharacterRecord = demo.saveCharacterRecord;
+/** Details of the profile changed by hand ({ nose_shape: 'straight' }); the next master image follows them. */
+export const saveCharacterIdentity = route('saveCharacterIdentity');
 
 /* places */
 export const listLocations = route('listLocations');
@@ -94,6 +98,8 @@ export const downloadLocationImage = route('downloadLocationImage');
 export const deleteLocationImage = route('deleteLocationImage');
 /** Demo only: save details of a profile changed by hand. */
 export const saveLocationRecord = demo.saveLocationRecord;
+/** Details of the place's profile changed by hand; the next master image follows them. */
+export const saveLocationIdentity = route('saveLocationIdentity');
 
 /* sketches: scenes by number (1, 2, 3...) */
 const sceneIdOf = async (projectId, storyId, sceneNo) => {
@@ -146,3 +152,14 @@ export const filmUrl = live.filmUrl;
 export const downloadFilm = live.downloadFilm;
 export const deleteVideoClip = live.deleteVideoClip;
 export const deleteFilm = live.deleteFilm;
+
+/* one-click generation: a whole film from one prompt (backend only) */
+export const getOneClickOptions = live.getOneClickOptions;
+export const listOneClickFilms = live.listOneClickFilms;
+export const getOneClickFilm = live.getOneClickFilm;
+export const startOneClickFilm = live.startOneClickFilm;
+export const cancelOneClickFilm = live.cancelOneClickFilm;
+export const sketchImageUrl = live.sketchImageUrl;
+export const readOneClickSource = live.readOneClickSource;
+export const analyzeOneClickSource = live.analyzeOneClickSource;
+export const continueOneClickFilm = live.continueOneClickFilm;

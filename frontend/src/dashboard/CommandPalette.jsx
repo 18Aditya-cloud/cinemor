@@ -7,45 +7,94 @@ import { useTheme } from './ThemeContext.jsx';
 import { IconMoon, IconSearch, IconSun } from './ui/DashIcons.jsx';
 import styles from './CommandPalette.module.css';
 
-/* ------------------------------------------------------------------ recently opened places (per dashboard) */
-const KEY = (home) => `cm-recent:${home}`;
+/* ------------------------------------------------------------------ recently opened places (per dashboard and person) */
+// Kept per person (owner = the signed-in account), so one account's projects never show up in another account's search
+// on the same browser. (The list used to be kept per dashboard only: `cm-recent:<home>`. That old list is removed.)
+const KEY = (home, owner) => (owner ? `cm-recent:${home}:${owner}` : `cm-recent:${home}`);
 const MAX = 8;
 const SUFFIX = / \| Cinemor AI.*$/;
+const FORGET = 'cm-forget-places';
+// places found missing in this tab (deleted, or not this account's); they are not recorded again
+const gone = new Set();
+const isUnder = (to, prefix) => to === prefix || to.startsWith(`${prefix}/`) || to.startsWith(`${prefix}?`);
+const isGone = (to) => [...gone].some((prefix) => isUnder(to, prefix));
 
-export function readRecent(home) {
+export function readRecent(home, owner) {
   try {
-    const list = JSON.parse(window.localStorage.getItem(KEY(home)) || '[]');
-    return Array.isArray(list) ? list.filter((x) => x && typeof x.to === 'string' && typeof x.title === 'string') : [];
+    const list = JSON.parse(window.localStorage.getItem(KEY(home, owner)) || '[]');
+    return Array.isArray(list) ? list.filter((x) => x && typeof x.to === 'string' && typeof x.title === 'string' && !isGone(x.to)) : [];
   } catch {
     return [];
   }
 }
 
+const save = (home, owner, list) => {
+  try {
+    window.localStorage.setItem(KEY(home, owner), JSON.stringify(list));
+  } catch {
+    /* the list lasts until the page is closed */
+  }
+};
+
+/**
+ * Takes a place, and everything under it, out of "Recently opened" (in every dashboard of this tab): call it when a
+ * page finds that what it shows does not exist (any more), or right after deleting it.
+ * Example: forgetPlaces('/dashboard/projects/12') also drops that project's stories, storyboard and studios.
+ */
+export function forgetPlaces(prefix) {
+  if (!prefix) return;
+  gone.add(prefix);
+  window.dispatchEvent(new CustomEvent(FORGET, { detail: prefix }));
+}
+
 /**
  * Remembers the pages opened inside this dashboard that are not in the menu (a project, a story, a studio), with the
- * tab title they had, so the sidebar can offer "Continue where you left" and the search can jump back to them.
- * Kept in this browser only.
+ * tab title they had, so the search can jump back to them. Kept in this browser only, separately for each account.
  */
-export function useRecentPlaces(home, skip) {
+export function useRecentPlaces(home, skip, owner) {
   const { path, search } = useRouter();
-  const [recent, setRecent] = useState(() => readRecent(home));
+  const [recent, setRecent] = useState(() => (owner ? readRecent(home, owner) : []));
+
+  // the signed-in account changed (or became known): show that account's own list
+  useEffect(() => {
+    if (!owner) {
+      setRecent([]);
+      return;
+    }
+    try {
+      window.localStorage.removeItem(KEY(home)); // the old list shared by every account on this browser
+    } catch {
+      /* nothing to clean */
+    }
+    setRecent(readRecent(home, owner));
+  }, [home, owner]);
+
   useEffect(() => {
     const to = `${path}${search || ''}`;
-    if (skip(path)) return undefined;
+    if (!owner || skip(path) || isGone(to)) return undefined;
     // wait for the page to set its own title
     const timer = setTimeout(() => {
+      if (isGone(to)) return; // the page found it missing meanwhile
       const title = document.title.replace(SUFFIX, '').trim();
       if (!title) return;
-      const next = [{ to, title, at: Date.now() }, ...readRecent(home).filter((x) => x.to !== to)].slice(0, MAX);
-      try {
-        window.localStorage.setItem(KEY(home), JSON.stringify(next));
-      } catch {
-        /* the list lasts until the page is closed */
-      }
+      const next = [{ to, title, at: Date.now() }, ...readRecent(home, owner).filter((x) => x.to !== to)].slice(0, MAX);
+      save(home, owner, next);
       setRecent(next);
     }, 900);
     return () => clearTimeout(timer);
-  }, [path, search, home, skip]);
+  }, [path, search, home, skip, owner]);
+
+  useEffect(() => {
+    if (!owner) return undefined;
+    const onForget = (event) => {
+      const next = readRecent(home, owner).filter((x) => !isUnder(x.to, event.detail));
+      save(home, owner, next);
+      setRecent(next);
+    };
+    window.addEventListener(FORGET, onForget);
+    return () => window.removeEventListener(FORGET, onForget);
+  }, [home, owner]);
+
   return recent;
 }
 

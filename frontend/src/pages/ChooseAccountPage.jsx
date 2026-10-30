@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AUTH } from '../data/content.js';
 import { cancelGoogleSignup, completeGoogleSignup, getPendingGoogleSignup } from '../services/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { homeFor } from '../auth/homeFor.js';
+import { afterAuth } from '../auth/afterAuth.js';
 import GlowButton from '../components/GlowButton.jsx';
 import { AlertCircle, GoogleG } from '../components/Icons.jsx';
 import AccountTypePicker from '../components/auth/AccountTypePicker.jsx';
@@ -49,7 +49,7 @@ export default function ChooseAccountPage() {
   useEffect(() => {
     if (status === 'success') return undefined;
     if (user) {
-      navigate(homeFor(user), { replace: true });
+      navigate(afterAuth(user), { replace: true });
       return undefined;
     }
     if (pendingGoogle) return undefined;
@@ -84,7 +84,7 @@ export default function ChooseAccountPage() {
       setUser(created);
       setPendingGoogle(null);
       setStatus('success');
-      timer.current = setTimeout(() => alive.current && navigate(homeFor(created)), 1100);
+      timer.current = setTimeout(() => alive.current && navigate(afterAuth(created)), 1100);
     } catch (err) {
       if (!alive.current) return;
       setStatus('idle');

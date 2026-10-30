@@ -566,6 +566,21 @@ export async function updateStoryboardDialogue(projectId, storyId, sceneAt, line
   return getStoryboard(projectId, storyId);
 }
 
+/** Change a scene's "What happens", "What we see" and "Camera" (scene by position). Resolves the storyboard. */
+export async function updateStoryboardScene(projectId, storyId, sceneAt, fields) {
+  const keys = ['primary_action', 'visual_description', 'camera_suggestion'];
+  demo((s) => {
+    const saved = boardsOf(s, projectId)[findStory(s, projectId, storyId).id];
+    const target = saved?.board?.scenes?.[Number(sceneAt)];
+    if (!target) throw fail('Scene not found in this storyboard.', 404);
+    keys.forEach((k) => {
+      if (typeof fields[k] === 'string') target[k] = fields[k].trim().slice(0, 4000);
+    });
+    saved.updatedAt = new Date().toISOString();
+  });
+  return getStoryboard(projectId, storyId);
+}
+
 /* -------------------------------------------------------------------------------------- character studio */
 // Per story, per character (by key, from the name): { key, name, profile, images: { master, uploaded, active },
 // updatedAt }. profile: { style, style_notes, customization, identity, made_at }. master: { src, model, prompt,
@@ -639,6 +654,16 @@ export async function saveCharacterRecord(projectId, storyId, key, { name, profi
 // The story's places, kept exactly like characters: { key, name, profile, images: { master, uploaded, active } }.
 export const getLocationRecords = (projectId, storyId) => getCharacterRecords(projectId, storyId, 'locationStudio');
 export const saveLocationRecord = (projectId, storyId, key, patch) => saveCharacterRecord(projectId, storyId, key, patch, 'locationStudio');
+
+/** Details of a profile changed by hand. Resolves the record. */
+export async function saveCharacterIdentity(projectId, storyId, key, fields, bucket = 'characterStudio') {
+  const records = bucket === 'locationStudio' ? await getLocationRecords(projectId, storyId) : await getCharacterRecords(projectId, storyId);
+  const record = records[key];
+  if (!record?.profile) throw fail('Make the profile first; then you can change its details.', 404);
+  const profile = { ...record.profile, identity: { ...record.profile.identity, ...fields } };
+  return saveCharacterRecord(projectId, storyId, key, { name: record.name, profile }, bucket);
+}
+export const saveLocationIdentity = (projectId, storyId, key, fields) => saveCharacterIdentity(projectId, storyId, key, fields, 'locationStudio');
 
 /* ----------------------------------------------------------------------------------------- sketch studio */
 // Per story, per scene number: { sketches: [{ id, src, model, prompt, at }] (newest first, at most

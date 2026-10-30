@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AUTH } from '../data/content.js';
 import { isBackendConnected, loginWithGoogle, signup } from '../services/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { homeFor } from '../auth/homeFor.js';
+import { afterAuth } from '../auth/afterAuth.js';
 import { checkPassword } from '../auth/passwordRules.js';
 import { validateEmail } from '../auth/validators.js';
 import { Link, useRouter } from '../router/router.jsx';
@@ -100,7 +100,7 @@ export default function SignupForm({ onInvalid }) {
     const created = user ?? { email: email.trim(), accountType };
     setUser(created);
     setStatus('success');
-    timer.current = setTimeout(() => alive.current && navigate(homeFor(created)), 1100);
+    timer.current = setTimeout(() => alive.current && navigate(afterAuth(created)), 1100);
   };
 
   const emailError = touched.email ? validateEmail(email) : '';

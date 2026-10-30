@@ -285,12 +285,16 @@ const initials = (name) =>
     .slice(0, 2)
     .toUpperCase();
 
+// quick additions for the sketch's own directions
+const EXTRA_IDEAS = ['Close-up', 'Wide shot', 'Low angle', 'Golden hour light', 'Moonlit night', 'More dramatic'];
+
 function Workspace({ projectId, storyId, scene, scenes, record, records, characters, onOpen, onSaved }) {
   const toast = useToast();
   const uid = useId();
   const sketches = record?.sketches || [];
   const [viewing, setViewing] = useState(record?.selected || sketches[0]?.id || null);
-  const [model, setModel] = useState(sketches[0]?.model || SKETCH_MODELS[0].id);
+  // the model of the last generated sketch (an uploaded image has no model), else the first one
+  const [model, setModel] = useState(sketches.find((k) => SKETCH_MODELS.some((m) => m.id === k.model))?.model || SKETCH_MODELS[0].id);
   const [prompt, setPrompt] = useState('');
   const [run, setRun] = useState(null); // { step, started, done }
   const [reveal, setReveal] = useState(0);
@@ -321,7 +325,6 @@ function Workspace({ projectId, storyId, scene, scenes, record, records, charact
       setRun((r) => ({ ...r, done: true }));
       await wait(800);
       setReveal((n) => n + 1);
-      setPrompt('');
       toast('Sketch ready');
     } catch (err) {
       setError(err.message || 'The sketch could not be made. Please try again.');
@@ -512,7 +515,42 @@ function Workspace({ projectId, storyId, scene, scenes, record, records, charact
               {error}
             </p>
           )}
-          <div className={cs.genBar}>
+          {/* the person's own directions for this sketch, added to the scene's description */}
+          <div className={s.extra}>
+            <div className={s.extraHead}>
+              <label htmlFor={`${uid}-extra`} className={s.extraLabel}>
+                How should the sketch look? <span className={s.extraOptional}>Optional</span>
+              </label>
+              <span className={s.extraCount}>{prompt.length} / 1000</span>
+            </div>
+            <textarea
+              id={`${uid}-extra`}
+              className={s.extraArea}
+              rows={3}
+              maxLength={1000}
+              placeholder="e.g. Close-up on Sita’s face, soft moonlight, tears catching the light, shallow depth of field"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !busy) generate();
+              }}
+              disabled={busy}
+            />
+            <div className={s.extraChips}>
+              {EXTRA_IDEAS.map((idea) => (
+                <button
+                  key={idea}
+                  type="button"
+                  className={s.extraChip}
+                  onClick={() => setPrompt((cur) => (cur.trim() ? `${cur.trim().replace(/[.,]$/, '')}, ${idea.toLowerCase()}` : idea).slice(0, 1000))}
+                  disabled={busy}
+                >
+                  + {idea}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className={cx(cs.genBar, s.genBarNoPrompt)}>
             <select className={cx(cs.input, cs.genModel)} aria-label="Image model" value={model} onChange={(e) => setModel(e.target.value)} disabled={busy}>
               {SKETCH_MODELS.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -520,18 +558,6 @@ function Workspace({ projectId, storyId, scene, scenes, record, records, charact
                 </option>
               ))}
             </select>
-            <input
-              className={cs.genPrompt}
-              aria-label="Additional prompt"
-              maxLength={1000}
-              placeholder="Composition, lighting, time of day… (optional)"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !busy) generate();
-              }}
-              disabled={busy}
-            />
             <Button icon={IconSparkles} onClick={generate} disabled={busy}>
               {sketches.length ? 'Generate again' : 'Generate sketch'}
             </Button>

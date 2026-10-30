@@ -540,6 +540,57 @@ export async function changeAccountPassword({ currentPassword, newPassword }) {
   });
 }
 
+/* ----------------------------------------------------------------- deleting your own account (Settings) */
+/**
+ * GET /api/auth/me/deletion -> what deleting this account would delete:
+ * { kind: 'individual' | 'organization', email, confirmWord, projects, stories, libraryItems,
+ *   organization: { name, projects, clients, members, accountsDeleted } | null }
+ */
+export async function getAccountDeletionSummary() {
+  if (!isBackendConnected) {
+    await wait(300);
+    return { kind: 'individual', email: me?.email || '', confirmWord: 'DELETE', projects: 0, stories: 0, libraryItems: 0, organization: null };
+  }
+  const d = await request('/api/auth/me/deletion');
+  const o = d.organization;
+  return {
+    kind: d.kind,
+    email: d.email,
+    confirmWord: d.confirm_word || 'DELETE',
+    projects: d.projects ?? 0,
+    stories: d.stories ?? 0,
+    libraryItems: d.library_items ?? 0,
+    organization: o ? { name: o.name, projects: o.projects ?? 0, clients: o.clients ?? 0, members: o.members ?? 0, accountsDeleted: o.accounts_deleted ?? 0 } : null,
+  };
+}
+
+/** POST /api/auth/me/deletion/code -> a 6-digit code is emailed (for people who sign in with Google). */
+export async function sendAccountDeletionCode() {
+  if (!isBackendConnected) {
+    await wait(500);
+    return {};
+  }
+  return request('/api/auth/me/deletion/code', { method: 'POST' });
+}
+
+/**
+ * POST /api/auth/me/delete { confirm, password | code } -> the account (and, for an organization, the
+ * organization) is deleted for good. The session ends here too.
+ */
+export async function deleteMyAccount({ confirm, password = '', code = '' }) {
+  if (!isBackendConnected) {
+    await wait(700);
+    setSession(null);
+    return { deleted: true };
+  }
+  const result = await request('/api/auth/me/delete', {
+    method: 'POST',
+    body: { confirm, ...(password ? { password } : {}), ...(code ? { code } : {}) },
+  });
+  setSession(null);
+  return result;
+}
+
 /** Settings, "Your name": PATCH /api/auth/me { display_name } ('' goes back to the email's first part). */
 export async function updateDisplayName(name) {
   const clean = String(name || '').trim().replace(/\s+/g, ' ');

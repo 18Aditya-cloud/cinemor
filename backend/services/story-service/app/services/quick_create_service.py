@@ -81,10 +81,82 @@ POLISH_SYSTEM_PROMPT = (
     "camera framing and mood. Answer with the prompt only, in English, under 120 words, without quotes."
 )
 
+# Avatar video: the script is said in ONE language from the first clip to the last. Before the clips are made, the
+# whole script is written in the chosen language once (unless it already is), so every clip gets words in that
+# language; each clip's prompt also repeats the language, and all clips share one seed (the same voice).
+SCRIPT_LANGUAGE_SYSTEM_PROMPT = (
+    "You prepare a script that one person will speak on camera. Write the whole script in {language}, "
+    "{script_hint} Translate any part that is in another language; keep the meaning, names, tone and sentence "
+    "order, and keep it natural to say aloud. Do not add or drop anything, and add no notes, titles or quotes. "
+    "Answer with the script only."
+)
+SCRIPT_HINTS = {
+    "Hindi": "in Devanagari script (simple, everyday Hindi).",
+    "Hinglish": "as everyday Hinglish: Hindi mixed with common English words, written in the Latin alphabet.",
+    "English": "in clear, simple English.",
+    "Bengali": "in Bengali script.",
+    "Tamil": "in Tamil script.",
+    "Telugu": "in Telugu script.",
+    "Marathi": "in Devanagari script.",
+    "Arabic": "in Arabic script.",
+    "Japanese": "in Japanese script.",
+}
+SPOKEN_AS = {"Hinglish": "Hinglish (Hindi mixed with English words, with an Indian accent)"}
+
+
+def _script_is_in(text: str, language: str) -> bool | None:
+    """Whether the script is plainly written in `language` already (None: cannot tell, ask the AI)."""
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return True
+    devanagari = sum(1 for c in letters if "\u0900" <= c <= "\u097f") / len(letters)
+    latin = sum(1 for c in letters if c.isascii()) / len(letters)
+    if language in ("Hindi", "Marathi"):
+        return True if devanagari > 0.8 else None
+    if language == "Hinglish":
+        return True if latin > 0.95 and devanagari == 0 else None
+    if language == "English":
+        return True if latin > 0.95 and devanagari == 0 else None
+    return None
+
+
 WORDS_PER_PART = 40  # about 16 seconds of speech
 WORDS_PER_SECOND = 2.5
 AUDIO_PART_CHARS = 2500
 STALE_AFTER = timedelta(hours=3)
+
+# Everything made with Quick Create is kept for this long, then deleted (the row and its files).
+RETENTION_DAYS = 30
+_PURGE_EVERY = timedelta(minutes=10)
+_last_purge: dict[str, datetime] = {}
+
+
+def purge_expired(db: Session, *, force: bool = False) -> int:
+    """
+    Delete everything older than RETENTION_DAYS, for every user (rows and files). Runs at most every
+    10 minutes per server process (Quick Create calls it on its own requests); `force` runs it now.
+    Returns how many things were deleted.
+    """
+    now = _now()
+    if not force and _last_purge.get("at") and now - _last_purge["at"] < _PURGE_EVERY:
+        return 0
+    _last_purge["at"] = now
+    cutoff = now - timedelta(days=RETENTION_DAYS)
+    old = (
+        db.query(QuickCreation)
+        .filter(QuickCreation.created_at < cutoff, QuickCreation.status != "working")
+        .limit(500)
+        .all()
+    )
+    for item in old:
+        for key in (item.storage_key, item.source_key):
+            path = QuickCreateService.path_of(key)
+            if path:
+                path.unlink(missing_ok=True)
+        db.delete(item)
+    if old:
+        db.commit()
+    return len(old)
 
 STORY_EDIT_SYSTEM_PROMPT = """
 You are an expert story editor.
@@ -230,7 +302,11 @@ class QuickCreateService:
 
     # ============================================================ reading
     def serialize(self, item: QuickCreation) -> dict[str, Any]:
+        created = item.created_at
+        if created is not None and created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
         return {
+            "expires_at": _iso(created + timedelta(days=RETENTION_DAYS)) if created else None,
             "id": item.id,
             "kind": item.kind,
             "status": item.status,
@@ -262,6 +338,7 @@ class QuickCreateService:
             self.db.commit()
 
     def list(self, user: User, kind: str | None = None, limit: int = 60) -> list[dict[str, Any]]:
+        purge_expired(self.db)
         query = self.db.query(QuickCreation).filter(QuickCreation.user_id == user.id)
         if kind:
             kinds = PICTURE_KINDS if kind == "picture" else (kind,)
@@ -314,6 +391,7 @@ class QuickCreateService:
             "aspect_ratios": qc.ASPECT_RATIOS,
             "limits": LIMITS,
             "daily_limits": DAILY_LIMITS,
+            "retention_days": RETENTION_DAYS,
         }
 
     # ============================================================ character / location / image
@@ -569,6 +647,25 @@ class QuickCreateService:
         self.db.commit()
         return self.serialize(item)
 
+    async def _script_in_language(self, script: str, language: str) -> str:
+        """The script written in `language` (one AI pass; the script as it is when it already is, or if that fails)."""
+        if _script_is_in(script, language):
+            return script
+        models = get_all_models()
+        if not models:
+            return script
+        from app.clients.openrouter_client import OpenRouterClient
+
+        system = SCRIPT_LANGUAGE_SYSTEM_PROMPT.format(language=language, script_hint=SCRIPT_HINTS.get(language, "in its usual script."))
+        try:
+            text = await OpenRouterClient().generate(model_id=models[0].id, system_prompt=system, user_prompt=script, temperature=0.2)
+        except LLMProviderError:
+            return script
+        text = (text or "").strip().strip('"').strip()
+        if not text or len(text) > LIMITS["script"] * 2:
+            return script
+        return text
+
     def run_avatar_video(self, item_id: int) -> None:
         """Make the video (a background task with its own database session)."""
         asyncio.run(self._run_avatar_video(item_id))
@@ -608,17 +705,37 @@ class QuickCreateService:
             audio = info.get("generate_audio")
             generate_audio = None if "heygen" in item.model_id else (True if audio is True else None)
             language = item.settings.get("language") or "English"
+            spoken = SPOKEN_AS.get(language, language)
             style = item.settings.get("voice_style") or "natural, clear"
 
+            # one language for the whole video: the script is written in it once, before it is cut into clips
+            if not item.content.get("script_language"):
+                text = await self._script_in_language(item.prompt, language)
+                parts = split_script(text)
+                content = dict(item.content)
+                if text != item.prompt and 0 < len(parts) <= LIMITS["parts"]:
+                    content["parts"] = [{"no": i + 1, "text": t, "status": "waiting"} for i, t in enumerate(parts)]
+                    content["spoken_script"] = text
+                content["script_language"] = language
+                item.content = content
+                self.db.commit()
+            # every clip with the same seed, so the voice stays the same from clip to clip
+            seed = (item.id * 7919) % 2_000_000_000 if info.get("seed") is not False else None
+
             clips: list[Path] = []
-            for part in list(item.content.get("parts", [])):
+            all_parts = list(item.content.get("parts", []))
+            for part in all_parts:
                 self._set_part(item, part["no"], status="making")
                 seconds = max(3, round(len(part["text"].split()) / WORDS_PER_SECOND) + 1)
                 duration = next((d for d in durations if d >= seconds), durations[-1] if durations else None)
                 prompt = (
-                    "The person in the first frame looks into the camera and speaks, with natural lip-sync, "
-                    f"natural head movement and expressions. Language: {language}. Voice: {style}. "
-                    f'They say exactly these words, nothing more: "{part["text"]}"'
+                    f"Spoken language: {spoken} only. "
+                    f"The person in the first frame looks into the camera and speaks {spoken}, with natural lip-sync, "
+                    f"natural head movement and expressions. Voice: {style}. "
+                    f"This is clip {part['no']} of {len(all_parts)} of one continuous video: use the same voice, accent "
+                    f"and language ({spoken}) as in every other clip. Do not translate the words and never switch to "
+                    f"English or any other language. "
+                    f'They say exactly these {spoken} words, nothing more: "{part["text"]}"'
                 )
                 submission = await client.submit_video(
                     model=item.model_id,
@@ -628,6 +745,7 @@ class QuickCreateService:
                     resolution=resolution,
                     generate_audio=generate_audio,
                     frame_images=frame,
+                    seed=seed,
                 )
                 job = await client.poll_job(submission["id"], interval_seconds=8, max_wait_seconds=1500)
                 clip = work / f"part-{part['no']:02d}.mp4"

@@ -7,6 +7,7 @@ import DashboardLayout from '../DashboardLayout.jsx';
 import { ThemeProvider } from '../ThemeContext.jsx';
 import { WorkspaceProvider } from '../WorkspaceContext.jsx';
 import '../theme.css';
+import '../individual/studio.css';
 import { setProjectApiBase } from '../individual/individualBackend.js';
 import AnimationStudioPage from '../individual/AnimationStudioPage.jsx';
 import CharacterStudioPage from '../individual/CharacterStudioPage.jsx';
@@ -93,6 +94,14 @@ export default function EmployeeApp() {
   useLayoutEffect(() => {
     setProjectApiBase(workBase);
     return () => setProjectApiBase(null);
+  }, []);
+
+  // the studio colours (individual/studio.css): module colours, and cards that stand out from the page in dark
+  useEffect(() => {
+    document.documentElement.dataset.studio = 'employee';
+    return () => {
+      delete document.documentElement.dataset.studio;
+    };
   }, []);
 
   useEffect(() => {

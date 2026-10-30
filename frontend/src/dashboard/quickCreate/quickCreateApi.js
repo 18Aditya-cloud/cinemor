@@ -25,6 +25,8 @@ export const itemView = (x) => ({
   content: x.content || {},
   error: x.error || '',
   createdAt: x.created_at ? Date.parse(x.created_at) : null,
+  // kept in the Library until then (30 days after it was made), then deleted automatically
+  expiresAt: x.expires_at ? Date.parse(x.expires_at) : null,
   updatedAt: x.updated_at ? Date.parse(x.updated_at) : null,
 });
 

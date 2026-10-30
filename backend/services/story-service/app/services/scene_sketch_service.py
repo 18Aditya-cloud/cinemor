@@ -117,7 +117,9 @@ VISUAL REQUIREMENTS:
 - Produce one image only.
 - This is a scene sketch, not a location-only reference image.
 
-USER CUSTOMIZATION:
+USER CUSTOMIZATION (the person's own directions for this sketch; follow them closely, and where they ask
+for a different framing, angle, lighting, mood or style, they take priority over the camera suggestion and the
+visual description above, while keeping the scene's characters, place and story action):
 {customization or "No additional customization."}
 
 Generate the image only.

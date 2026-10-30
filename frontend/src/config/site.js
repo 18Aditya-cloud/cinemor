@@ -3,5 +3,5 @@ export const SITE = {
   name: 'Cinemor AI',
   wordmark: { main: 'Cinemor', accent: 'AI' },
   // TODO: replace with your real support address.
-  contactEmail: 'hello@example.com',
+  contactEmail: 'aarush4520@gmail.com',
 };

@@ -46,7 +46,7 @@ export default function ActivityPage() {
     <div className={styles.page}>
       <PageHeader
         title="Activity"
-        subtitle="Everything that has changed in your organization, newest first."
+        subtitle="Everything that has changed in your organization in the last 14 days, newest first. Older activity is deleted."
         actions={<RefreshButton withText onClick={() => load(kind)} loading={loading} />}
       />
       {error && <Notice message={error.message} onRetry={() => load(kind)} />}

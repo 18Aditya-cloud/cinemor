@@ -13,6 +13,7 @@ import useResource from '../hooks/useResource.js';
 import { useWorkspace } from '../WorkspaceContext.jsx';
 import Button from '../ui/Button.jsx';
 import { IconCheck, IconGear, IconKey, IconLogOut, IconUser } from '../ui/DashIcons.jsx';
+import DeleteAccountCard from './DeleteAccountCard.jsx';
 import Notice from '../ui/Notice.jsx';
 import PageHeader from '../ui/PageHeader.jsx';
 import Pill from '../ui/Pill.jsx';
@@ -38,6 +39,7 @@ export default function SettingsPage() {
         <ProfileCard />
         <PasswordCard />
         <SessionsCard />
+        <DeleteAccountCard organization />
       </div>
     </div>
   );

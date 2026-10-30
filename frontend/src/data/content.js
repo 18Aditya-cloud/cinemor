@@ -186,3 +186,58 @@ export const DASHBOARD = {
   overview: 'home',
   projectsView: 'cards',
 };
+
+/*
+ * The wall of finished work under the hand scene: films and pictures made with Cinemor AI, moving slowly behind
+ * frosted glass, with one button in the middle. The pictures can't be clicked; only the button can.
+ *
+ *   cta    the button's words. It sends new visitors to Sign up and then into Quick Create
+ *          (signed-in creators go straight to Quick Create).
+ *   tiles  what fills the wall. Each tile is a picture (`image`) or a short muted clip (`video` + `image` as its
+ *          still). `ratio` is height / width. Files live in src/assets/wall/. More tiles = less repetition.
+ */
+const wall = (name) => new URL(`../assets/wall/${name}`, import.meta.url).href;
+export const CREATION_WALL = {
+  cta: 'Create your first',
+  tiles: [
+    { image: wall('king-dark.webp'), ratio: 16 / 9 },
+    { video: wall('boxer-ring.mp4'), image: wall('boxer-ring.webp'), ratio: 9 / 16 },
+    { image: wall('lion-chase.webp'), ratio: 1 },
+    { video: wall('anchor.mp4'), image: wall('anchor.webp'), ratio: 16 / 9 },
+    { image: wall('palace.webp'), ratio: 9 / 16 },
+    { image: wall('lion-roar.webp'), ratio: 16 / 9 },
+    { video: wall('boxer-face.mp4'), image: wall('boxer-face.webp'), ratio: 9 / 16 },
+    { image: wall('king-anime.webp'), ratio: 16 / 9 },
+    { video: wall('boxer-wraps.mp4'), image: wall('boxer-wraps.webp'), ratio: 3 / 4 },
+    { image: wall('palace.webp'), ratio: 1, focus: '72% 50%' },
+    { video: wall('boxer-gloves.mp4'), image: wall('boxer-gloves.webp'), ratio: 9 / 16 },
+    { image: wall('lion-chase.webp'), ratio: 4 / 3, focus: '25% 50%' },
+    { image: wall('king-anime.webp'), ratio: 1, focus: '50% 22%' },
+    { image: wall('lion-roar.webp'), ratio: 1, focus: '60% 25%' },
+  ],
+};
+
+/*
+ * The two moving strips above and below the wall: the models Cinemor AI works with.
+ * The top strip moves left to right, the bottom one right to left.
+ *   logo  a key of MODEL_LOGOS (data/modelLogos.js); leave it out to show the name alone.
+ */
+export const MODEL_STRIPS = {
+  top: [
+    { name: 'Wan 3.0', logo: 'alibaba' },
+    { name: 'Veo 3.1', logo: 'gemini' },
+    { name: 'Seedance 2.5', logo: 'bytedance' },
+    { name: 'Kling 3.0', logo: 'kuaishou' },
+    { name: 'Hailuo 3', logo: 'minimax' },
+    { name: 'Grok Imagine', logo: 'x' },
+    { name: 'Runway Gen-4.5' },
+  ],
+  bottom: [
+    { name: 'Gemini TTS', logo: 'gemini' },
+    { name: 'ElevenLabs v3', logo: 'elevenlabs' },
+    { name: 'MiniMax Speech', logo: 'minimax' },
+    { name: 'MAI Voice' },
+    { name: 'Nano Banana', logo: 'gemini' },
+    { name: 'GPT Image' },
+  ],
+};

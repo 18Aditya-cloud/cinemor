@@ -240,7 +240,7 @@ export default function OverviewHome() {
               <h2 id="cm-activity-title" className={styles.cardTitle}>
                 Recent activity
               </h2>
-              <p className={styles.cardSub}>What has happened lately in your workspace.</p>
+              <p className={styles.cardSub}>What happened in your workspace in the last 14 days.</p>
             </div>
             {activity?.ok && activity.data.length > 0 && (
               <Link to="/organization/activity" className={styles.textButton}>
@@ -262,7 +262,10 @@ export default function OverviewHome() {
           ) : activity.data.length === 0 ? (
             <p className={styles.feedEmpty}>Nothing yet. What you and your team do will show up here.</p>
           ) : (
-            <ActivityFeed items={activity.data.slice(0, 8)} compact label="Recent activity" />
+            // the whole 14 days, in a box of its own that scrolls (older activity is deleted after 14 days)
+            <div className={styles.feedScroll} tabIndex={0} role="region" aria-label="Recent activity, scrollable">
+              <ActivityFeed items={activity.data} compact label="Recent activity" />
+            </div>
           )}
         </section>
       </div>

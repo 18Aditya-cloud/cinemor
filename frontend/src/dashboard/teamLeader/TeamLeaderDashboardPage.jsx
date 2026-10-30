@@ -8,9 +8,10 @@ import { Avatar, AvatarStack, CoverArt } from '../ui/Production.jsx';
 import { IconCheck, IconChevronRight, IconClose, IconPlay, IconProjects, IconUsers } from '../ui/DashIcons.jsx';
 import EmptyState from '../ui/EmptyState.jsx';
 import Notice from '../ui/Notice.jsx';
+import OrgBadge from '../ui/OrgBadge.jsx';
 import RefreshButton from '../ui/RefreshButton.jsx';
 import { useWorkspace } from '../WorkspaceContext.jsx';
-import { lifecycleOf } from './lifecycle.js';
+import { lifecycleOf, sortProjects } from './lifecycle.js';
 import s from './TeamLeaderDashboard.module.css';
 
 /* ------------------------------------------------------------------ dates ("YYYY-MM-DD", read as that calendar day) */
@@ -54,6 +55,7 @@ function details(projects) {
   const lastDone = [...of('completed')].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
   const lastStopped = [...of('aborted')].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
   const people = new Set(projects.flatMap((p) => p.people || []));
+  if (projects.length) people.add('team-leader'); // the Team Leader is on every one of their teams
   const active = projects.filter((p) => (p.people || []).length && ['not_started', 'ongoing'].includes(p.lifecycle)).length;
   return {
     total: projects.length ? 'all time' : 'none yet',
@@ -75,7 +77,7 @@ const IconClock = (props) => (
 
 /**
  * The Team Leader's home: a welcome, six counts (each with its own colour, which spills in from the card's right
- * edge) and the latest projects as cards. A card shows the project's newest sketch once one has been made (else a
+ * edge) and six projects as cards, ongoing ones first (see sortProjects in lifecycle.js). A card shows the project's newest sketch once one has been made (else a
  * drawn cover), its state, the time left and its people; under the mouse it lifts and glows in its state's colour.
  */
 export default function TeamLeaderDashboardPage({ teamLeaderId, email }) {
@@ -84,7 +86,8 @@ export default function TeamLeaderDashboardPage({ teamLeaderId, email }) {
   const { data, loading, error, reload } = useResource(() => getTeamLeaderDashboard(teamLeaderId), [teamLeaderId]);
   const stats = data?.stats;
   const all = data?.projects ?? [];
-  const latest = all.slice(0, 4);
+  // Ongoing first (nearest deadline first), then Not started, Completed and Aborted: two full rows of cards
+  const latest = sortProjects(all).slice(0, 6);
   const more = details(all);
   const name = displayName || (email || '').split('@')[0] || 'there';
   const value = (n) => (data ? n ?? 0 : '–');
@@ -103,7 +106,7 @@ export default function TeamLeaderDashboardPage({ teamLeaderId, email }) {
     <div className={s.page}>
       <div className={s.head}>
         <div>
-          <p className={s.eyebrow}>Team Leader workspace</p>
+          <OrgBadge role="Team Leader workspace" />
           <h1 className={s.welcome}>Welcome back, {name}</h1>
           <p className={s.lead}>Monitor your projects and manage your production teams.</p>
         </div>
@@ -136,7 +139,7 @@ export default function TeamLeaderDashboardPage({ teamLeaderId, email }) {
             <h2 id="tl-latest-title" className={s.panelTitle}>
               My Projects
             </h2>
-            <p className={s.panelSub}>Your latest assigned projects.</p>
+            <p className={s.panelSub}>Ongoing first, nearest deadline first; then not started, completed and aborted.</p>
           </div>
           <Link to="/team-leader/projects" className={s.viewAll}>
             View all <IconChevronRight width={16} height={16} />
@@ -148,7 +151,7 @@ export default function TeamLeaderDashboardPage({ teamLeaderId, email }) {
           <ul className={s.cards}>
             {latest.map((p) => (
               <li key={p.id}>
-                <ProjectCard project={p} />
+                <ProjectCard project={p} leader={{ name, email }} />
               </li>
             ))}
           </ul>
@@ -158,12 +161,13 @@ export default function TeamLeaderDashboardPage({ teamLeaderId, email }) {
   );
 }
 
-function ProjectCard({ project: p }) {
+function ProjectCard({ project: p, leader }) {
   const state = lifecycleOf(p.lifecycle);
   const time = timeline(p);
   const cover = useCover(p.id, p.cover);
-  const people = p.people || [];
-  const count = people.length || p.memberCount || 0;
+  // the team: the Team Leader (first, with a ring) and the people on the project, each once
+  const people = (p.people || []).filter((mail) => mail !== leader.email);
+  const count = people.length + 1;
   const dates = [full(p.startDate), full(p.deadline)].filter(Boolean);
   return (
     <Link to={`/team-leader/projects/${p.id}`} className={cx(s.card, TONE[p.lifecycle] || s.toneWaiting)} aria-label={`${p.title}, ${state.label}, ${time.text}`}>
@@ -191,15 +195,12 @@ function ProjectCard({ project: p }) {
             <i style={{ width: `${Math.max(time.value, 3)}%` }} />
           </span>
           <div className={s.foot}>
-            {people.length ? (
-              <AvatarStack>
-                {people.slice(0, 5).map((mail) => (
-                  <Avatar key={mail} name={mail.split('@')[0]} seed={mail} size={28} />
-                ))}
-              </AvatarStack>
-            ) : (
-              <span className={s.muted}>No team yet</span>
-            )}
+            <AvatarStack>
+              <Avatar name={`${leader.name} (Team Leader)`} seed={leader.email} size={28} className={s.leadAvatar} />
+              {people.slice(0, 4).map((mail) => (
+                <Avatar key={mail} name={mail.split('@')[0]} seed={mail} size={28} />
+              ))}
+            </AvatarStack>
             <span className={s.muted}>
               {count} {count === 1 ? 'person' : 'people'}
             </span>

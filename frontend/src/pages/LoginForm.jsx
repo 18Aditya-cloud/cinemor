@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { AUTH, VERIFY } from '../data/content.js';
 import { isBackendConnected, isEmailNotVerified, login, loginWithGoogle } from '../services/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { homeFor } from '../auth/homeFor.js';
+import { afterAuth } from '../auth/afterAuth.js';
 import { validateEmail } from '../auth/validators.js';
 import { Link, useRouter } from '../router/router.jsx';
 import GlowButton from '../components/GlowButton.jsx';
@@ -30,7 +30,10 @@ export default function LoginForm({ onInvalid }) {
   const { navigate, search } = useRouter();
   const { setUser, setPendingGoogle, setEmailHint } = useAuth();
   // Settings sends people here after changing their password (the backend signs every session out when it changes).
-  const passwordChanged = new URLSearchParams(search || '').get('reason') === 'password-changed';
+  const reason = new URLSearchParams(search || '').get('reason');
+  const passwordChanged = reason === 'password-changed';
+  // Settings sends people here after they deleted their account
+  const accountDeleted = reason === 'account-deleted';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,7 +64,7 @@ export default function LoginForm({ onInvalid }) {
     const signedIn = user ?? { email: email.trim(), accountType: 'individual' };
     setUser(signedIn);
     setStatus('success');
-    timer.current = setTimeout(() => alive.current && navigate(homeFor(signedIn)), 900);
+    timer.current = setTimeout(() => alive.current && navigate(afterAuth(signedIn)), 900);
   };
 
   const fail = (error) => {
@@ -149,6 +152,11 @@ export default function LoginForm({ onInvalid }) {
       </header>
 
       <form className={styles.form} onSubmit={onSubmit} noValidate>
+        {accountDeleted && !formError && (
+          <p className={styles.notice} role="status">
+            Your account has been deleted, with all of its data. Thank you for using Cinemor AI.
+          </p>
+        )}
         {passwordChanged && !formError && (
           <p className={styles.notice} role="status">
             Your password was changed, so you were logged out everywhere. Log in with your new password.

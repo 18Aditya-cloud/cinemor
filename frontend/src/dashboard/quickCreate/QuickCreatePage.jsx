@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import useDocumentTitle from '../../hooks/useDocumentTitle.js';
 import { Link, useRouter } from '../../router/router.jsx';
 import cx from '../../utils/cx.js';
@@ -151,6 +152,7 @@ export default function QuickCreatePage({ tool: slug }) {
 /* ------------------------------------------------------------------ the page with the six tools */
 function Hub() {
   const recent = useResource(() => listItems('', 8), []);
+  const viewer = useViewer(recent.data || [], () => recent.reload());
   return (
     <div className={q.page}>
       <div className={q.head}>
@@ -186,7 +188,7 @@ function Hub() {
             <h2 id="qc-recent" className={q.cardTitle}>
               Your library
             </h2>
-            <p className={q.muted}>Everything you made with these tools. Download it any time.</p>
+            <p className={q.muted}>Everything you made with these tools. Click one to open it.</p>
           </div>
           <Link to="/dashboard/library" className={q.more}>
             Open library <IconChevronRight width={15} height={15} />
@@ -198,12 +200,14 @@ function Hub() {
           <ul className={q.libGrid}>
             {recent.data.map((item) => (
               <li key={item.id}>
-                <LibraryCard item={item} />
+                <LibraryCard item={item} onOpen={() => viewer.open(item.id)} />
               </li>
             ))}
           </ul>
         )}
+        <RetentionNote />
       </section>
+      {viewer.modal}
     </div>
   );
 }
@@ -1145,6 +1149,27 @@ function VideoCard({ item, sel }) {
 const MANNERS = ['Natural', 'Calm storyteller', 'Warm and friendly', 'Excited', 'Whisper', 'News anchor', 'Sad', 'Angry'];
 const SPEEDS = [0.75, 0.9, 1, 1.1, 1.25, 1.5];
 
+// Voices that carry their locale (Microsoft MAI-Voice: "hi-IN-Kavya:MAI-Voice-2.1"): the voice decides the language,
+// so the voices of the chosen language come first and read as "Kavya, Hindi (India)".
+const LOCALE_NAMES = { 'hi-IN': 'Hindi (India)', 'en-IN': 'English (India)', 'en-US': 'English (US)', 'en-GB': 'English (UK)', 'en-AU': 'English (Australia)', 'es-MX': 'Spanish (Mexico)', 'es-ES': 'Spanish (Spain)', 'fr-FR': 'French', 'de-DE': 'German', 'it-IT': 'Italian', 'pt-BR': 'Portuguese (Brazil)', 'ja-JP': 'Japanese', 'ko-KR': 'Korean', 'zh-CN': 'Chinese' };
+const LOCALES_OF = { Hindi: ['hi-IN'], Hinglish: ['hi-IN', 'en-IN'], English: ['en-IN', 'en-US', 'en-GB', 'en-AU'], Spanish: ['es-MX', 'es-ES'], French: ['fr-FR'], Japanese: ['ja-JP'] };
+const localeOf = (voice) => /^([a-z]{2}-[A-Z]{2})-/.exec(voice)?.[1] || '';
+const voiceLabel = (voice) => {
+  const m = /^([a-z]{2}-[A-Z]{2})-([^:]+)/.exec(voice);
+  if (m) return `${m[2]}, ${LOCALE_NAMES[m[1]] || m[1]}`;
+  return voice.charAt(0).toUpperCase() + voice.slice(1).replace(/_/g, ' ');
+};
+function voicesFor(model, language) {
+  const voices = model?.voices || [];
+  if (!model?.language_from_voice) return voices;
+  const wanted = LOCALES_OF[language] || [];
+  const rank = (v) => {
+    const i = wanted.indexOf(localeOf(v));
+    return i === -1 ? wanted.length : i;
+  };
+  return [...voices].sort((a, b) => rank(a) - rank(b));
+}
+
 function AudioTool({ tool, options }) {
   const uid = useId();
   const toast = useToast();
@@ -1165,7 +1190,15 @@ function AudioTool({ tool, options }) {
   const pickModel = (id) => {
     setModelId(id);
     const m = models.find((x) => x.id === id);
-    if (m && !m.voices.includes(voice)) setVoice(m.voices[0] || '');
+    if (m && !m.voices.includes(voice)) setVoice(voicesFor(m, language)[0] || '');
+  };
+  // a voice that carries its language: choosing a language picks that language's first voice
+  const pickLanguage = (value) => {
+    setLanguage(value);
+    if (model?.language_from_voice && !(LOCALES_OF[value] || []).includes(localeOf(voice))) {
+      const first = voicesFor(model, value)[0];
+      if (first && (LOCALES_OF[value] || []).includes(localeOf(first))) setVoice(first);
+    }
   };
 
   const submit = async (event) => {
@@ -1196,8 +1229,8 @@ function AudioTool({ tool, options }) {
       <RowSelect icon={IconSparkles} label="Model" value={modelId} options={models.map((m) => ({ value: m.id, label: m.name }))} onChange={pickModel} disabled={busy} wide />
       <PromptBox id={`${uid}-text`} label="Text" value={text} onChange={setText} max={options.limits.audio_text || 5000} rows={6} placeholder="The words to be spoken." disabled={busy} />
       <div className={q.rows}>
-        <RowSelect icon={IconUser} label="Voice" value={voice} options={(model?.voices || []).map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))} onChange={setVoice} disabled={busy} />
-        <RowSelect icon={IconGlobe} label="Language" value={language} options={LANGUAGES.map((l) => ({ value: l, label: l }))} onChange={setLanguage} disabled={busy} />
+        <RowSelect icon={IconUser} label="Voice" value={voice} options={voicesFor(model, language).map((v) => ({ value: v, label: voiceLabel(v) }))} onChange={setVoice} disabled={busy} />
+        <RowSelect icon={IconGlobe} label="Language" value={language} options={LANGUAGES.map((l) => ({ value: l, label: l }))} onChange={pickLanguage} disabled={busy} />
         {model?.instructions && <RowSelect icon={IconSliders} label="How it sounds" value={manner} options={MANNERS.map((m) => ({ value: m, label: m }))} onChange={setManner} disabled={busy} />}
         {model?.speed && <RowSelect icon={IconSpeed} label="Speed" value={speed} options={SPEEDS.map((s) => ({ value: s, label: `${s}×` }))} onChange={(v) => setSpeed(Number(v))} disabled={busy} />}
       </div>
@@ -1275,13 +1308,15 @@ export function LibraryPage() {
   const sel = useSelection(() => items.reload());
   const list = items.data || [];
   const ids = list.filter((x) => x.status !== 'working').map((x) => x.id);
+  const viewer = useViewer(list, () => items.reload());
   return (
     <div className={q.page}>
       <div className={q.head}>
         <div>
           <p className={q.eyebrow}>Quick Create</p>
           <h1 className={q.title}>Library</h1>
-          <p className={q.sub}>Everything you made with the Quick Create tools. Download it, open it again, or delete it.</p>
+          <p className={q.sub}>Everything you made with the Quick Create tools. Click anything to open it, download it or delete it.</p>
+          <RetentionNote />
         </div>
         <Link to={BASE} className={q.newBtn}>
           <IconSparkles width={16} height={16} /> Generate something
@@ -1337,23 +1372,204 @@ export function LibraryPage() {
         <ul className={q.libGrid}>
           {list.map((item) => (
             <li key={item.id}>
-              <LibraryCard item={item} sel={sel} />
+              <LibraryCard item={item} sel={sel} onOpen={() => viewer.open(item.id)} />
             </li>
           ))}
         </ul>
       )}
       {sel.modal}
+      {viewer.modal}
     </div>
   );
 }
 
-function LibraryCard({ item, sel }) {
+const RETENTION_DAYS = 30;
+const DAY = 86400000;
+const daysLeft = (item) => (item.expiresAt ? Math.max(0, Math.ceil((item.expiresAt - Date.now()) / DAY)) : null);
+const leftText = (n) => (n === null ? '' : n <= 0 ? 'Deletes today' : n === 1 ? 'Deletes tomorrow' : `${n} days left`);
+
+/** The small note that the Library keeps things for 30 days. */
+function RetentionNote() {
+  return (
+    <p className={q.retention}>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+      Everything here is kept for {RETENTION_DAYS} days, then deleted automatically. Download what you want to keep.
+    </p>
+  );
+}
+
+/* ------------------------------------------------------------------ opening one thing on the screen */
+/** A full-screen viewer for the Library's items: arrows (← →) move through the list, Esc closes. */
+function useViewer(list, onDeleted) {
+  const [openId, setOpenId] = useState(null);
+  const at = list.findIndex((x) => x.id === openId);
+  const item = at >= 0 ? list[at] : null;
+  const close = useCallback(() => setOpenId(null), []);
+  const move = useCallback((step) => {
+    if (at < 0 || !list.length) return;
+    setOpenId(list[(at + step + list.length) % list.length].id);
+  }, [at, list]);
+  const modal = item ? <Viewer item={item} position={at + 1} total={list.length} onClose={close} onMove={move} onDeleted={() => { close(); onDeleted(item); }} /> : null;
+  return { open: setOpenId, modal };
+}
+
+function Viewer({ item, position, total, onClose, onMove, onDeleted }) {
+  const toast = useToast();
+  const tool = toolOf(item.kind);
+  const closeRef = useRef(null);
+  const [asking, setAsking] = useState(false);
+  const left = daysLeft(item);
+  const story = item.kind === 'story' ? (item.content.versions || []).find((v) => v.no === item.content.current) || (item.content.versions || []).at(-1) : null;
+
+  useEffect(() => {
+    const back = document.activeElement;
+    closeRef.current?.focus();
+    const onKey = (e) => {
+      if (asking) return;
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight' && total > 1) onMove(1);
+      if (e.key === 'ArrowLeft' && total > 1) onMove(-1);
+    };
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      if (back && typeof back.focus === 'function') back.focus();
+    };
+  }, [onClose, onMove, total, asking]);
+
+  const details = [
+    tool.kind === 'avatar_video' ? 'Avatar video' : tool.label,
+    item.settings.aspect_ratio,
+    item.settings.voice && `Voice: ${item.settings.voice}`,
+    item.settings.language,
+    item.createdAt && `Made ${timeAgo(item.createdAt)}`,
+  ].filter(Boolean);
+
+  return createPortal(
+    <div className={cx(q.viewer, tool.tone)} role="dialog" aria-modal="true" aria-label={item.title || tool.label} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={q.viewerBar}>
+        <span className={q.viewerCount}>
+          {position} / {total}
+        </span>
+        <span className={q.grow} />
+        {item.hasFile && (
+          <button type="button" className={q.viewerBtn} onClick={() => download(item)}>
+            <IconDownload width={16} height={16} aria-hidden="true" /> Download
+          </button>
+        )}
+        {['story', 'avatar_video'].includes(item.kind) && (
+          <Link to={toolPath(tool, item.id)} className={q.viewerBtn}>
+            Open in {tool.kind === 'avatar_video' ? 'Avatar video' : tool.label} <IconChevronRight width={15} height={15} aria-hidden="true" />
+          </Link>
+        )}
+        {item.status !== 'working' && (
+          <button type="button" className={cx(q.viewerBtn, q.viewerDanger)} onClick={() => setAsking(true)}>
+            <IconTrash width={15} height={15} aria-hidden="true" /> Delete
+          </button>
+        )}
+        <button ref={closeRef} type="button" className={q.viewerClose} onClick={onClose} aria-label="Close">
+          ×
+        </button>
+      </div>
+
+      <div className={q.viewerStage} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        {total > 1 && (
+          <button type="button" className={cx(q.viewerArrow, q.viewerPrev)} onClick={() => onMove(-1)} aria-label="Previous">
+            ‹
+          </button>
+        )}
+        <div className={q.viewerContent} key={item.id}>
+          {['character', 'location', 'image'].includes(item.kind) && <Media item={item} className={q.viewerMedia} />}
+          {item.kind === 'avatar_video' &&
+            (item.status === 'done' ? (
+              <Media item={item} className={q.viewerMedia} />
+            ) : item.status === 'failed' ? (
+              <div className={q.viewerText}>
+                <b>This video could not be made.</b>
+                <p>{item.error}</p>
+              </div>
+            ) : (
+              <div className={q.viewerWait}>
+                <LogoPulse label="Still being made" />
+              </div>
+            ))}
+          {item.kind === 'audio' && (
+            <div className={q.viewerAudio}>
+              <span className={q.audioIcon} aria-hidden="true">
+                <IconMic width={30} height={30} />
+              </span>
+              <Media item={item} />
+            </div>
+          )}
+          {story && (
+            <article className={q.viewerText}>
+              <h2 className={q.docTitle}>{story.title}</h2>
+              {story.content.split(/\n{2,}/).map((para, i) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <p key={i}>{para}</p>
+              ))}
+            </article>
+          )}
+        </div>
+        {total > 1 && (
+          <button type="button" className={cx(q.viewerArrow, q.viewerNext)} onClick={() => onMove(1)} aria-label="Next">
+            ›
+          </button>
+        )}
+      </div>
+
+      <div className={q.viewerInfo}>
+        <p className={q.viewerTitle}>{item.title || tool.label}</p>
+        {item.prompt && item.prompt.trim() !== (item.title || '').trim() && item.kind !== 'story' && item.kind !== 'audio' && <p className={q.viewerPrompt}>“{item.prompt.length > 400 ? `${item.prompt.slice(0, 400)}…` : item.prompt}”</p>}
+        <p className={q.viewerMeta}>
+          {details.join(' · ')}
+          {left !== null && <span className={cx(q.viewerLeft, left <= 3 && q.soon)}>{leftText(left)}</span>}
+        </p>
+      </div>
+
+      <ConfirmModal
+        open={asking}
+        title="Delete this?"
+        text="It is deleted from your Library for good. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          await deleteMany([item.id]);
+          toast('Deleted');
+          setAsking(false);
+          onDeleted();
+        }}
+        onClose={() => setAsking(false)}
+      />
+    </div>,
+    document.body,
+  );
+}
+
+function LibraryCard({ item, sel, onOpen }) {
   const tool = toolOf(item.kind);
   const Icon = tool.icon;
-  const opens = ['story', 'avatar_video'].includes(item.kind) && !sel?.selecting;
+  const left = daysLeft(item);
   const story = item.kind === 'story' ? (item.content.versions || []).find((v) => v.no === item.content.current) : null;
+  // (a video shows its picture here; it plays in the viewer)
   const visual =
-    item.kind === 'avatar_video' ? (item.status === 'done' ? <Media item={item} /> : <Media item={item} source />) : ['character', 'location', 'image'].includes(item.kind) ? <Media item={item} /> : null;
+    item.kind === 'avatar_video' ? (
+      <>
+        <Media item={item} source />
+        {item.status === 'done' && (
+          <span className={q.libPlay} aria-hidden="true">
+            <IconPlay width={18} height={18} />
+          </span>
+        )}
+      </>
+    ) : ['character', 'location', 'image'].includes(item.kind) ? (
+      <Media item={item} />
+    ) : null;
   const body = (
     <>
       <div className={q.libVisual}>
@@ -1367,19 +1583,23 @@ function LibraryCard({ item, sel }) {
         {item.status === 'failed' && <span className={cx(q.libState, q.libFailed)}>Failed</span>}
       </div>
       <p className={q.libTitle}>{item.title || tool.label}</p>
-      <p className={q.muted}>{timeAgo(item.createdAt)}</p>
+      <p className={q.libMeta}>
+        <span>{timeAgo(item.createdAt)}</span>
+        {left !== null && <span className={cx(q.libLeft, left <= 3 && q.soon)}>{leftText(left)}</span>}
+      </p>
     </>
   );
   return (
     <div className={cx(q.libCard, tool.tone, sel?.picked.has(item.id) && q.libPicked)}>
       <Pick sel={item.status === 'working' ? null : sel} id={item.id} label={item.title} />
-      {opens ? (
-        <Link to={toolPath(tool, item.id)} className={q.libOpen}>
-          {body}
-        </Link>
-      ) : (
-        <div className={q.libOpen}>{body}</div>
-      )}
+      <button
+        type="button"
+        className={q.libOpen}
+        onClick={() => (sel?.selecting ? item.status !== 'working' && sel.toggle(item.id) : onOpen?.())}
+        aria-label={sel?.selecting ? `Select ${item.title || tool.label}` : `Open ${item.title || tool.label}`}
+      >
+        {body}
+      </button>
       {item.kind === 'audio' && <Media item={item} />}
       {item.hasFile && sel && !sel.selecting && (
         <button type="button" className={q.libDownload} onClick={() => download(item)}>

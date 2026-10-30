@@ -6,11 +6,14 @@ The organization's activity feed (Overview → Recent activity, and the Activity
 Admins only. Newest first. `before_id` pages back (send the id of the last row you
 have); `kind` filters: project, stage, client, role, tool, invitation, employee,
 organization.
+
+Only the last RETENTION_DAYS (14) days are kept: older rows are deleted from the database,
+for every organization, at most every 10 minutes (when someone reads the feed).
 """
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -26,7 +29,28 @@ router = APIRouter(
     tags=["Organization Activity"],
 )
 
+RETENTION_DAYS = 14
+_PURGE_EVERY = timedelta(minutes=10)
+_last_purge: dict[str, datetime] = {}
+
 KINDS = {"project", "stage", "client", "role", "tool", "invitation", "employee", "organization"}
+
+
+def purge_old_activity(db: Session, *, force: bool = False) -> int:
+    """Delete activity older than RETENTION_DAYS (all organizations). At most every 10 minutes unless `force`."""
+    now = datetime.now(timezone.utc)
+    if not force and _last_purge.get("at") and now - _last_purge["at"] < _PURGE_EVERY:
+        return 0
+    _last_purge["at"] = now
+    cutoff = now - timedelta(days=RETENTION_DAYS)
+    deleted = (
+        db.query(OrganizationActivity)
+        .filter(OrganizationActivity.created_at < cutoff)
+        .delete(synchronize_session=False)
+    )
+    if deleted:
+        db.commit()
+    return deleted
 
 
 class ActivityActor(BaseModel):
@@ -62,7 +86,12 @@ def list_activity(
 ) -> ActivityPage:
     if membership.organization_id != organization_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to this organization.")
-    query = db.query(OrganizationActivity).filter(OrganizationActivity.organization_id == organization_id)
+    purge_old_activity(db)
+    since = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
+    query = db.query(OrganizationActivity).filter(
+        OrganizationActivity.organization_id == organization_id,
+        OrganizationActivity.created_at >= since,
+    )
     if before_id is not None:
         query = query.filter(OrganizationActivity.id < before_id)
     if kind:

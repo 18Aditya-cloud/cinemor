@@ -4,7 +4,6 @@ import cx from '../utils/cx.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { Link, useRouter } from '../router/router.jsx';
 import CommandPalette, { useRecentPlaces } from './CommandPalette.jsx';
-import timeAgo from './timeAgo.js';
 import { useTheme } from './ThemeContext.jsx';
 import { useWorkspace } from './WorkspaceContext.jsx';
 import {
@@ -48,17 +47,38 @@ export const NAV = [
 ];
 
 /**
+ * Every menu item's colour (its icon sits on a small square of it), the same in every dashboard. An item may set its
+ * own `tone`; otherwise it is found from its label. (The menu itself is always dark, so these are the bright shades.)
+ */
+const TONES = [
+  [/^(overview|dashboard)$/i, '#b79bff'],
+  [/projects/i, '#4cb3f5'],
+  [/^my work$/i, '#38bdf8'],
+  [/quick create/i, '#a78bfa'],
+  [/library|downloads/i, '#fb923c'],
+  [/clients/i, '#34d399'],
+  [/^employees$|^team$/i, '#f472b6'],
+  [/team leaders|tl dashboard/i, '#c084fc'],
+  [/reviewers|reviews/i, '#2dd4bf'],
+  [/job roles/i, '#f5b544'],
+  [/invitations/i, '#fb7185'],
+  [/tools/i, '#fdba74'],
+  [/messages/i, '#60a5fa'],
+  [/settings/i, '#b0a6d0'],
+];
+const toneOf = (item) => item.tone || TONES.find(([re]) => re.test(item.label))?.[1] || '#b79bff';
+
+/**
  * The dashboard's left rail. By default it is a slim, icon-only rail (a fixed accessible name is set on every
  * item with aria-label, and a small tooltip shows the word on hover or keyboard focus, so nothing is lost by
  * hiding the text); "Expand sidebar" turns it into the earlier, wider menu with the labels shown. On phones it is
  * always the wide, labelled version, opened as a drawer (see the media query at the bottom of the CSS).
  *
- * Under the logo: "Search or jump to…" (also Ctrl K / ⌘ K), and on the wide rail "Continue where you left" (the last
- * project, story or studio opened in this dashboard). At the bottom: the Light / Dark switch and the account (name,
+ * Under the logo: "Search or jump to…" (also Ctrl K / ⌘ K); the search also lists the places opened last. At the bottom: the Light / Dark switch and the account (name,
  * role, Settings, Log out). There is no top bar.
  */
 export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, home = '/organization', settingsTo = '/organization/settings' }) {
-  const { path, search } = useRouter();
+  const { path } = useRouter();
   const asideRef = useRef(null);
   // The one tooltip shown while the rail is icon-only, for whichever item has the mouse or the keyboard focus.
   // It is a sibling of the scrolling <nav>, not a child of it, so nav's own scrollbar never clips it (a scrolling
@@ -77,8 +97,8 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
   const menuPaths = nav.flatMap((g) => g.items.map((it) => it.to));
   const menuKey = menuPaths.join('|');
   const skip = useCallback((p) => menuKey.split('|').includes(p) || p.endsWith('/settings') || p.endsWith('/new'), [menuKey]);
-  const recent = useRecentPlaces(home, skip);
-  const last = recent.find((x) => x.to !== `${path}${search || ''}`);
+  const { user } = useAuth();
+  const recent = useRecentPlaces(home, skip, user ? String(user.id ?? user.email ?? '') || null : null);
   const [searching, setSearching] = useState(false);
   useEffect(() => {
     const onKey = (event) => {
@@ -93,7 +113,7 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
   const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
 
   return (
-    <aside ref={asideRef} className={cx(styles.sidebar, collapsed && styles.collapsed, drawerOpen && styles.drawerOpen)} aria-label="Organization menu">
+    <aside ref={asideRef} data-sidebar="" className={cx(styles.sidebar, collapsed && styles.collapsed, drawerOpen && styles.drawerOpen)} aria-label="Organization menu">
       <div className={styles.brand}>
         <Link to={home} className={styles.logo} aria-label="Cinemor AI, dashboard home">
           <img className={styles.logoImg} src={logoUrl} width={30} height={30} alt="" />
@@ -131,7 +151,8 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={cx(styles.link, current && styles.active)}
+                  className={cx(styles.link, current && styles.active, styles.toned)}
+                  style={{ '--tone': toneOf(item) }}
                   aria-current={current ? 'page' : undefined}
                   aria-label={item.label}
                   onMouseEnter={showTip(item.label)}
@@ -148,15 +169,6 @@ export default function Sidebar({ collapsed, onToggle, drawerOpen, nav = NAV, ho
             })}
           </div>
         ))}
-        {last && (
-          <Link to={last.to} className={styles.continue}>
-            <span className={styles.continueLabel}>Continue where you left</span>
-            <span className={styles.continueTitle}>{last.title}</span>
-            <span className={styles.continueMeta}>
-              Opened {timeAgo(last.at)} <IconChevronRight width={14} height={14} aria-hidden="true" />
-            </span>
-          </Link>
-        )}
       </nav>
 
       <div className={styles.foot}>

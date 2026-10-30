@@ -1,0 +1,62 @@
+/*
+ * The studio look, on top of the purple dashboard theme: the creator workspace (IndividualApp puts
+ * data-studio="creator" on <html> while it is open) and the employee dashboard (EmployeeApp, data-studio="employee").
+ * Dashboards without data-studio are not affected.
+ *
+ * The purple theme stays as it is (page, menu, grid, buttons, links). Two things are added:
+ *   - the module and state colours (--st-*): each module has its own colour, used in small places (icons, the stage
+ *     strip, dots and pills), so the pages are not all one purple;
+ *   - in dark, the cards are a clearly lighter purple than the page, with a bright top edge, so a card never
+ *     blends into the background.
+ */
+
+/* ------------------------------------------------------------------ both themes: the module and state colours */
+:root[data-studio] {
+  --st-story: #f5b544;
+  --st-board: #4cb3f5;
+  --st-char: #f472b6;
+  --st-loc: #34d399;
+  --st-sketch: #a78bfa;
+  --st-anim: #fb923c;
+  --st-ongoing: #4cb3f5;
+  --st-waiting: #a78bfa;
+  --st-done: #34d399;
+  --st-stopped: #f87171;
+  --st-tint: 16%;
+}
+
+/* ------------------------------------------------------------------ dark: lifted purple cards */
+:root[data-studio][data-theme='dark'] {
+  --cm-line: rgba(183, 155, 255, 0.18);
+  --cm-line-strong: rgba(183, 155, 255, 0.36);
+
+  /* the page stays near-black purple; a card is a lighter violet with a bright top edge */
+  --d-card-bg: linear-gradient(180deg, #1c1535 0%, #150f2a 100%);
+  --d-card-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 30px 70px -40px rgba(0, 0, 0, 0.95);
+  --d-card-shadow-sm: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 18px 44px -30px rgba(0, 0, 0, 0.9);
+  --d-solid: #171030;
+  --d-popover-bg: #1d1638;
+  --d-modal-bg: linear-gradient(180deg, #1d1638 0%, #140f29 100%);
+
+  /* things laid on a card (tiles, stage chips, fields) are a step lighter again */
+  --d-fill-1: rgba(255, 255, 255, 0.05);
+  --d-fill-2: rgba(255, 255, 255, 0.075);
+  --d-fill-3: rgba(255, 255, 255, 0.12);
+  --d-field-bg: rgba(255, 255, 255, 0.06);
+  --d-btn2-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)), #1a1432;
+}
+
+/* ------------------------------------------------------------------ light: the module colours, a little deeper */
+:root[data-studio][data-theme='light'] {
+  --st-story: #b7791f;
+  --st-board: #1d7fc2;
+  --st-char: #c23c83;
+  --st-loc: #148a5f;
+  --st-sketch: #6d4fd6;
+  --st-anim: #c2580c;
+  --st-ongoing: #1d7fc2;
+  --st-waiting: #6d4fd6;
+  --st-done: #148a5f;
+  --st-stopped: #dc2626;
+  --st-tint: 12%;
+}

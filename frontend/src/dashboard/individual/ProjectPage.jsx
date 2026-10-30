@@ -9,6 +9,7 @@ import timeAgo from '../timeAgo.js';
 import { IconBook, IconCheck, IconChevronLeft, IconFilm, IconImage, IconPencil, IconPlus, IconStoryboard, IconTrash, IconUser } from '../ui/DashIcons.jsx';
 import Modal from '../ui/Modal.jsx';
 import Notice from '../ui/Notice.jsx';
+import { forgetPlaces } from '../CommandPalette.jsx';
 import { Chip, CoverArt, Dot, palette, Ring, StageIcon, stageColor } from '../ui/Production.jsx';
 import { useToast } from '../ui/Toast.jsx';
 import {
@@ -18,6 +19,8 @@ import {
   getProject,
   getProjectStory,
   getSceneSketches,
+  isLive,
+  listOneClickFilms,
   listProjectStories,
   listStoryboards,
   listVideoClips,
@@ -45,7 +48,7 @@ const MODULES = [
 // The two ways to build a project.
 const BUILD_OPTIONS = [
   { id: 'layers', title: 'Layer by layer', text: 'Full control, one module at a time', icon: IconLayers, color: 'brand' },
-  { id: 'oneclick', title: 'One-click generation', text: 'Describe it once, get a first draft', icon: IconBolt, color: 'story' },
+  { id: 'oneclick', title: 'One-click generation', text: 'Describe it once, get a finished film', icon: IconBolt, color: 'story' },
 ];
 
 const STATUS_COLORS = { pending: 'storyboard', active: 'warn', completed: 'ok', aborted: 'red' };
@@ -128,7 +131,7 @@ function useProduction(projectId, stories) {
 }
 
 /** How each module stands: { state: done | now | todo | lock | loading, stat, value (0..1), count, images }. */
-function moduleStates(stories, boards, deep) {
+export function moduleStates(stories, boards, deep) {
   const n = stories?.length || 0;
   const b = boards ? boards.length : null;
   const scenes = boards ? boards.reduce((t, sb) => t + (sb.scenes || 0), 0) : 0;
@@ -177,6 +180,8 @@ export default function ProjectPage({ projectId }) {
   const { navigate } = useRouter();
   const { data: project, error, reload } = useResource(() => getProject(projectId), [projectId]);
   const stories = useResource(() => listProjectStories(projectId), [projectId]);
+  // the newest one-click film (made on the server), for the One-click workshop card
+  const films = useResource(() => (isLive ? listOneClickFilms(projectId).catch(() => []) : Promise.resolve([])), [projectId]);
   const { boards, deep } = useProduction(projectId, stories.data);
   const [reading, setReading] = useState(null); // the story open in the reader (its summary)
   const [deleting, setDeleting] = useState(false);
@@ -210,6 +215,12 @@ export default function ProjectPage({ projectId }) {
     setChanging(null);
   };
 
+  // a project that does not exist (deleted, or another account's): say so, and drop it from the search's recent places
+  const missing = error?.status === 404;
+  useEffect(() => {
+    if (missing) forgetPlaces(`/dashboard/projects/${projectId}`);
+  }, [missing, projectId]);
+
   const backLink = (
     <Link to="/dashboard/projects" className={s.back}>
       <IconChevronLeft width={16} height={16} /> My Projects
@@ -220,13 +231,18 @@ export default function ProjectPage({ projectId }) {
     return (
       <div className={s.page} aria-busy={!error}>
         {backLink}
-        {error && <Notice message={error.message} onRetry={reload} />}
+        {missing ? (
+          <Notice message="This project isn't available. It may have been deleted, or it belongs to another account." />
+        ) : (
+          error && <Notice message={error.message} onRetry={reload} />
+        )}
       </div>
     );
   }
 
   const client = project.projectType === 'client';
-  const oneClickDraft = stories.data?.find((st) => st.oneClick); // the newest one-click draft, if any
+  const latestFilm = films.data?.[0] || null; // the newest one-click film, if any
+  const filmState = (f) => (f.status === 'done' ? 'ready' : ['queued', 'running'].includes(f.status) ? 'being made' : f.status === 'cancelled' ? 'stopped' : 'not finished');
   const states = moduleStates(stories.data, boards, deep);
   const focus = MODULES.find((m) => ['now', 'todo'].includes(states[m.id]?.state))?.id;
   const progress = Math.round((MODULES.reduce((t, m) => t + (states[m.id]?.value || 0), 0) / MODULES.length) * 100);
@@ -313,10 +329,12 @@ export default function ProjectPage({ projectId }) {
               <StageIcon color="story" icon={IconBolt} />
               <span className={x.workshopText}>
                 <b>One-click workshop</b>
-                <span className={x.muted}>{oneClickDraft ? `Your draft: ${oneClickDraft.title}, updated ${timeAgo(oneClickDraft.updatedAt)}` : 'Describe your idea and get a full first draft.'}</span>
+                <span className={x.muted}>
+                  {latestFilm ? `Your film${latestFilm.story ? `: ${latestFilm.story.title}` : ''}, ${filmState(latestFilm)}, ${timeAgo(latestFilm.updatedAt)}` : 'Describe your idea and get a finished film.'}
+                </span>
               </span>
               <Button icon={IconBolt} onClick={() => navigate(generatePath(project.id))}>
-                {oneClickDraft ? 'Open Workshop' : 'Start Generating'}
+                {latestFilm ? 'Open Workshop' : 'Start Generating'}
               </Button>
             </div>
           )}
@@ -430,6 +448,7 @@ export default function ProjectPage({ projectId }) {
         onClose={() => setDeleting(false)}
         onConfirm={async () => {
           await deleteProject(project.id);
+          forgetPlaces(`/dashboard/projects/${project.id}`);
           toast('Project deleted');
           navigate('/dashboard/projects', { replace: true });
         }}
@@ -454,6 +473,7 @@ function ModuleCard({ module: m, st, focus, onOpen }) {
     ) : locked ? (
       <Chip color="gray">Locked</Chip>
     ) : null;
+  // the module cards show no pictures, only their count and progress
   const images = [];
   return (
     <li className={cx(x.module, stageColor(m.id), focus && x.moduleFocus, locked && x.moduleLocked)}>

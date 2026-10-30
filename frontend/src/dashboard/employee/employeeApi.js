@@ -62,11 +62,25 @@ export const toSubmission = (x) => ({
   canWithdraw: Boolean(x.can_withdraw),
 });
 
+// the project's state, as the dashboards name it
+const LIFECYCLE = { pending: 'not_started', started: 'ongoing', completed: 'completed', aborted: 'aborted' };
+const at = (value) => {
+  const t = value ? new Date(value).getTime() : NaN;
+  return Number.isFinite(t) ? t : 0;
+};
+// when anything last happened on the project: the project itself, a new story, or an approved stage
+const lastActivityOf = (p) =>
+  Math.max(at(p.updated_at), at(p.created_at), ...(p.stories || []).flatMap((st) => [at(st.created_at), ...(st.stages || []).map((x) => at(x.approved_at))]));
+
 const project = (p) => ({
   id: p.id,
   title: p.title,
   description: p.description || '',
   status: p.status,
+  lifecycle: LIFECYCLE[p.status] || 'not_started',
+  startDate: p.start_date || '',
+  deadline: p.deadline || '',
+  lastActivity: lastActivityOf(p),
   clientName: p.client_name || '',
   teamLeader: person(p.team_leader),
   isTeamLeader: Boolean(p.is_team_leader),

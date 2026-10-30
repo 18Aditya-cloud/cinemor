@@ -611,6 +611,9 @@ class EmployeeWorkflowService:
             "story_id": stories[0]["id"] if stories else None,
             "created_at": project.created_at,
             "updated_at": project.updated_at,
+            # the project's dates, so the dashboard can group and order projects (nearest deadline first)
+            "start_date": project.start_date.isoformat() if getattr(project, "start_date", None) else None,
+            "deadline": project.deadline.isoformat() if getattr(project, "deadline", None) else None,
         }
         if detail:
             subs = (

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
 import json
 from fastapi.responses import FileResponse, Response
 from pathlib import Path
@@ -41,7 +42,7 @@ from app.schemas.story_edit_history import StoryEditHistoryResponse
 from app.repositories.story_repository import StoryRepository
 from app.schemas.storyboard_request import StoryboardGenerateRequest
 from app.schemas.storyboard_response import StoryboardResponse
-from app.schemas.storyboard_dialogue import DialogueUpdateRequest
+from app.schemas.storyboard_dialogue import DialogueUpdateRequest, SceneFieldsUpdateRequest
 from app.services.storyboard_dialogue_service import StoryboardDialogueService
 from app.services.storyboard_service import (
     StoryboardGenerationError,
@@ -333,10 +334,17 @@ def get_project(
 ):
     service = IndividualProjectService(db)
 
-    return service.get_project(
-        individual_user_id=current_user.id,
-        project_id=project_id,
-    )
+    try:
+        return service.get_project(
+            individual_user_id=current_user.id,
+            project_id=project_id,
+        )
+    except ValueError as exc:
+        # a project that does not exist, or belongs to another account
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
 
 @router.patch(
@@ -1662,6 +1670,51 @@ def update_storyboard_dialogue(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
 
+@router.patch(
+    "/projects/{project_id}/stories/{story_id}/storyboard/scenes/{scene_index}",
+    response_model=StoryboardResponse,
+)
+def update_storyboard_scene(
+    project_id: int,
+    story_id: int,
+    scene_index: int,
+    request: SceneFieldsUpdateRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """
+    Change a scene's "What happens", "What we see" and "Camera" (scenes counted from 0 in storyboard_data).
+    The sketches and clips made after this use the new text.
+    """
+    project = IndividualProjectService(db).project_repository.get_by_id(
+        individual_user_id=current_user.id,
+        project_id=project_id,
+    )
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+
+    story = StoryRepository(db).get_by_id(story_id)
+    if story is None or story.individual_project_id != project_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found in this project.")
+
+    from app.repositories.storyboard_repository import StoryBoardRepository
+
+    storyboard = StoryBoardRepository(db).get_by_story_id(story_id)
+    if storyboard is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Storyboard not found. Generate it first.")
+
+    try:
+        return StoryboardDialogueService(db).update_scene(
+            storyboard=storyboard,
+            scene_index=scene_index,
+            fields=request.model_dump(exclude_unset=True),
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+
 @router.get("/storyboard/template")
 async def download_storyboard_template():
     if not STORYBOARD_SCHEMA_PATH.is_file():
@@ -2004,6 +2057,62 @@ def get_character_profile(
         )
 
     return profile
+
+
+class ProfileFieldsUpdateRequest(BaseModel):
+    """Details of a profile changed by hand: {"nose_shape": "straight", "upper_clothing": "red kurta, gold sash"}."""
+
+    fields: dict[str, str] = Field(..., min_length=1, max_length=40)
+
+
+@router.patch(
+    "/projects/{project_id}/stories/{story_id}/characters/{character_id}/profile",
+    response_model=CharacterProfileResponse,
+)
+def update_character_profile(
+    project_id: int,
+    story_id: int,
+    character_id: int,
+    request: ProfileFieldsUpdateRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """Change details of the character's latest profile; the next master image follows them."""
+    from app.services.profile_edit_service import ProfileEditService
+
+    _, storyboard = validate_character_image_context(db=db, current_user=current_user, project_id=project_id, story_id=story_id)
+    service = ProfileEditService(db)
+    try:
+        return service.update(service.latest_character(storyboard.id, character_id), request.fields, schema="character_profile_schema.json")
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+
+@router.patch(
+    "/projects/{project_id}/stories/{story_id}/locations/{location_id}/profile",
+    response_model=LocationProfileResponse,
+)
+def update_location_profile(
+    project_id: int,
+    story_id: int,
+    location_id: int,
+    request: ProfileFieldsUpdateRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """Change details of the location's latest profile; the next master image follows them."""
+    from app.services.profile_edit_service import ProfileEditService
+
+    _, storyboard = validate_location_image_context(db=db, current_user=current_user, project_id=project_id, story_id=story_id)
+    service = ProfileEditService(db)
+    try:
+        return service.update(service.latest_location(storyboard.id, location_id), request.fields, schema="location_profile_schema.json")
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
 
 def validate_character_image_context(

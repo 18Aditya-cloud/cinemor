@@ -26,43 +26,64 @@ class QuickCreateProviderError(Exception):
 ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
 
 # ------------------------------------------------------------------ speech models
-# Only these models can be chosen. Voices come from OpenRouter's live model list; the voices below are used when
-# the live list has none for a model. A model without any voice is not offered.
+# Only these models can be chosen (all checked against OpenRouter's live speech list, output_modalities=speech).
+# Voices come from that live list; the voices below are used when it has none for a model. A model without any
+# voice is not offered.
+#   instructions  the model follows delivery directions (tone, pace, language): sent as `instructions`
+#   speed         the model honours `speed` (none of these do; the Speed control is hidden for them)
+#   format        what we ask for: Gemini returns only raw PCM (joined into a WAV), MiniMax only mp3
+#   language_from_voice  the voice id carries its locale (hi-IN-..., en-US-...): the language comes from the voice
+# (openai/gpt-4o-mini-tts-2025-12-15 was offered before; OpenRouter no longer has it: "Model ... does not exist".)
 AUDIO_MODELS: dict[str, dict[str, Any]] = {
-    "openai/gpt-4o-mini-tts-2025-12-15": {
-        "name": "OpenAI GPT-4o mini TTS",
-        "instructions": True,
-        "speed": True,
-        "format": "mp3",
-        "voices": ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"],
-    },
     "google/gemini-3.8-flash-tts": {
         "name": "Gemini 3.8 Flash TTS",
         "instructions": True,
         "speed": False,
         "format": "pcm",
-        "voices": ["Kore", "Puck", "Charon", "Zephyr", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Enceladus"],
+        "voices": ["Kore", "Puck", "Charon", "Zephyr", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"],
     },
-    "elevenlabs/eleven-multilingual-v2": {
-        "name": "ElevenLabs Multilingual v2",
+    "google/gemini-3.8-flash-lite-tts": {
+        "name": "Gemini 3.8 Flash Lite TTS",
+        "instructions": True,
+        "speed": False,
+        "format": "pcm",
+        "voices": ["Kore", "Puck", "Charon", "Zephyr", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat"],
+    },
+    "microsoft/mai-voice-2.1": {
+        "name": "Microsoft MAI-Voice 2.1 (Hindi and Indian English voices)",
         "instructions": False,
         "speed": False,
         "format": "mp3",
-        "voices": [],
+        "language_from_voice": True,
+        "voices": ["hi-IN-Kavya:MAI-Voice-2.1", "hi-IN-Priya:MAI-Voice-2.1", "hi-IN-Arjun:MAI-Voice-2.1", "hi-IN-Dhruv:MAI-Voice-2.1", "en-IN-Priya:MAI-Voice-2.1", "en-IN-Dhruv:MAI-Voice-2.1", "en-US-Harper:MAI-Voice-2.1", "en-US-Olivia:MAI-Voice-2.1", "en-US-Iris:MAI-Voice-2.1", "en-US-Sage:MAI-Voice-2.1", "en-US-Ethan:MAI-Voice-2.1", "en-US-Grant:MAI-Voice-2.1", "en-US-Jasper:MAI-Voice-2.1", "en-GB-Emily:MAI-Voice-2.1", "en-GB-Harry:MAI-Voice-2.1", "es-MX-Valeria:MAI-Voice-2.1", "es-MX-Alejo:MAI-Voice-2.1", "fr-FR-Soleil:MAI-Voice-2.1", "fr-FR-Marc:MAI-Voice-2.1", "de-DE-Mia:MAI-Voice-2.1", "de-DE-Klaus:MAI-Voice-2.1"],
+    },
+    "elevenlabs/eleven-v4": {
+        "name": "ElevenLabs v4",
+        "instructions": False,
+        "speed": False,
+        "format": "mp3",
+        "voices": ["george", "sarah", "adam", "alice", "bella", "bill", "brian", "callum", "charlie", "chris", "daniel", "eric", "harry", "jessica", "laura", "liam", "lily", "matilda", "river", "roger", "will"],
     },
     "elevenlabs/eleven-v3": {
         "name": "ElevenLabs v3",
         "instructions": False,
         "speed": False,
         "format": "mp3",
-        "voices": [],
+        "voices": ["george", "sarah", "adam", "alice", "bella", "bill", "brian", "callum", "charlie", "chris", "daniel", "eric", "harry", "jessica", "laura", "liam", "lily", "matilda", "river", "roger", "will"],
+    },
+    "elevenlabs/eleven-multilingual-v2": {
+        "name": "ElevenLabs Multilingual v2",
+        "instructions": False,
+        "speed": False,
+        "format": "mp3",
+        "voices": ["george", "sarah", "adam", "alice", "bella", "bill", "brian", "callum", "charlie", "chris", "daniel", "eric", "harry", "jessica", "laura", "liam", "lily", "matilda", "river", "roger", "will"],
     },
     "minimax/speech-2.8-hd": {
         "name": "MiniMax Speech 2.8 HD",
         "instructions": False,
         "speed": False,
         "format": "mp3",
-        "voices": [],
+        "voices": ["English_expressive_narrator", "English_CaptivatingStoryteller", "English_radiant_girl", "English_magnetic_voiced_man", "English_CalmWoman", "English_Trustworth_Man", "English_Graceful_Lady", "English_WiseScholar"],
     },
 }
 
@@ -158,7 +179,14 @@ async def audio_models() -> list[dict[str, Any]]:
     for model_id, info in AUDIO_MODELS.items():
         voices = _voice_cache["voices"].get(model_id) or info["voices"]
         if voices:
-            out.append({"id": model_id, "name": info["name"], "voices": voices, "instructions": info["instructions"], "speed": info["speed"]})
+            out.append({
+                "id": model_id,
+                "name": info["name"],
+                "voices": voices,
+                "instructions": info["instructions"],
+                "speed": info["speed"],
+                "language_from_voice": bool(info.get("language_from_voice")),
+            })
     return out
 
 

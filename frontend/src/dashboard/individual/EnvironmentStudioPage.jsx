@@ -25,6 +25,7 @@ import {
   listLocations,
   listProjectStories,
   listStoryboards,
+  saveLocationIdentity,
   saveLocationRecord,
   setLocationMainImage,
   uploadLocationImage,
@@ -327,12 +328,15 @@ function CharacterDetail({ projectId, storyId, character, record, cast, records,
   const [custom, setCustom] = useState(profile?.customization || '');
   const [makingProfile, setMakingProfile] = useState(false);
   const [identity, setIdentity] = useState(profile?.identity || null);
+  const [savingIdentity, setSavingIdentity] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setIdentity(record?.profile?.identity || null);
   }, [record?.profile]);
-  const dirty = !isLive && Boolean(identity && profile && LOCATION_FIELDS.some((f) => (identity[f.key] || '') !== (profile.identity[f.key] || '')));
+  // every detail can be changed by hand; the next master image follows the saved details
+  const editableKeys = isLive ? groupsNow.flatMap((g) => g.keys) : LOCATION_FIELDS.map((f) => f.key);
+  const dirty = Boolean(identity && profile && editableKeys.some((k) => (identity[k] || '').trim() !== (profile.identity?.[k] || '').trim()));
 
   // (demo only: details changed by hand)
   const save = async (patch) => {
@@ -360,11 +364,20 @@ function CharacterDetail({ projectId, storyId, character, record, cast, records,
   };
 
   const saveIdentity = async () => {
+    setError('');
+    setSavingIdentity(true);
     try {
-      await save({ profile: { ...profile, identity } });
-      toast('Changes saved');
+      if (isLive) {
+        const changes = Object.fromEntries(editableKeys.filter((k) => (identity?.[k] || '').trim() !== (profile.identity?.[k] || '').trim()).map((k) => [k, (identity?.[k] || '').trim()]));
+        onSaved(await saveLocationIdentity(projectId, storyId, character.key, changes));
+      } else {
+        await save({ profile: { ...profile, identity } });
+      }
+      toast('Changes saved. Generate the image again to see them.');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSavingIdentity(false);
     }
   };
 
@@ -478,7 +491,7 @@ function CharacterDetail({ projectId, storyId, character, record, cast, records,
             <h2 id={`${uid}-identity`} className={s.cardTitle}>
               Place details
             </h2>
-            <p className={s.cardSub}>{isLive ? `Keeps ${character.name} the same in every image. To change a detail, describe it in Location requirements and regenerate the profile.` : `Keeps ${character.name} the same in every image. Click a value to change it.`}</p>
+            <p className={s.cardSub}>Keeps {character.name} the same in every image. Click any detail to change it, save, then generate the image again. (Regenerating the profile with AI replaces changes made here.)</p>
           </div>
           {!identity && !makingProfile ? (
             <p className={s.identityEmpty}>Make the profile (on the left) and these are filled in for you: the place, its buildings, the light and the mood.</p>
@@ -504,9 +517,9 @@ function CharacterDetail({ projectId, storyId, character, record, cast, records,
                           {dot && <span className={s.swatch} style={{ background: dot }} aria-hidden="true" />}
                           {wideNow.has(key) ? (
                             // long details wrap onto as many lines as they need
-                            <textarea id={`${uid}-${key}`} className={cx(s.idInput, s.idArea)} rows={1} value={value} maxLength={isLive ? undefined : LIMITS.field} placeholder="Not set" readOnly={isLive} onChange={(e) => setIdentity((cur) => ({ ...cur, [key]: e.target.value }))} />
+                            <textarea id={`${uid}-${key}`} className={cx(s.idInput, s.idArea)} rows={1} value={value} maxLength={isLive ? 1000 : LIMITS.field} placeholder="Not set" disabled={savingIdentity} onChange={(e) => setIdentity((cur) => ({ ...cur, [key]: e.target.value }))} />
                           ) : (
-                            <input id={`${uid}-${key}`} className={s.idInput} style={{ width: `${Math.max(6, value.length + 2)}ch` }} value={value} maxLength={isLive ? undefined : LIMITS.field} placeholder="Not set" readOnly={isLive} onChange={(e) => setIdentity((cur) => ({ ...cur, [key]: e.target.value }))} />
+                            <input id={`${uid}-${key}`} className={s.idInput} style={{ width: `${Math.max(6, value.length + 2)}ch` }} value={value} maxLength={isLive ? 1000 : LIMITS.field} placeholder="Not set" disabled={savingIdentity} onChange={(e) => setIdentity((cur) => ({ ...cur, [key]: e.target.value }))} />
                           )}
                         </span>
                       </div>
@@ -517,10 +530,10 @@ function CharacterDetail({ projectId, storyId, character, record, cast, records,
               {dirty && (
                 <div className={s.saveRow}>
                   <span>Changes not saved yet.</span>
-                  <Button variant="secondary" onClick={() => setIdentity(profile.identity)}>
+                  <Button variant="secondary" onClick={() => setIdentity(profile.identity)} disabled={savingIdentity}>
                     Undo
                   </Button>
-                  <Button icon={IconCheck} onClick={saveIdentity}>
+                  <Button icon={IconCheck} onClick={saveIdentity} loading={savingIdentity}>
                     Save changes
                   </Button>
                 </div>

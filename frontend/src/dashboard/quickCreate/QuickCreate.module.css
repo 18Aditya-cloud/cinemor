@@ -1284,11 +1284,298 @@ video.media {
 }
 .libOpen {
   display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
   color: inherit;
+  font: inherit;
+  text-align: left;
   text-decoration: none;
+  cursor: zoom-in;
 }
-a.libOpen:hover .libTitle {
+.libOpen:hover .libTitle {
   color: var(--t);
+}
+.libOpen:hover .libVisual {
+  border-color: color-mix(in srgb, var(--a) 45%, transparent);
+  box-shadow: 0 18px 30px -20px var(--a);
+}
+.libOpen:focus-visible {
+  outline: none;
+}
+.libOpen:focus-visible .libVisual {
+  outline: 2px solid var(--b);
+  outline-offset: 2px;
+}
+.libPlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  color: #2b1f6b;
+}
+.libMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--cm-ink-faint);
+  font-size: 0.78rem;
+}
+.libLeft {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--d-fill-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.soon {
+  background: var(--d-danger-bg);
+  color: var(--d-danger-fg);
+}
+
+/* "kept for 30 days" */
+.retention {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.retention svg {
+  flex: none;
+  color: var(--cm-violet-hi);
+}
+
+/* ------------------------------------------------------------------ the viewer (one thing, full screen) */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: rgba(6, 4, 14, 0.92);
+  backdrop-filter: blur(6px);
+  color: #f3efff;
+  font-family: var(--cm-font-body);
+  animation: fadeIn 0.18s ease both;
+}
+.viewerBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px;
+}
+.viewerCount {
+  color: rgba(243, 239, 255, 0.6);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.viewerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.viewerBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.viewerDanger {
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fda4af;
+}
+.viewerClose {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.viewerClose:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.viewerClose:focus-visible,
+.viewerBtn:focus-visible,
+.viewerArrow:focus-visible {
+  outline: 2px solid var(--b);
+  outline-offset: 2px;
+}
+.viewerStage {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 0 18px;
+}
+.viewerContent {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 0;
+  grid-column: 2;
+  animation: fadeIn 0.2s ease both;
+}
+.viewerMedia {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  /* the bar above and the details below stay in sight */
+  max-height: calc(100vh - 190px);
+  max-height: calc(100dvh - 190px);
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
+}
+video.viewerMedia {
+  width: auto;
+  min-width: min(100%, 320px);
+  background: #000;
+}
+.viewerWait {
+  position: relative;
+  overflow: hidden;
+  width: min(420px, 90%);
+  aspect-ratio: 9 / 16;
+  max-height: 100%;
+  border-radius: 16px;
+}
+.viewerAudio {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(560px, 100%);
+}
+.viewerAudio .audioIcon {
+  width: 96px;
+  height: 96px;
+}
+.viewerText {
+  overflow: auto;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 190px);
+  max-height: calc(100dvh - 190px);
+  padding: 28px 32px;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #2a2140;
+  font-size: 1rem;
+  line-height: 1.85;
+  white-space: pre-wrap;
+}
+.viewerText p + p {
+  margin-top: 14px;
+}
+.viewerText .docTitle {
+  margin-top: 0;
+  color: #16112c;
+}
+.viewerArrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.viewerArrow:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.viewerPrev {
+  grid-column: 1;
+}
+.viewerNext {
+  grid-column: 3;
+}
+.viewerInfo {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 14px 18px 20px;
+  text-align: center;
+}
+.viewerTitle {
+  max-width: 80ch;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.viewerPrompt {
+  max-width: 90ch;
+  color: rgba(243, 239, 255, 0.72);
+  font-size: 0.86rem;
+}
+.viewerMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(243, 239, 255, 0.6);
+  font-size: 0.8rem;
+}
+.viewerLeft {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 600;
+}
+.viewerLeft.soon {
+  background: rgba(225, 29, 72, 0.3);
+  color: #fecdd3;
+}
+@media (max-width: 640px) {
+  .viewerStage {
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .viewerArrow {
+    width: 34px;
+    height: 34px;
+  }
+  .viewerText {
+    padding: 20px 18px;
+  }
 }
 .libVisual {
   position: relative;

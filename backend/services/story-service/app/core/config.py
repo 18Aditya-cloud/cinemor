@@ -75,6 +75,23 @@ class Settings(BaseSettings):
         "kwaivgi/kling-v3.0-std",
     ]
 
+    # One-click generation (a whole film from one prompt): the video models offered there, best first. Each makes
+    # a clip from a first-frame picture (the scene's sketch); most also make the sound (dialogue, ambience).
+    # Checked against OpenRouter's live video list (GET /videos/models). The first one is the default.
+    ONE_CLICK_VIDEO_MODELS: list[str] = [
+        "alibaba/wan-3.0",
+        "alibaba/wan-3.0-prime",
+        "google/veo-3.1-fast",
+        "google/veo-3.1",
+        "bytedance/seedance-2.0",
+        "bytedance/seedance-2.5",
+        "kwaivgi/kling-v3.0-pro",
+        "kwaivgi/kling-v3.0-std",
+        "minimax/hailuo-3",
+        "x-ai/grok-imagine-video-1.5",
+        "runway/gen-4.5",
+    ]
+
     # ---------------------------------------------------------
     # Supabase
     # ---------------------------------------------------------

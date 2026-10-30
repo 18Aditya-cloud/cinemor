@@ -1,5 +1,5 @@
 """
-Change the text of one dialogue line of a storyboard.
+Change the text of one dialogue line of a storyboard, or a scene's "What happens", "What we see" and "Camera".
 
 A line is stored in three places, and all three are updated together:
     story_board.storyboard_data   scenes[i].dialogues[j].text   (what the Storyboard page shows and exports)
@@ -92,6 +92,57 @@ class StoryboardDialogueService:
                     row_data["text"] = text
                     target.dialogue_data = row_data
                     flag_modified(target, "dialogue_data")
+
+        self.db.commit()
+        self.db.refresh(storyboard)
+        return storyboard
+
+    # the scene fields a person may change, as the storyboard calls them
+    SCENE_FIELDS = ("primary_action", "visual_description", "camera_suggestion")
+
+    def update_scene(
+        self,
+        *,
+        storyboard: StoryBoard,
+        scene_index: int,
+        fields: dict[str, str | None],
+    ) -> StoryBoard:
+        """
+        Change a scene's "What happens" (primary_action), "What we see" (visual_description) and "Camera"
+        (camera_suggestion). Saved in storyboard_data (the page), the scene row and its scene_data (what the
+        sketches and the video read), so everything made after this follows the new text.
+        """
+        changes = {k: str(v).strip() for k, v in fields.items() if k in self.SCENE_FIELDS and v is not None}
+        if not changes:
+            raise ValueError("Nothing to change.")
+        if not changes.get("primary_action", "x") or not changes.get("visual_description", "x"):
+            raise ValueError("“What happens” and “What we see” cannot be empty.")
+
+        data = copy.deepcopy(storyboard.storyboard_data or {})
+        scenes = data.get("scenes")
+        if not isinstance(scenes, list) or not 0 <= scene_index < len(scenes) or not isinstance(scenes[scene_index], dict):
+            raise LookupError("Scene not found in this storyboard.")
+        scene = scenes[scene_index]
+        scene.update(changes)
+        storyboard.storyboard_data = data
+        flag_modified(storyboard, "storyboard_data")
+
+        scene_row = (
+            self.db.query(Scene)
+            .filter(
+                Scene.story_board_id == storyboard.id,
+                Scene.scene_json_id == scene.get("scene_id"),
+            )
+            .first()
+        )
+        if scene_row is not None:
+            for key, value in changes.items():
+                setattr(scene_row, key, value)
+            scene_data = copy.deepcopy(scene_row.scene_data or {})
+            if isinstance(scene_data, dict):
+                scene_data.update(changes)
+                scene_row.scene_data = scene_data
+                flag_modified(scene_row, "scene_data")
 
         self.db.commit()
         self.db.refresh(storyboard)

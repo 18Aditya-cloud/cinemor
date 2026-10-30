@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { homeFor } from '../auth/homeFor.js';
+import { afterAuth } from '../auth/afterAuth.js';
 import AuthCard from '../components/auth/AuthCard.jsx';
 import AuthSuccess from '../components/auth/AuthSuccess.jsx';
 import { ArrowLeft, Lock } from '../components/Icons.jsx';
@@ -36,7 +36,7 @@ export default function AuthCallbackPage() {
           return;
         }
         setUser(user);
-        navigate(homeFor(user), { replace: true });
+        navigate(afterAuth(user), { replace: true });
       } catch (err) {
         setError(err.message || 'Google sign-in failed. Please try again.');
       }

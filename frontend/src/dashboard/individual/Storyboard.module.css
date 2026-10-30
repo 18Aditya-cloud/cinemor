@@ -989,6 +989,29 @@
   font-size: 0.88rem;
   line-height: 1.6;
 }
+/* a scene detail with its edit button (What happens / What we see / Camera) */
+.blockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.blockHead .lineEdit {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.sceneBlock:hover .lineEdit {
+  opacity: 1;
+}
+.sceneBlockEditing {
+  grid-column: 1 / -1;
+  box-shadow: inset 0 0 0 1px var(--d-violet-bd);
+}
+.sceneBlock .none {
+  font-size: 0.84rem;
+}
 .dialogue {
   display: grid;
 }

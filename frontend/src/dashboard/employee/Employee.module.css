@@ -1441,3 +1441,80 @@
     padding: 2px 12px 14px;
   }
 }
+/* ---------------------------------------------------------------- projects by state (ProjectSections) */
+.when {
+  margin-top: 6px;
+  color: var(--cm-violet-hi);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.whenLate {
+  color: var(--d-danger-fg);
+}
+.whenPast {
+  color: var(--cm-ink-faint);
+  font-weight: 600;
+}
+.stateSection + .stateSection {
+  margin-top: 22px;
+}
+.stateHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.stateTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--cm-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+.stateDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--state, var(--cm-violet-hi));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--state, var(--cm-violet-hi)) 18%, transparent);
+}
+.state_ongoing {
+  --state: #3b82f6;
+}
+.state_not_started {
+  --state: #8b5cf6;
+}
+.state_completed {
+  --state: #22c55e;
+}
+.state_aborted {
+  --state: #ef4444;
+}
+.stateCount {
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--d-fill-1);
+  color: var(--cm-ink-dim);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+}
+.stateMore {
+  color: var(--cm-violet-hi);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.stateMore:hover {
+  text-decoration: underline;
+}
+.stateEmpty {
+  padding: 14px 16px;
+  border: 1px dashed var(--cm-line);
+  border-radius: 16px;
+  color: var(--cm-ink-faint);
+  font-size: 0.86rem;
+}

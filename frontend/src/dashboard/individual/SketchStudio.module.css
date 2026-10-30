@@ -465,3 +465,76 @@
   color: var(--cm-ink-dim);
   font-size: 0.84rem;
 }
+/* ------------------------------------------------------------------ the sketch's own directions (optional) */
+.extra {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: var(--d-fill-1);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.extra:focus-within {
+  border-color: var(--d-violet-bd);
+  box-shadow: 0 0 0 3px var(--d-accent-fill);
+}
+.extraHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.extraLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.extraOptional {
+  margin-left: 4px;
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.extraCount {
+  color: var(--cm-ink-faint);
+  font-size: 0.74rem;
+}
+.extraArea {
+  width: 100%;
+  min-height: 64px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+.extraArea::placeholder {
+  color: var(--cm-ink-faint);
+}
+.extraChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.extraChip {
+  padding: 4px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.extraChip:hover:not(:disabled) {
+  border-color: var(--d-violet-bd);
+  color: var(--cm-ink);
+}
+.genBarNoPrompt.genBarNoPrompt {
+  grid-template-columns: minmax(0, 1fr) auto;
+}

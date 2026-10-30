@@ -77,6 +77,7 @@ export function StripLegend() {
 
 /** A project as a card: title, client, the person's roles, the stage strip, progress, Team Leader. */
 export function ProjectCard({ project }) {
+  const when = timeNote(project);
   const done = project.stories.reduce((n, st) => n + st.approvedCount, 0);
   const pct = project.storyCount ? Math.round((done / (project.storyCount * project.totalStages)) * 100) : 0;
   const stories = project.storyCount ? `${project.storyCount} ${project.storyCount === 1 ? 'story' : 'stories'}, ${project.finishedStoryCount} finished` : 'No story yet';
@@ -87,6 +88,7 @@ export function ProjectCard({ project }) {
         <p className={e.small} style={{ marginTop: 4 }}>
           {project.clientName ? `Client: ${project.clientName}` : 'No client'}
         </p>
+        {when && <p className={cx(e.when, when.late && e.whenLate, ['completed', 'aborted'].includes(project.lifecycle) && e.whenPast)}>{when.text}</p>}
       </div>
       <RolePills project={project} max={3} />
       <StageStrip project={project} />
@@ -101,6 +103,88 @@ export function ProjectCard({ project }) {
       </div>
     </Link>
   );
+}
+
+/* ------------------------------------------------------------------ projects by state */
+// "YYYY-MM-DD" days, read as that calendar day
+const parseDay = (day) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(day || '');
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+};
+const dayText = (day) => parseDay(day)?.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) || '';
+const daysFromToday = (day) => {
+  const d = new Date();
+  return Math.round((parseDay(day) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+};
+
+/** The one line about time on a project card: the deadline of an ongoing project, the start of one not started. */
+function timeNote(p) {
+  if (p.lifecycle === 'ongoing' && parseDay(p.deadline)) {
+    const left = daysFromToday(p.deadline);
+    if (left < 0) return { text: `Due ${dayText(p.deadline)}, ${-left} ${left === -1 ? 'day' : 'days'} late`, late: true };
+    if (left === 0) return { text: `Due today, ${dayText(p.deadline)}`, late: true };
+    return { text: `Due ${dayText(p.deadline)}, ${left} ${left === 1 ? 'day' : 'days'} left` };
+  }
+  if (p.lifecycle === 'not_started' && parseDay(p.startDate)) return { text: `Starts ${dayText(p.startDate)}` };
+  if (p.lifecycle === 'completed' && p.lastActivity) return { text: `Completed, last work ${timeAgo(p.lastActivity)}` };
+  if (p.lifecycle === 'aborted' && p.lastActivity) return { text: `Stopped, last work ${timeAgo(p.lastActivity)}` };
+  return null;
+}
+
+export const PROJECT_SECTIONS = [
+  { key: 'ongoing', title: 'Ongoing', empty: 'No ongoing projects right now.' },
+  { key: 'not_started', title: 'Not started', empty: 'No project is waiting to start.' },
+  { key: 'completed', title: 'Completed', empty: 'No completed projects yet.' },
+  { key: 'aborted', title: 'Aborted', empty: 'No aborted projects.' },
+];
+const dayKey = (day) => (parseDay(day) ? day.slice(0, 10) : '9999-99-99'); // no date: after the ones with one
+const ORDER = {
+  // the nearest deadline first, then the latest activity
+  ongoing: (a, b) => dayKey(a.deadline).localeCompare(dayKey(b.deadline)) || b.lastActivity - a.lastActivity,
+  // the nearest start first
+  not_started: (a, b) => dayKey(a.startDate).localeCompare(dayKey(b.startDate)) || dayKey(a.deadline).localeCompare(dayKey(b.deadline)),
+  // the latest activity first
+  completed: (a, b) => b.lastActivity - a.lastActivity,
+  aborted: (a, b) => b.lastActivity - a.lastActivity,
+};
+
+/**
+ * The person's projects in four sections: Ongoing, Not started, Completed and Aborted, each sorted (see ORDER).
+ * `limit` shows only the first few of each, with a link to the full list (the Overview); without it, all of them.
+ */
+export function ProjectSections({ projects, limit = 0, moreTo = '/employee/projects' }) {
+  return PROJECT_SECTIONS.map((section) => {
+    const list = projects.filter((p) => p.lifecycle === section.key).sort(ORDER[section.key]);
+    const shown = limit ? list.slice(0, limit) : list;
+    const id = `emp-projects-${section.key}`;
+    return (
+      <section key={section.key} className={e.stateSection} aria-labelledby={id}>
+        <div className={e.stateHead}>
+          <h3 id={id} className={cx(e.stateTitle, e[`state_${section.key}`])}>
+            <span className={e.stateDot} aria-hidden="true" />
+            {section.title}
+            <span className={e.stateCount}>{list.length}</span>
+          </h3>
+          {limit > 0 && list.length > limit && (
+            <Link to={moreTo} className={e.stateMore}>
+              Show all {list.length}
+            </Link>
+          )}
+        </div>
+        {list.length === 0 ? (
+          <p className={e.stateEmpty}>{section.empty}</p>
+        ) : (
+          <ul className={e.projects}>
+            {shown.map((p) => (
+              <li key={p.id}>
+                <ProjectCard project={p} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    );
+  });
 }
 
 /** The bell: the unread count, and the latest updates (opening one marks it read; or mark all). */

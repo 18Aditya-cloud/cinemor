@@ -373,11 +373,13 @@ export async function listActivityPage({ limit = 20, beforeId, kind } = {}) {
   return { items: (page?.items || []).map(activityView), hasMore: Boolean(page?.has_more) };
 }
 
+// the Overview's Recent activity: everything kept (the last 14 days; the server deletes older rows), newest first
 export async function listActivity() {
-  return (await listActivityPage({ limit: 12 })).items;
+  return (await listActivityPage({ limit: 100 })).items;
 }
 
 /* ------------------------------------------------------------- the Team Leader */
+const peopleOf = (p) => [...new Set((p.members || []).filter((m) => !m.is_team_leader && m.user_id !== p.team_leader_id).map((m) => m.email))];
 const summaryView = (p) => {
   const lifecycle = lifecycleFrom(p.status);
   return {
@@ -390,9 +392,10 @@ const summaryView = (p) => {
     clientName: p.client_name || '', // sent with each Team Leader project (client_name)
     startDate: p.start_date || '',
     deadline: p.deadline || '',
-    memberCount: (p.members || []).length,
     // the people on the project (each once, without the Team Leader), for the avatars on the dashboard cards
-    people: [...new Set((p.members || []).filter((m) => !m.is_team_leader).map((m) => m.email))],
+    people: peopleOf(p),
+    // everyone on the team: those people and the project's Team Leader, who is a team member too
+    memberCount: peopleOf(p).length + 1,
     // the newest sketch made in the project (dashboard only), shown on its card instead of the drawn cover
     cover: p.cover_sketch ? { storyId: p.cover_sketch.story_id, sceneId: p.cover_sketch.scene_id, sketchId: p.cover_sketch.sketch_id } : null,
     createdAt: time(p.created_at),

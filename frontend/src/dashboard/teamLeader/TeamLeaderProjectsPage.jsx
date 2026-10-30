@@ -12,7 +12,7 @@ import Pill from '../ui/Pill.jsx';
 import RefreshButton from '../ui/RefreshButton.jsx';
 import styles from '../pages/pages.module.css';
 import toolbar from '../pages/ProjectsToolbar.module.css';
-import { LIFECYCLE, lifecycleOf } from './lifecycle.js';
+import { LIFECYCLE, lifecycleOf, sortProjects } from './lifecycle.js';
 import { dayLabel, DelayAlert } from '../projectDates.jsx';
 import tl from './TeamLeader.module.css';
 
@@ -23,7 +23,8 @@ export default function TeamLeaderProjectsPage({ teamLeaderId }) {
   useDocumentTitle('My Projects');
   const { data, loading, error, reload } = useResource(() => listTeamLeaderProjects(teamLeaderId), [teamLeaderId]);
   const [filter, setFilter] = useState('all');
-  const projects = useMemo(() => data ?? [], [data]);
+  // ongoing first (nearest deadline first), then not started, completed and aborted
+  const projects = useMemo(() => sortProjects(data ?? []), [data]);
   const counts = useMemo(() => Object.fromEntries(FILTERS.map(([id]) => [id, id === 'all' ? projects.length : projects.filter((p) => p.lifecycle === id).length])), [projects]);
   const shown = filter === 'all' ? projects : projects.filter((p) => p.lifecycle === filter);
 

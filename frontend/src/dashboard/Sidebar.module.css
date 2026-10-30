@@ -1,5 +1,5 @@
 /*
- * The rail is always the same dark colours, whichever theme (light or dark) the rest of the dashboard is in â€” a
+ * The rail is always the same dark colours, whichever theme (light or dark) the rest of the dashboard is in — a
  * fixed set of the dark theme's own values, defined here so the whole file can keep using the usual "--cm-" and
  * "--d-" names without caring which theme is active. Only this file needs to know that.
  */
@@ -36,7 +36,7 @@
   --tip-ink: #fff;
 }
 
-/* ---- "Search or jump toâ€¦" ---- */
+/* ---- "Search or jump to…" ---- */
 .search {
   display: flex;
   align-items: center;
@@ -74,50 +74,6 @@
   color: var(--cm-ink-dim);
   font: inherit;
   font-size: 0.66rem;
-  font-weight: 700;
-}
-
-/* ---- "Continue where you left" ---- */
-.continue {
-  display: grid;
-  gap: 3px;
-  margin: 16px 0 4px;
-  padding: 12px 13px;
-  border: 1px solid var(--cm-line);
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--d-accent-fill), transparent 75%), var(--d-fill-1);
-  color: var(--cm-ink);
-  text-decoration: none;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-.continue:hover {
-  border-color: var(--cm-violet-hi);
-  transform: translateY(-1px);
-}
-.continue:focus-visible {
-  outline: 2px solid var(--cm-violet-hi);
-  outline-offset: 2px;
-}
-.continueLabel {
-  color: var(--cm-ink-faint);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.continueTitle {
-  overflow: hidden;
-  font-size: 0.88rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.continueMeta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--cm-violet-hi);
-  font-size: 0.74rem;
   font-weight: 700;
 }
 
@@ -256,6 +212,19 @@
 }
 .active svg {
   color: var(--cm-violet-hi);
+}
+/* a menu item with its own colour (the creator workspace): its icon sits on a small tinted square */
+.toned .linkIcon {
+  width: 28px;
+  height: 28px;
+  margin: -3px -3px -3px -3px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  color: var(--tone);
+}
+.toned.active svg,
+.toned svg {
+  color: var(--tone);
 }
 
 /* the one label shown next to whichever icon has the mouse or the keyboard focus, once the rail is icon-only.
@@ -499,7 +468,6 @@
 .collapsed .section,
 .collapsed .searchText,
 .collapsed .kbd,
-.collapsed .continue,
 .collapsed .themeSwitch {
   display: none;
 }
@@ -646,9 +614,6 @@
     width: auto;
     margin: 0 14px 6px;
     padding: 0 10px 0 12px;
-  }
-  .collapsed .continue {
-    display: grid;
   }
   .collapsed .themeSwitch {
     display: grid;
