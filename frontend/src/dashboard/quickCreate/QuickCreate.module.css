@@ -1,5 +1,5 @@
 /*
- * Quick Create, its six tools and the Library (QuickCreatePage.jsx, LogoPulse.jsx).
+ * Quick Create, its seven tools and the Library (QuickCreatePage.jsx, LogoPulse.jsx).
  * Each tool has one colour pair: --a deeper, --b lighter, --t for text (deeper on light, lighter on dark).
  * --qc-prompt is the prompt box: a shade lighter than the panel in the dark theme, so the writing area stands out.
  */
@@ -26,6 +26,10 @@
 .toneAudio {
   --a: #9333ea;
   --b: #c084fc;
+}
+.toneShort {
+  --a: #e11d48;
+  --b: #fb7185;
 }
 :where(.page, .ws) {
   --a: #7a3cff;
@@ -232,7 +236,7 @@
 /* the six tools, as one segmented control */
 .seg {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 2px;
   padding: 4px;
   border-radius: 14px;
@@ -1655,6 +1659,362 @@ video.viewerMedia {
   cursor: pointer;
 }
 
+/* ------------------------------------------------------------------ short video */
+/* on the Quick Create page: the Short video card runs across the whole row, above the six other tools */
+.toolWide {
+  grid-column: 1 / -1;
+}
+.toolFeatured {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 18px;
+  min-height: 0;
+}
+.toolFeatured .toolGlow {
+  background: radial-gradient(420px 200px at 100% 0%, color-mix(in srgb, var(--b) 24%, transparent), transparent 75%);
+}
+.toolFeatured .toolIcon {
+  grid-row: 1 / 3;
+  width: 60px;
+  height: 60px;
+}
+.toolFeatured .toolName {
+  margin-top: 0;
+}
+.toolFeatured .toolGo {
+  grid-row: 1 / 3;
+  grid-column: 3;
+  margin-top: 0;
+  align-self: center;
+}
+
+/* the fixed video model (no choice) */
+.fixedModel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 16px;
+  background: var(--qc-row);
+}
+.fixedNote {
+  flex: none;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--a) 14%, transparent);
+  color: var(--t);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.ideas {
+  display: grid;
+  gap: 6px;
+}
+.idea {
+  padding: 8px 12px;
+  border: 1px dashed var(--cm-line-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+.idea:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--a) 55%, transparent);
+  color: var(--cm-ink);
+}
+.lookGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.look {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid var(--cm-line);
+  border-radius: 12px;
+  background: var(--qc-row);
+  color: var(--cm-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.look span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.look:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--a) 45%, transparent);
+}
+.lookOn {
+  border-color: var(--a);
+  background: color-mix(in srgb, var(--a) 13%, transparent);
+  font-weight: 700;
+}
+.lookSwatch {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.lengths {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--d-fill-2);
+}
+.lenBtn {
+  padding: 8px 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cm-ink-dim);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lenBtn:hover:not(:disabled) {
+  color: var(--cm-ink);
+}
+.lenOn {
+  background: linear-gradient(135deg, var(--a), var(--b));
+  color: #fff;
+  box-shadow: 0 8px 18px -10px var(--a);
+}
+.look:disabled,
+.lenBtn:disabled,
+.idea:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* the videos on the right */
+.shortList {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.short {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--cm-line);
+  border-radius: 20px;
+  background: var(--d-fill-1);
+}
+.shortMain {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.shortCell {
+  max-height: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.shortInfo {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+  min-width: 0;
+}
+.shortTitle {
+  font-family: var(--cm-font-display);
+  font-size: 1.3rem;
+  font-weight: var(--cm-display-weight, 600);
+  line-height: 1.2;
+}
+.shortLog {
+  color: var(--cm-ink-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.shortChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.shortChips span {
+  padding: 3px 9px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  color: var(--cm-ink-dim);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.shortChips span:first-child {
+  border-color: color-mix(in srgb, var(--a) 40%, transparent);
+  background: color-mix(in srgb, var(--a) 12%, transparent);
+  color: var(--t);
+}
+.steps {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--cm-ink-faint);
+  font-size: 0.84rem;
+  counter-increment: step;
+}
+.steps li::before {
+  content: counter(step);
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--cm-line-strong);
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.steps .stepDone {
+  color: var(--cm-ink-dim);
+}
+.steps .stepDone::before {
+  content: '✓';
+  border-color: transparent;
+  background: color-mix(in srgb, var(--a) 22%, transparent);
+  color: var(--t);
+}
+.steps .stepNow {
+  color: var(--cm-ink);
+  font-weight: 600;
+}
+.steps .stepNow::before {
+  border-color: var(--a);
+  background: linear-gradient(135deg, var(--a), var(--b));
+  color: #fff;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--a) 18%, transparent);
+}
+.bar {
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--d-fill-2);
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--a), var(--b));
+  transition: width 0.6s var(--cm-ease, ease);
+}
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--cm-line);
+  list-style: none;
+}
+.shot {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+.shotPic {
+  overflow: hidden;
+  max-height: 180px;
+  border-radius: 10px;
+  background: var(--d-fill-2);
+}
+.shotPic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.shotWait {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.shotBusy {
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--b) 22%, transparent) 50%, transparent 80%) 0 0 / 200% 100%;
+  animation: shotShine 1.4s linear infinite;
+}
+@keyframes shotShine {
+  to {
+    background-position: -200% 0;
+  }
+}
+.shotHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.shotHead span {
+  color: var(--cm-ink-faint);
+}
+.shotState {
+  color: var(--t);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.shotLine {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--cm-ink-dim);
+  font-size: 0.72rem;
+  font-style: italic;
+}
+@media (max-width: 760px) {
+  .shortMain {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toolFeatured {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .toolFeatured .toolGo {
+    grid-row: auto;
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin-top: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shotBusy {
+    animation: none;
+  }
+  .bar span {
+    transition: none;
+  }
+}
+
 /* ------------------------------------------------------------------ smaller screens */
 @media (max-width: 1100px) {
   .toolGrid {
@@ -1680,7 +2040,7 @@ video.viewerMedia {
     grid-template-columns: minmax(0, 1fr);
   }
   .seg {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .rows,
   .charDraft {

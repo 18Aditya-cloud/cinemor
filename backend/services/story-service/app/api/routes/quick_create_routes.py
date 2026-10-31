@@ -9,6 +9,10 @@ Quick Create: tools that make one thing on their own, outside any project (app/s
     POST   /api/quick-create/stories/{id}/version          { number }        show an earlier version
     POST   /api/quick-create/avatar-videos                 form: image, script, model_id, aspect_ratio, language, voice_style, consent
     POST   /api/quick-create/audio                         { model_id, voice, text, instructions, speed, language }
+    POST   /api/quick-create/short-videos                  { prompt, style, seconds, aspect_ratio, language, sound }
+                                                      a short film (Wan 3.0), made in the background
+    POST   /api/quick-create/items/{id}/stop               stop a short video being made
+    GET    /api/quick-create/items/{id}/frames/{no}        a short video's picture for shot `no`
     GET    /api/quick-create/items?kind=                   the library (kind: picture | story | avatar_video | audio | character ...)
     GET    /api/quick-create/items/{id}
     GET    /api/quick-create/items/{id}/file[?source=1]    the result (or, for an avatar video, the uploaded picture)
@@ -77,6 +81,15 @@ class AudioRequest(BaseModel):
     instructions: str = Field(default="", max_length=500)
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
     language: str = Field(default="", max_length=50)
+
+
+class ShortVideoRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=LIMITS["short_prompt"])
+    style: str = Field(default="auto", max_length=40)
+    seconds: int = Field(default=15, ge=1, le=30)
+    aspect_ratio: str = Field(default="9:16", max_length=10)
+    language: str = Field(default="English", max_length=50)
+    sound: bool = True
 
 
 @router.get("/options")
@@ -185,10 +198,53 @@ async def create_audio(body: AudioRequest, current_user: CurrentUser, db: Sessio
         raise _fail(exc) from exc
 
 
+def _run_short_video(item_id: int) -> None:
+    db = SessionLocal()
+    try:
+        QuickCreateService(db).run_short_video(item_id)
+    finally:
+        db.close()
+
+
+@router.post("/short-videos", status_code=status.HTTP_202_ACCEPTED, dependencies=[_make_limit])
+def create_short_video(body: ShortVideoRequest, background: BackgroundTasks, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        item = _service(db, current_user).start_short_video(
+            current_user,
+            prompt=body.prompt,
+            style=body.style,
+            seconds=body.seconds,
+            aspect_ratio=body.aspect_ratio,
+            language=body.language,
+            sound=body.sound,
+        )
+    except QuickCreateError as exc:
+        raise _fail(exc) from exc
+    background.add_task(_run_short_video, item["id"])
+    return item
+
+
+@router.post("/items/{item_id}/stop")
+def stop_item(item_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        return _service(db, current_user).stop_short_video(current_user, item_id)
+    except QuickCreateError as exc:
+        raise _fail(exc) from exc
+
+
+@router.get("/items/{item_id}/frames/{no}")
+def get_item_frame(item_id: int, no: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        path, mime, name = _service(db, current_user).frame_of(current_user, item_id, no)
+    except QuickCreateError as exc:
+        raise _fail(exc) from exc
+    return FileResponse(path=str(path), media_type=mime, filename=name, headers={"Cache-Control": "private, max-age=3600"})
+
+
 @router.get("/items")
 def list_items(
     current_user: CurrentUser,
-    kind: str | None = Query(default=None, pattern="^(picture|character|location|image|story|avatar_video|audio)$"),
+    kind: str | None = Query(default=None, pattern="^(picture|character|location|image|story|avatar_video|audio|short_video)$"),
     limit: int = Query(default=60, ge=1, le=200),
     db: Session = Depends(get_db),
 ):

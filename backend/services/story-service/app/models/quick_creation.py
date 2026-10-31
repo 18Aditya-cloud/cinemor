@@ -17,6 +17,9 @@ class QuickCreation(Base):
         avatar_video                    a video of an uploaded picture speaking a script (a file);
                                         the parts it is made of are in `content["parts"]`
         audio                           a voice reading a text (a file)
+        short_video                     a short film from one prompt (a file, Wan 3.0); its plan and shots are in
+                                        `content["plan"]` and `content["shots"]` (each shot's picture: "frame_key"),
+                                        and shot 1's picture is the source file (the cover)
 
     status: working (still being made) | done | failed
     """

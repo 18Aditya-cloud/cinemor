@@ -1,5 +1,5 @@
 /**
- * Quick Create: the six tools that make one thing on their own, outside any project
+ * Quick Create: the seven tools that make one thing on their own, outside any project
  * (backend: app/api/routes/quick_create_routes.py, /api/quick-create/...).
  *
  * They need the backend (they call the AI models); without one, every call says so.
@@ -42,6 +42,8 @@ export async function getOptions() {
     audioModels: d.audio_models || [],
     ratios: d.aspect_ratios || ['16:9', '9:16', '1:1'],
     limits: d.limits || {},
+    // Short video: the model is fixed (Wan 3.0); looks, lengths (seconds), ratios and spoken languages
+    shortVideo: d.short_video || { model_name: 'Wan 3.0', styles: [], lengths: [5, 10, 15, 20, 30], ratios: ['9:16', '16:9', '1:1'], languages: ['English'], max_seconds: 30 },
   };
 }
 
@@ -86,6 +88,23 @@ export async function createAvatarVideo({ file, script, model, ratio, language, 
   return itemView(await request(`${BASE}/avatar-videos`, { method: 'POST', body: form }));
 }
 
+/** Starts a short video (Wan 3.0); it is made in the background (read it again with getItem). */
+export async function createShortVideo({ prompt, style, seconds, ratio, language, sound }) {
+  if (!isBackendConnected) return offline();
+  return itemView(
+    await request(`${BASE}/short-videos`, {
+      method: 'POST',
+      body: { prompt: prompt.trim(), style, seconds: Number(seconds), aspect_ratio: ratio, language, sound: Boolean(sound) },
+    }),
+  );
+}
+
+/** Stops a short video being made. */
+export async function stopItem(id) {
+  if (!isBackendConnected) return offline();
+  return itemView(await request(`${BASE}/items/${Number(id)}/stop`, { method: 'POST' }));
+}
+
 export async function createAudio({ model, voice, text, instructions, speed, language }) {
   if (!isBackendConnected) return offline();
   return itemView(
@@ -96,7 +115,7 @@ export async function createAudio({ model, voice, text, instructions, speed, lan
   );
 }
 
-/** The library; `kind`: picture | character | location | image | story | avatar_video | audio, or all. */
+/** The library; `kind`: picture | character | location | image | story | avatar_video | audio | short_video, or all. */
 export async function listItems(kind = '', limit = 60) {
   if (!isBackendConnected) return offline();
   const q = new URLSearchParams({ limit: String(limit) });
@@ -136,8 +155,8 @@ export const readAsDataUrl = (file) =>
 /* ------------------------------------------------------------------ files (behind the sign-in: fetched, then shown) */
 const urls = new Map();
 const forget = (id) => {
-  for (const key of [`${id}`, `${id}/source`]) {
-    if (urls.has(key)) {
+  for (const key of [...urls.keys()]) {
+    if (key === `${id}` || key.startsWith(`${id}/`)) {
       URL.revokeObjectURL(urls.get(key));
       urls.delete(key);
     }
@@ -149,6 +168,16 @@ export async function fileUrl(id, { source = false } = {}) {
   const key = source ? `${id}/source` : `${id}`;
   if (urls.has(key)) return urls.get(key);
   const blob = await request(`${BASE}/items/${Number(id)}/file${source ? '?source=1' : ''}`, { as: 'blob' });
+  const url = URL.createObjectURL(blob);
+  urls.set(key, url);
+  return url;
+}
+
+/** A short video's picture for shot `no`, as an object URL. */
+export async function frameUrl(id, no) {
+  const key = `${id}/frame/${no}`;
+  if (urls.has(key)) return urls.get(key);
+  const blob = await request(`${BASE}/items/${Number(id)}/frames/${Number(no)}`, { as: 'blob' });
   const url = URL.createObjectURL(blob);
   urls.set(key, url);
   return url;

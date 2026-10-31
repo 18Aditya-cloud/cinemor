@@ -42,6 +42,7 @@ const byWork = (a, b) => (RANK[a.status] ?? 1) - (RANK[b.status] ?? 1) || String
 
 // the Quick Create tools, with the same symbols as the Quick Create page
 const QUICK = [
+  { slug: 'short-video', label: 'Short video', note: 'A short film from one prompt', tone: 'var(--qc-short)', wide: true },
   { slug: 'character', note: 'Any pose, any look', tone: 'var(--qc-character)' },
   { slug: 'location', note: 'A palace to a forest', tone: 'var(--qc-location)' },
   { slug: 'image', note: 'From your words', tone: 'var(--qc-image)' },
@@ -191,7 +192,7 @@ export default function OverviewPage() {
             {QUICK.map((q) => {
               const Icon = q.tool?.icon || IconSparkles;
               return (
-                <li key={q.slug}>
+                <li key={q.slug} className={q.wide ? o.qWide : undefined}>
                   <Link to={`/dashboard/quick-create/${q.slug}`} className={o.q} style={{ '--c': q.tone }} title={q.note}>
                     <span className={o.qIcon} aria-hidden="true">
                       <Icon width={17} height={17} />

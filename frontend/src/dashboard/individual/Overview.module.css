@@ -6,6 +6,7 @@
   --qc-story: #f59e0b;
   --qc-avatar: #3b82f6;
   --qc-audio: #a855f7;
+  --qc-short: #fb7185;
   --tint: var(--st-tint, 16%);
   display: grid;
   gap: 22px;
@@ -19,6 +20,7 @@
   --qc-story: #d97706;
   --qc-avatar: #2563eb;
   --qc-audio: #9333ea;
+  --qc-short: #e11d48;
 }
 
 /* ------------------------------------------------------------------ top */
@@ -360,6 +362,9 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+.qWide {
+  grid-column: 1 / -1;
 }
 .q {
   display: flex;

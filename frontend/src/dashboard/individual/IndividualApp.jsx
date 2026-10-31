@@ -53,7 +53,7 @@ function pageFor(path) {
   if (path === '/dashboard/clients') return { page: 'clients' };
   if (path === '/dashboard/settings') return { page: 'settings' };
   if (path === '/dashboard/library') return { page: 'library' };
-  const q = path.match(/^\/dashboard\/quick-create(?:\/(character|location|image|story|avatar-video|audio))?$/);
+  const q = path.match(/^\/dashboard\/quick-create(?:\/(short-video|character|location|image|story|avatar-video|audio))?$/);
   if (q) return { page: 'quick', tool: q[1] || null };
   let m = path.match(/^\/dashboard\/projects\/(\d+)$/);
   if (m) return { page: 'project', id: Number(m[1]) };

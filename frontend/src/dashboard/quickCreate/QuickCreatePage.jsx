@@ -15,16 +15,19 @@ import {
   createAudio,
   createAvatarVideo,
   createPictures,
+  createShortVideo,
   createStory,
   deleteMany,
   download,
   editStory,
   fileUrl,
+  frameUrl,
   getItem,
   getOptions,
   listItems,
   readAsDataUrl,
   showStoryVersion,
+  stopItem,
 } from './quickCreateApi.js';
 import q from './QuickCreate.module.css';
 
@@ -80,16 +83,28 @@ const IconSquareCheck = svg(
   </>,
 );
 
-/* ------------------------------------------------------------------ the six tools */
+const IconClapper = svg(
+  <>
+    <path d="M4 10h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+    <path d="m4 10-.6-3.1a1.5 1.5 0 0 1 1.2-1.8l11.8-2.3a1.5 1.5 0 0 1 1.8 1.2L18.7 6 4 10z" />
+    <path d="m8.2 4.4 2.4 3.6M13.2 3.4l2.4 3.6" />
+  </>,
+);
+
+/* ------------------------------------------------------------------ the seven tools */
+// `label` is the short name (tabs), `name` the full one (cards, Library)
 export const TOOLS = [
+  { slug: 'short-video', kind: 'short_video', label: 'Short', name: 'Short video', hero: 'Short Video', text: 'A short film from one prompt, up to 30 seconds, in any look', icon: IconClapper, tone: q.toneShort, plural: 'Short videos' },
   { slug: 'character', kind: 'character', label: 'Character', hero: 'Create Character', text: 'A character, in any pose and any look', icon: IconUser, tone: q.toneCharacter, plural: 'Characters' },
   { slug: 'location', kind: 'location', label: 'Location', hero: 'Create Location', text: 'A place, from a palace hall to a forest', icon: IconPin, tone: q.toneLocation, plural: 'Locations' },
   { slug: 'image', kind: 'image', label: 'Image', hero: 'Create Image', text: 'Any picture from your words', icon: IconImage, tone: q.toneImage, plural: 'Images' },
   { slug: 'story', kind: 'story', label: 'Story', hero: 'Write a Story', text: 'A full story, changed only with AI edits', icon: IconBook, tone: q.toneStory, plural: 'Stories' },
-  { slug: 'avatar-video', kind: 'avatar_video', label: 'Avatar', hero: 'Avatar Video', text: 'A picture that speaks your script', icon: IconFilm, tone: q.toneAvatar, plural: 'Avatar videos' },
+  { slug: 'avatar-video', kind: 'avatar_video', label: 'Avatar', name: 'Avatar video', hero: 'Avatar Video', text: 'A picture that speaks your script', icon: IconFilm, tone: q.toneAvatar, plural: 'Avatar videos' },
   { slug: 'audio', kind: 'audio', label: 'Audio', hero: 'Create Audio', text: 'A voice for any text', icon: IconMic, tone: q.toneAudio, plural: 'Audio' },
 ];
-const toolOf = (kind) => TOOLS.find((t) => t.kind === kind) || TOOLS[2];
+const toolOf = (kind) => TOOLS.find((t) => t.kind === kind) || TOOLS.find((t) => t.kind === 'image');
+const nameOf = (tool) => tool.name || tool.label;
+const VIDEO_KINDS = ['avatar_video', 'short_video'];
 const BASE = '/dashboard/quick-create';
 export const toolPath = (tool, itemId) => `${BASE}/${tool.slug}${itemId ? `?item=${itemId}` : ''}`;
 
@@ -128,9 +143,9 @@ const wordsOf = (text) => (String(text || '').trim().match(/\S+/g) || []).length
 const sameText = (a, b) => String(a || '').trim().replace(/\s+/g, ' ').toLowerCase() === String(b || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 /**
- * Quick Create (/dashboard/quick-create): six tools that each make one thing on their own, outside any project:
- * Character, Location, Image, Story, Avatar video and Audio. Each tool has its controls on the left and what it is
- * making on the right; everything made is also kept in the Library. Without `tool`, the page with the six tools.
+ * Quick Create (/dashboard/quick-create): seven tools that each make one thing on their own, outside any project:
+ * Short video, Character, Location, Image, Story, Avatar video and Audio. Each tool has its controls on the left and what it is
+ * making on the right; everything made is also kept in the Library. Without `tool`, the page with the seven tools.
  */
 export default function QuickCreatePage({ tool: slug }) {
   const tool = TOOLS.find((t) => t.slug === slug);
@@ -146,10 +161,11 @@ export default function QuickCreatePage({ tool: slug }) {
   if (PICTURE[tool.kind]) return <PictureTool key={tool.kind} {...props} />;
   if (tool.kind === 'story') return <StoryTool {...props} itemId={itemId} />;
   if (tool.kind === 'avatar_video') return <AvatarTool {...props} itemId={itemId} />;
+  if (tool.kind === 'short_video') return <ShortVideoTool {...props} itemId={itemId} />;
   return <AudioTool {...props} />;
 }
 
-/* ------------------------------------------------------------------ the page with the six tools */
+/* ------------------------------------------------------------------ the page with the seven tools */
 function Hub() {
   const recent = useResource(() => listItems('', 8), []);
   const viewer = useViewer(recent.data || [], () => recent.reload());
@@ -159,20 +175,20 @@ function Hub() {
         <div>
           <p className={q.eyebrow}>Quick Create</p>
           <h1 className={q.title}>What do you want to make?</h1>
-          <p className={q.sub}>Six tools that work on their own, without a project. Your projects stay exactly as they are.</p>
+          <p className={q.sub}>Seven tools that work on their own, without a project. Your projects stay exactly as they are.</p>
         </div>
       </div>
       <ul className={q.toolGrid}>
         {TOOLS.map((t) => {
           const Icon = t.icon;
           return (
-            <li key={t.slug}>
-              <Link to={toolPath(t)} className={cx(q.toolCard, t.tone)}>
+            <li key={t.slug} className={t.kind === 'short_video' ? q.toolWide : undefined}>
+              <Link to={toolPath(t)} className={cx(q.toolCard, t.tone, t.kind === 'short_video' && q.toolFeatured)}>
                 <span className={q.toolGlow} aria-hidden="true" />
                 <span className={q.toolIcon} aria-hidden="true">
                   <Icon width={24} height={24} />
                 </span>
-                <span className={q.toolName}>{t.kind === 'avatar_video' ? 'Avatar video' : t.label}</span>
+                <span className={q.toolName}>{nameOf(t)}</span>
                 <span className={q.toolText}>{t.text}</span>
                 <span className={q.toolGo}>
                   Start <IconChevronRight width={15} height={15} aria-hidden="true" />
@@ -1145,6 +1161,319 @@ function VideoCard({ item, sel }) {
   );
 }
 
+/* ================================================================== short video (Wan 3.0) */
+// a small picture of each look, drawn with colour only
+const LOOK_SWATCH = {
+  auto: 'conic-gradient(from 200deg, #f472b6, #a78bfa, #38bdf8, #34d399, #fbbf24, #f472b6)',
+  realistic: 'linear-gradient(160deg, #8fb3c9 0%, #d9c3a5 55%, #6b5a48 100%)',
+  cinematic: 'linear-gradient(160deg, #0f2a3a 0%, #1c5161 40%, #f08a3c 100%)',
+  '3d': 'radial-gradient(circle at 35% 35%, #ffe0f0 0 12%, #ff9ccf 30%, #7a5cff 75%)',
+  anime: 'linear-gradient(170deg, #7cc7ff 0%, #c9e8ff 50%, #ff8fb1 100%)',
+  '2d': 'linear-gradient(135deg, #ffd23f 0 33%, #3bceac 33% 66%, #ee4266 66%)',
+  clay: 'radial-gradient(circle at 40% 40%, #f4a261 0 25%, #e76f51 50%, #8d5a3b 90%)',
+  watercolor: 'radial-gradient(circle at 30% 30%, #a8dadc 0 30%, transparent 60%), radial-gradient(circle at 70% 70%, #f4acb7 0 30%, #fdf6ec 70%)',
+  comic: 'radial-gradient(circle, #111 1px, transparent 1.5px) 0 0 / 6px 6px, linear-gradient(135deg, #ffde59, #ff5757)',
+  pixel: 'conic-gradient(#38bdf8 0 25%, #22c55e 0 50%, #facc15 0 75%, #a855f7 0) 0 0 / 12px 12px',
+};
+const SHORT_IDEAS = [
+  'A tiny robot finds the last flower on Mars and shields it from a dust storm',
+  'A street dog in old Delhi follows the smell of jalebis and makes a new friend',
+  'An astronaut opens her helmet on a strange planet and hears music for the first time',
+];
+const STAGES = [
+  { key: 'planning', label: 'Writing the shots' },
+  { key: 'frames', label: 'Drawing the shots' },
+  { key: 'clips', label: 'Animating with Wan 3.0' },
+  { key: 'joining', label: 'Joining into one video' },
+];
+const shotsFor = (seconds) => (seconds <= 5 ? '1 shot' : seconds <= 10 ? '1–2 shots' : seconds <= 15 ? '2–3 shots' : seconds <= 20 ? '3–4 shots' : '4–6 shots');
+
+function ShortVideoTool({ tool, options, itemId }) {
+  const uid = useId();
+  const toast = useToast();
+  const { navigate } = useRouter();
+  const conf = options.shortVideo;
+  const styles = conf.styles.length ? conf.styles : [{ id: 'auto', label: 'Match my prompt' }];
+  const [prompt, setPrompt] = useState('');
+  const [style, setStyle] = useState('auto');
+  const [seconds, setSeconds] = useState(15);
+  const [ratio, setRatio] = useState('9:16');
+  const [language, setLanguage] = useState('English');
+  const [sound, setSound] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [items, setItems] = useState([]);
+  const sel = useSelection((ids) => setItems((list) => list.filter((x) => !ids.includes(x.id))));
+
+  // opened from the Library (?item=), or the videos made before on this page
+  useEffect(() => {
+    let alive = true;
+    const load = itemId ? getItem(itemId).then((v) => [v]) : listItems('short_video', 6);
+    load.then((list) => alive && setItems((now) => (now.length ? now : list))).catch((err) => alive && setError(err.message));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemId]);
+
+  // read the videos still being made again every few seconds
+  const working = items.filter((x) => x.status === 'working').map((x) => x.id);
+  useEffect(() => {
+    if (!working.length) return undefined;
+    const timer = setInterval(async () => {
+      const fresh = await Promise.all(working.map((id) => getItem(id).catch(() => null)));
+      setItems((list) => list.map((x) => fresh.find((f) => f?.id === x.id) || x));
+      if (fresh.some((f) => f?.status === 'done')) toast('Your short video is ready');
+    }, 4000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [working.join(',')]);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setError('');
+    if (!prompt.trim()) return setError('Describe the video you want.');
+    setBusy(true);
+    sel.stop();
+    try {
+      const made = await createShortVideo({ prompt, style, seconds, ratio, language, sound });
+      setItems((list) => [made, ...list.filter((x) => x.id !== made.id)]);
+      navigate(toolPath(tool, made.id), { replace: true });
+    } catch (err) {
+      setError(err.message);
+      toast(err.message, 'error');
+    }
+    setBusy(false);
+    return undefined;
+  };
+
+  const stop = async (item) => {
+    try {
+      const stopped = await stopItem(item.id);
+      setItems((list) => list.map((x) => (x.id === stopped.id ? stopped : x)));
+      toast('Stopped');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  };
+
+  const reuse = (item) => {
+    setPrompt(item.prompt);
+    if (item.settings.style) setStyle(item.settings.style);
+    if (item.settings.seconds) setSeconds(item.settings.seconds);
+    if (item.settings.aspect_ratio) setRatio(item.settings.aspect_ratio);
+    if (item.settings.language) setLanguage(item.settings.language);
+    setSound(item.settings.sound !== false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const controls = (
+    <>
+      <div className={q.fixedModel}>
+        <span className={q.rowIcon} aria-hidden="true">
+          <IconSparkles width={18} height={18} />
+        </span>
+        <span className={q.rowText}>
+          <span className={q.rowLabel}>Video model</span>
+          <b className={q.rowValue}>{conf.model_name || 'Wan 3.0'}</b>
+        </span>
+        <span className={q.fixedNote}>Made for this tool</span>
+      </div>
+      <PromptBox
+        id={`${uid}-prompt`}
+        label="Describe your video"
+        value={prompt}
+        onChange={setPrompt}
+        max={options.limits.short_prompt || 2000}
+        rows={5}
+        placeholder="Who is in it, where it happens, what happens, and how it should feel. Name a look too if you like: anime, 3D, realistic…"
+        disabled={busy}
+        foot={<span className={q.promptHint}>{shotsFor(seconds)}</span>}
+      />
+      {!prompt && (
+        <div className={q.ideas} role="group" aria-label="Ideas to start from">
+          {SHORT_IDEAS.map((idea) => (
+            <button key={idea} type="button" className={q.idea} onClick={() => setPrompt(idea)} disabled={busy}>
+              {idea}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className={q.field} role="radiogroup" aria-label="Look">
+        <p className={q.fieldLabel}>Look</p>
+        <div className={q.lookGrid}>
+          {styles.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="radio"
+              aria-checked={style === s.id}
+              className={cx(q.look, style === s.id && q.lookOn)}
+              onClick={() => setStyle(s.id)}
+              disabled={busy}
+            >
+              <span className={q.lookSwatch} style={{ background: LOOK_SWATCH[s.id] || LOOK_SWATCH.auto }} aria-hidden="true" />
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={q.field} role="radiogroup" aria-label="Length">
+        <p className={q.fieldLabel}>Length</p>
+        <div className={q.lengths}>
+          {conf.lengths.map((n) => (
+            <button key={n} type="button" role="radio" aria-checked={seconds === n} className={cx(q.lenBtn, seconds === n && q.lenOn)} onClick={() => setSeconds(n)} disabled={busy}>
+              {n}s
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={q.rows}>
+        <RowSelect icon={IconRatio} label="Ratio" value={ratio} options={conf.ratios.map((r) => ({ value: r, label: RATIOS[r] || r }))} onChange={setRatio} disabled={busy} />
+        <RowSelect icon={IconGlobe} label="Spoken words in" value={language} options={conf.languages.map((l) => ({ value: l, label: l }))} onChange={setLanguage} disabled={busy || !sound} />
+      </div>
+      <Toggle label="Sound: music, effects and voices" on={sound} onChange={setSound} disabled={busy} />
+      <FormError text={error} />
+      <GenerateBar busy={busy} label="Make video" />
+    </>
+  );
+
+  const canvas = (
+    <Canvas tool={tool} title={tool.plural} count={items.length} sel={sel} allIds={items.filter((x) => x.status !== 'working').map((x) => x.id)}>
+      {items.length === 0 ? (
+        <Empty tool={tool} text="Your video shows up here, shot by shot as it is made. It takes a few minutes; you can leave the page." />
+      ) : (
+        <ul className={q.shortList}>
+          {items.map((v) => (
+            <li key={v.id}>
+              <ShortCard item={v} sel={sel} onStop={() => stop(v)} onReuse={() => reuse(v)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Canvas>
+  );
+  return <Workspace tool={tool} onSubmit={submit} controls={controls} canvas={canvas} />;
+}
+
+function ShortCard({ item, sel, onStop, onReuse }) {
+  const { overlay, onReady } = useReveal(item.status !== 'done' || undefined);
+  const shots = item.content.shots || [];
+  const plan = item.content.plan || {};
+  const stage = item.content.stage || 'queued';
+  const n = shots.length;
+  const drawn = shots.filter((s) => s.frame_status === 'done').length;
+  const animated = shots.filter((s) => s.clip_status === 'done').length;
+  const at = STAGES.findIndex((s) => s.key === stage);
+  const label =
+    stage === 'frames' && n ? `Drawing shot ${Math.min(drawn + 1, n)} of ${n}` : stage === 'clips' && n ? `Animating: ${animated} of ${n} shots ready` : (STAGES[at] || STAGES[0]).label;
+  const pct = stage === 'done' ? 100 : stage === 'joining' ? 94 : stage === 'clips' ? 40 + (n ? (50 * animated) / n : 0) : stage === 'frames' ? 8 + (n ? (32 * drawn) / n : 0) : 4;
+  const s = item.settings;
+  const chips = [s.style_label, s.seconds && `${s.seconds}s`, s.aspect_ratio, s.sound === false ? 'Silent' : s.language, 'Wan 3.0'].filter(Boolean);
+  return (
+    <article className={cx(q.short, sel?.picked.has(item.id) && q.cellPicked)}>
+      <div className={q.shortMain}>
+        <div className={cx(q.cell, q.videoCell, q.shortCell)} style={{ aspectRatio: aspectOf(s.aspect_ratio) }}>
+          {item.status === 'done' && <Media item={item} onReady={onReady} />}
+          {item.status === 'done' && overlay}
+          {item.status === 'working' && (
+            <>
+              {item.hasSource && <Media item={item} source className={q.dim} />}
+              <LogoPulse label={label} />
+            </>
+          )}
+          {item.status === 'failed' && (
+            <div className={q.failed}>
+              <b>{item.content.stopped ? 'Stopped' : 'This video could not be made'}</b>
+              <p>{item.error}</p>
+            </div>
+          )}
+          <Pick sel={item.status === 'working' ? null : sel} id={item.id} label={item.title} />
+          {item.status === 'done' && !sel?.selecting && (
+            <div className={q.cellActions}>
+              <button type="button" className={q.round} onClick={() => download(item)} aria-label="Download">
+                <IconDownload width={16} height={16} />
+              </button>
+            </div>
+          )}
+        </div>
+        <div className={q.shortInfo}>
+          <p className={q.shortTitle}>{item.title}</p>
+          {plan.logline ? <p className={q.shortLog}>{plan.logline}</p> : <p className={q.shortLog}>“{item.prompt.length > 180 ? `${item.prompt.slice(0, 180)}…` : item.prompt}”</p>}
+          <p className={q.shortChips}>
+            {chips.map((c) => (
+              <span key={c}>{c}</span>
+            ))}
+          </p>
+          {item.status === 'working' && (
+            <>
+              <ol className={q.steps}>
+                {STAGES.map((st, i) => (
+                  <li key={st.key} className={cx(i < at && q.stepDone, i === at && q.stepNow)}>
+                    {st.label}
+                  </li>
+                ))}
+              </ol>
+              <div className={q.bar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label="Progress">
+                <span style={{ width: `${pct}%` }} />
+              </div>
+              <button type="button" className={q.tbBtn} onClick={onStop}>
+                Stop
+              </button>
+            </>
+          )}
+          {item.status === 'failed' && (
+            <button type="button" className={q.tbBtn} onClick={onReuse}>
+              Use this prompt again
+            </button>
+          )}
+          {item.status === 'done' && (
+            <button type="button" className={q.tbBtn} onClick={onReuse}>
+              Make another like this
+            </button>
+          )}
+        </div>
+      </div>
+      {n > 0 && (
+        <ol className={q.shots} aria-label="Shots">
+          {shots.map((shot) => (
+            <ShotThumb key={shot.no} item={item} shot={shot} ratio={s.aspect_ratio} />
+          ))}
+        </ol>
+      )}
+    </article>
+  );
+}
+
+function ShotThumb({ item, shot, ratio }) {
+  const [url, setUrl] = useState(null);
+  const ready = shot.frame_status === 'done';
+  useEffect(() => {
+    let alive = true;
+    if (!ready) return undefined;
+    frameUrl(item.id, shot.no)
+      .then((u) => alive && setUrl(u))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [item.id, shot.no, ready]);
+  const state = shot.clip_status === 'done' ? 'Animated' : shot.clip_status === 'making' ? 'Animating…' : shot.frame_status === 'making' ? 'Drawing…' : shot.frame_status === 'failed' || shot.clip_status === 'failed' ? 'Failed' : ready ? 'Drawn' : 'Waiting';
+  return (
+    <li className={q.shot} title={shot.action}>
+      <div className={q.shotPic} style={{ aspectRatio: aspectOf(ratio) }}>
+        {url ? <img src={url} alt={`Shot ${shot.no}`} /> : <span className={cx(q.shotWait, (shot.frame_status === 'making' || shot.clip_status === 'making') && q.shotBusy)} />}
+      </div>
+      <p className={q.shotHead}>
+        <b>Shot {shot.no}</b>
+        <span>{shot.seconds}s</span>
+      </p>
+      {item.status === 'working' && <p className={q.shotState}>{state}</p>}
+      {shot.line && <p className={q.shotLine}>“{shot.line}”</p>}
+    </li>
+  );
+}
+
 /* ================================================================== audio */
 const MANNERS = ['Natural', 'Calm storyteller', 'Warm and friendly', 'Excited', 'Whisper', 'News anchor', 'Sad', 'Angry'];
 const SPEEDS = [0.75, 0.9, 1, 1.1, 1.25, 1.5];
@@ -1296,6 +1625,7 @@ const FILTERS = [
   { key: 'location', label: 'Locations' },
   { key: 'image', label: 'Images' },
   { key: 'story', label: 'Stories' },
+  { key: 'short_video', label: 'Short videos' },
   { key: 'avatar_video', label: 'Avatar videos' },
   { key: 'audio', label: 'Audio' },
 ];
@@ -1444,7 +1774,9 @@ function Viewer({ item, position, total, onClose, onMove, onDeleted }) {
   }, [onClose, onMove, total, asking]);
 
   const details = [
-    tool.kind === 'avatar_video' ? 'Avatar video' : tool.label,
+    nameOf(tool),
+    item.settings.style_label,
+    item.settings.seconds && `${item.settings.seconds} seconds`,
     item.settings.aspect_ratio,
     item.settings.voice && `Voice: ${item.settings.voice}`,
     item.settings.language,
@@ -1463,9 +1795,9 @@ function Viewer({ item, position, total, onClose, onMove, onDeleted }) {
             <IconDownload width={16} height={16} aria-hidden="true" /> Download
           </button>
         )}
-        {['story', 'avatar_video'].includes(item.kind) && (
+        {['story', ...VIDEO_KINDS].includes(item.kind) && (
           <Link to={toolPath(tool, item.id)} className={q.viewerBtn}>
-            Open in {tool.kind === 'avatar_video' ? 'Avatar video' : tool.label} <IconChevronRight width={15} height={15} aria-hidden="true" />
+            Open in {nameOf(tool)} <IconChevronRight width={15} height={15} aria-hidden="true" />
           </Link>
         )}
         {item.status !== 'working' && (
@@ -1486,7 +1818,7 @@ function Viewer({ item, position, total, onClose, onMove, onDeleted }) {
         )}
         <div className={q.viewerContent} key={item.id}>
           {['character', 'location', 'image'].includes(item.kind) && <Media item={item} className={q.viewerMedia} />}
-          {item.kind === 'avatar_video' &&
+          {VIDEO_KINDS.includes(item.kind) &&
             (item.status === 'done' ? (
               <Media item={item} className={q.viewerMedia} />
             ) : item.status === 'failed' ? (
@@ -1558,7 +1890,7 @@ function LibraryCard({ item, sel, onOpen }) {
   const story = item.kind === 'story' ? (item.content.versions || []).find((v) => v.no === item.content.current) : null;
   // (a video shows its picture here; it plays in the viewer)
   const visual =
-    item.kind === 'avatar_video' ? (
+    VIDEO_KINDS.includes(item.kind) ? (
       <>
         <Media item={item} source />
         {item.status === 'done' && (
@@ -1578,7 +1910,7 @@ function LibraryCard({ item, sel, onOpen }) {
             {story ? <p>{story.content.slice(0, 220)}</p> : <Icon width={34} height={34} />}
           </div>
         )}
-        <span className={q.libKind}>{tool.kind === 'avatar_video' ? 'Avatar video' : tool.label}</span>
+        <span className={q.libKind}>{nameOf(tool)}</span>
         {item.status === 'working' && <span className={q.libState}>Making…</span>}
         {item.status === 'failed' && <span className={cx(q.libState, q.libFailed)}>Failed</span>}
       </div>

@@ -1,11 +1,13 @@
 """
-Quick Create: six tools that make one thing on their own, outside any project.
+Quick Create: seven tools that make one thing on their own, outside any project.
 
     character / location / image   a picture from a prompt, with a model and an aspect ratio
     story                          a story with every option of the story module; changed only by AI edits
     avatar_video                   an uploaded picture speaking a script; a long script is split into parts,
                                    each part becomes a clip, and the clips are joined into one video (moviepy)
     audio                          a voice reading a text, with a model, a voice and how it should sound
+    short_video                    a short film (up to 30 seconds) from one prompt, in a chosen look, made with
+                                   Wan 3.0 only (app/services/short_video_service.py)
 
 Everything made is kept in the user's library (the quick_creations table, files under storage/quick-create/).
 The project modules are not used or changed; the story prompts, the image and video model lists and the video
@@ -42,10 +44,11 @@ from app.schemas.story_request import StoryRequest
 STORAGE = Path(__file__).resolve().parents[2] / "storage" / "quick-create"
 
 PICTURE_KINDS = ("character", "location", "image")
-KINDS = (*PICTURE_KINDS, "story", "avatar_video", "audio")
+KINDS = (*PICTURE_KINDS, "story", "avatar_video", "audio", "short_video")
+VIDEO_KINDS = ("avatar_video", "short_video")  # made in the background: not deleted while still being made
 
 # how much one person may make in a day (the providers are paid per use)
-DAILY_LIMITS = {"picture": 60, "story": 40, "avatar_video": 6, "audio": 60}
+DAILY_LIMITS = {"picture": 60, "story": 40, "avatar_video": 6, "audio": 60, "short_video": 6}
 
 LIMITS = {
     "prompt": 2000,  # character / location / image
@@ -55,6 +58,7 @@ LIMITS = {
     "parts": 12,  # avatar video: most clips one video is made of
     "audio_text": 5000,
     "upload_bytes": 10 * 1024 * 1024,
+    "short_prompt": 2000,  # short video
 }
 
 # how each picture tool turns the user's words into a prompt
@@ -149,7 +153,7 @@ def purge_expired(db: Session, *, force: bool = False) -> int:
         .all()
     )
     for item in old:
-        for key in (item.storage_key, item.source_key):
+        for key in QuickCreateService.keys_of(item):
             path = QuickCreateService.path_of(key)
             if path:
                 path.unlink(missing_ok=True)
@@ -292,6 +296,22 @@ class QuickCreateService:
             return None
         return path
 
+    @staticmethod
+    def keys_of(item: QuickCreation) -> list[str]:
+        """Every file kept for one thing: the result, the source picture and (short video) the shots' pictures."""
+        keys = [item.storage_key, item.source_key]
+        keys += [s.get("frame_key") for s in (item.content or {}).get("shots", []) if isinstance(s, dict)]
+        return list(dict.fromkeys(k for k in keys if k))
+
+    def frame_of(self, user: User, item_id: int, no: int) -> tuple[Path, str, str]:
+        """A short video's picture for shot `no`."""
+        item = self._get(user, item_id)
+        shot = next((s for s in (item.content or {}).get("shots", []) if s.get("no") == no), None)
+        path = self.path_of(shot.get("frame_key")) if shot else None
+        if path is None:
+            raise QuickCreateError("This picture is not ready.", 404)
+        return path, shot.get("frame_mime") or "image/png", f"shot-{item.id}-{no}{path.suffix}"
+
     def file_of(self, user: User, item_id: int, source: bool = False) -> tuple[Path, str, str]:
         item = self._get(user, item_id)
         key, mime = (item.source_key, item.source_mime_type) if source else (item.storage_key, item.mime_type)
@@ -357,9 +377,9 @@ class QuickCreateService:
         items = self.db.query(QuickCreation).filter(QuickCreation.user_id == user.id, QuickCreation.id.in_(ids)).all()
         removed = 0
         for item in items:
-            if item.status == "working" and item.kind == "avatar_video":
+            if item.status == "working" and item.kind in VIDEO_KINDS:
                 continue
-            for key in (item.storage_key, item.source_key):
+            for key in self.keys_of(item):
                 path = self.path_of(key)
                 if path:
                     path.unlink(missing_ok=True)
@@ -370,9 +390,9 @@ class QuickCreateService:
 
     def delete(self, user: User, item_id: int) -> None:
         item = self._get(user, item_id)
-        if item.status == "working" and item.kind == "avatar_video":
-            raise QuickCreateError("This video is still being made. Delete it when it has finished.", 409)
-        for key in (item.storage_key, item.source_key):
+        if item.status == "working" and item.kind in VIDEO_KINDS:
+            raise QuickCreateError("This video is still being made. Stop it or wait until it has finished.", 409)
+        for key in self.keys_of(item):
             path = self.path_of(key)
             if path:
                 path.unlink(missing_ok=True)
@@ -388,6 +408,7 @@ class QuickCreateService:
             "video_models": [{"id": m, "name": _video_name(m)} for m in video_models],
             "default_video_model": settings.OPENROUTER_VIDEO_DEFAULT_MODEL,
             "audio_models": await qc.audio_models(),
+            "short_video": short_video_options(),
             "aspect_ratios": qc.ASPECT_RATIOS,
             "limits": LIMITS,
             "daily_limits": DAILY_LIMITS,
@@ -792,6 +813,84 @@ class QuickCreateService:
         finally:
             shutil.rmtree(work, ignore_errors=True)
 
+    # ============================================================ short video
+    def start_short_video(
+        self,
+        user: User,
+        *,
+        prompt: str,
+        style: str,
+        seconds: int,
+        aspect_ratio: str,
+        language: str,
+        sound: bool,
+    ) -> dict[str, Any]:
+        from app.services import short_video_service as sv
+
+        prompt = prompt.strip()
+        if not prompt:
+            raise QuickCreateError("Describe the video you want.")
+        if len(prompt) > LIMITS["short_prompt"]:
+            raise QuickCreateError(f"Keep the prompt under {LIMITS['short_prompt']} characters.")
+        if style not in sv.STYLES:
+            raise QuickCreateError("Choose one of the offered looks.")
+        if seconds not in sv.LENGTHS:
+            raise QuickCreateError(f"Choose a length of {sv.MAX_SECONDS} seconds or less.")
+        if aspect_ratio not in sv.RATIOS:
+            raise QuickCreateError("Choose one of the offered ratios.")
+        if language not in sv.LANGUAGES:
+            language = "English"
+        self._check_daily(user, "short_video")
+        running = (
+            self.db.query(QuickCreation)
+            .filter(QuickCreation.user_id == user.id, QuickCreation.kind == "short_video", QuickCreation.status == "working")
+            .all()
+        )
+        self._expire_stale(running)
+        if any(r.status == "working" for r in running):
+            raise QuickCreateError("One short video is already being made. Please wait until it is ready, or stop it.", 409)
+
+        item = QuickCreation(
+            user_id=user.id,
+            kind="short_video",
+            status="working",
+            title=_short(prompt, 80),
+            prompt=prompt,
+            model_id=sv.VIDEO_MODEL,
+            settings={
+                "style": style,
+                "style_label": sv.STYLES[style]["label"],
+                "seconds": seconds,
+                "aspect_ratio": aspect_ratio,
+                "language": language,
+                "sound": bool(sound),
+            },
+            content={"stage": "queued", "shots": []},
+        )
+        self.db.add(item)
+        self.db.commit()
+        return self.serialize(item)
+
+    def run_short_video(self, item_id: int) -> None:
+        """Make the short video (a background task with its own database session)."""
+        from app.services.short_video_service import ShortVideoMaker
+
+        asyncio.run(ShortVideoMaker(self.db, self).run(item_id))
+
+    def stop_short_video(self, user: User, item_id: int) -> dict[str, Any]:
+        """Stops a short video being made (the shots already sent to the video model still finish there)."""
+        item = self._get(user, item_id)
+        if item.kind != "short_video":
+            raise QuickCreateError("Only a short video can be stopped.")
+        if item.status == "working":
+            item.status = "failed"
+            item.error_message = "You stopped this video."
+            content = dict(item.content or {})
+            content["stopped"] = True
+            item.content = content
+            self.db.commit()
+        return self.serialize(item)
+
     # ============================================================ audio
     async def create_audio(
         self,
@@ -852,6 +951,21 @@ class QuickCreateService:
         self.db.add(item)
         self.db.commit()
         return self.serialize(item)
+
+
+def short_video_options() -> dict[str, Any]:
+    """What the Short video tool offers (the video model is fixed: Wan 3.0)."""
+    from app.services import short_video_service as sv
+
+    return {
+        "model": sv.VIDEO_MODEL,
+        "model_name": sv.VIDEO_MODEL_NAME,
+        "styles": [{"id": k, "label": v["label"]} for k, v in sv.STYLES.items()],
+        "lengths": sv.LENGTHS,
+        "max_seconds": sv.MAX_SECONDS,
+        "ratios": sv.RATIOS,
+        "languages": sv.LANGUAGES,
+    }
 
 
 def _video_name(model_id: str) -> str:
